@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Review</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    font-family: 'Segoe UI', sans-serif;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Input screen ── */
+  #inputScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 40px 20px;
+    gap: 20px;
+  }
+  #inputScreen h1 { font-size: 1.6rem; letter-spacing: 3px; color: #a0c4ff; }
+  #inputScreen p { color: #666; font-size: 14px; }
+  #pgnInput {
+    width: 100%;
+    max-width: 680px;
+    height: 260px;
+    background: #2d2d4e;
+    color: #e0e0e0;
+    border: 1px solid #4a4a6a;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 13px;
+    font-family: monospace;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  #pgnInput:focus { outline: none; border-color: #a0c4ff; }
+  .load-btn {
+    background: #4a5a8e;
+    color: #fff;
+    border: none;
+    padding: 12px 36px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 1px;
+  }
+  .load-btn:hover { background: #5a6aae; }
+  .error-msg { color: #f08080; font-size: 13px; min-height: 18px; }
+  .sample-link { color: #4a6aae; font-size: 12px; cursor: pointer; text-decoration: underline; }
+
+  /* ── Viewer screen ── */
+  #viewerScreen {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid #2d2d4e;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .game-title { font-size: 14px; color: #a0c4ff; font-weight: 600; }
+  .game-meta { font-size: 12px; color: #666; }
+  .result-badge {
+    padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    background: #2d2d4e; border: 1px solid #4a4a6a; color: #f0c040;
+  }
+  .spacer { flex: 1; }
+  .header-btn {
+    background: #2d2d4e; color: #888; border: 1px solid #4a4a6a;
+    padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center;
+    transition: background 0.15s;
+  }
+  .header-btn:hover { background: #3d3d6e; color: #ccc; }
+  a.header-btn[href="index.html"] { color: #a0c4ff; border-color: #a0c4ff; font-weight: 600; letter-spacing: 0.5px; }
+
+  .viewer-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Board column ── */
+  .board-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 10px;
+  }
+
+  .player-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 480px;
+    padding: 6px 10px;
+    background: #2d2d4e;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .player-bar .player-name { font-weight: 600; color: #e0e0e0; }
+  .player-bar .player-elo { color: #888; font-size: 11px; }
+  .player-color-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid #555;
+  }
+  .dot-white { background: #f0d9b5; }
+  .dot-black { background: #333; border-color: #888; }
+  .player-bar.active-player { border-left: 3px solid #a0c4ff; }
+
+  .board-wrap { display: flex; align-items: center; gap: 6px; }
+  .rank-labels, .file-labels-row { display: flex; color: #888; font-size: 12px; font-weight: bold; }
+  .rank-labels { flex-direction: column; justify-content: space-around; height: 480px; width: 20px; text-align: center; }
+  .file-labels-row { width: 480px; justify-content: space-around; margin-left: 26px; margin-top: 4px; }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    border: 3px solid #4a4a6a;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .sq {
+    width: 60px; height: 60px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 42px; line-height: 1;
+    font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', sans-serif;
+    position: relative; user-select: none;
+  }
+  .sq .wp { color: #fff; -webkit-text-stroke: 1.5px #333; paint-order: stroke fill; pointer-events: none; }
+  .sq .bp { color: #111; -webkit-text-stroke: 1px #ccc; paint-order: stroke fill; pointer-events: none; }
+  .sq.light { background: #f0d9b5; }
+  .sq.dark  { background: #b58863; }
+  .sq.last-move { background: rgba(200,230,100,0.55) !important; }
+
+  .nav-controls {
+    display: flex;
+    gap: 8px;
+  }
+  button {
+    background: #2d2d4e; color: #a0c4ff; border: 1px solid #4a4a6a;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;
+    transition: background 0.15s;
+  }
+  button:hover { background: #3d3d6e; }
+  button:disabled { opacity: 0.4; cursor: default; }
+
+  .status-bar { font-size: 13px; color: #a0c4ff; min-height: 18px; }
+  .kbd-hint { font-size: 11px; color: #444; }
+
+  /* ── Move list panel ── */
+  .move-panel {
+    width: 280px;
+    border-left: 1px solid #2d2d4e;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .move-panel-header {
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #555;
+    border-bottom: 1px solid #2d2d4e;
+    letter-spacing: 1px;
+  }
+  #moveList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-content: flex-start;
+  }
+  .move-num { color: #555; padding: 3px 4px; font-size: 13px; font-family: monospace; }
+  .move-tok {
+    padding: 3px 7px; border-radius: 4px; cursor: pointer;
+    font-size: 13px; font-family: monospace; color: #ccc;
+    transition: background 0.1s;
+  }
+  .move-tok:hover { background: #3d3d6e; color: #fff; }
+  .move-tok.current { background: #4a5a8e; color: #fff; }
+  .move-comment {
+    width: 100%;
+    font-size: 11px;
+    color: #7a9a6a;
+    font-style: italic;
+    padding: 2px 6px 4px 6px;
+    line-height: 1.4;
+  }
+  .result-line {
+    padding: 6px 8px;
+    font-size: 13px;
+    color: #f0c040;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Input screen ── -->
+<div id="inputScreen">
+  <h1>GAME REVIEW</h1>
+  <p>Copy a PGN from Chess.com, Lichess, or any chess database and paste it below</p>
+  <textarea id="pgnInput" spellcheck="false" placeholder='Paste PGN here…
+
+Example:
+[White "Fischer"]
+[Black "Spassky"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 ...'></textarea>
+  <div class="error-msg" id="errorMsg"></div>
+  <button class="load-btn" id="btnLoad">Review Game →</button>
+  <span class="sample-link" id="sampleLink">Try a sample game</span>
+</div>
+
+<!-- ── Viewer screen ── -->
+<div id="viewerScreen">
+  <header>
+    <div>
+      <div class="game-title" id="gameTitle"></div>
+      <div class="game-meta" id="gameMeta"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="result-badge" id="resultBadge"></div>
+    <button class="header-btn" id="btnFlip">Flip (F)</button>
+    <span class="header-btn" id="btnNewGame" style="cursor:pointer">← New Game</span>
+    <a href="index.html" class="header-btn">← Arcade</a>
+  </header>
+
+  <div class="viewer-body">
+    <div class="board-col">
+      <div class="player-bar" id="topPlayerBar">
+        <div class="player-color-dot dot-black" id="topDot"></div>
+        <div>
+          <div class="player-name" id="topName"></div>
+          <div class="player-elo" id="topElo"></div>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="rank-labels" id="rankLabels"></div>
+        <div><div id="board"></div></div>
+      </div>
+      <div class="file-labels-row" id="fileLabels"></div>
+
+      <div class="player-bar" id="bottomPlayerBar">
+        <div class="player-color-dot dot-white" id="bottomDot"></div>
+        <div>
+          <div class="player-name" id="bottomName"></div>
+          <div class="player-elo" id="bottomElo"></div>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <button id="btnFirst">|&lt; First</button>
+        <button id="btnPrev">&lt; Back</button>
+        <button id="btnNext">Next &gt;</button>
+        <button id="btnLast">Last &gt;|</button>
+      </div>
+
+      <div class="status-bar" id="statusBar"></div>
+      <div class="kbd-hint">← → navigate &nbsp;|&nbsp; F flip board</div>
+    </div>
+
+    <div class="move-panel">
+      <div class="move-panel-header">MOVES</div>
+      <div id="moveList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Chess engine (no Stockfish) ───────────────────────────────────────────────
+const VS = '︎';
+const GLYPHS = {
+  wK:'♚'+VS, wQ:'♛'+VS, wR:'♜'+VS, wB:'♝'+VS, wN:'♞'+VS, wP:'♟'+VS,
+  bK:'♚'+VS, bQ:'♛'+VS, bR:'♜'+VS, bB:'♝'+VS, bN:'♞'+VS, bP:'♟'+VS
+};
+const pieceHTML = p => `<span class="${p[0]==='w'?'wp':'bp'}">${GLYPHS[p]}</span>`;
+
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+function parseFEN(fen) {
+  const parts = fen.trim().split(/\s+/), board = Array(64).fill(null);
+  let r=0, c=0;
+  for (const ch of parts[0]) {
+    if (ch=='/') { r++; c=0; }
+    else if ('12345678'.includes(ch)) c += +ch;
+    else { board[r*8+c]=(ch===ch.toUpperCase()?'w':'b')+ch.toUpperCase(); c++; }
+  }
+  return { board, turn:parts[1]||'w', castling:parts[2]||'-', ep:(parts[3]&&parts[3]!=='-')?algToIdx(parts[3]):null, halfMove:parseInt(parts[4]||'0'), fullMove:parseInt(parts[5]||'1') };
+}
+const algToIdx = a => (7-(a.charCodeAt(1)-49))*8+(a.charCodeAt(0)-97);
+const idxToAlg = i => String.fromCharCode(97+i%8)+String(8-Math.floor(i/8));
+function cloneState(s) { return {board:[...s.board],turn:s.turn,castling:s.castling,ep:s.ep,halfMove:s.halfMove,fullMove:s.fullMove}; }
+
+function pseudoAttacks(state, color) {
+  const set=new Set();
+  for(let i=0;i<64;i++){const p=state.board[i];if(p&&p[0]===color)rawTargets(state,i,true).forEach(t=>set.add(t));}
+  return set;
+}
+function rawTargets(state, from, attackOnly=false) {
+  const p=state.board[from]; if(!p) return [];
+  const color=p[0], type=p[1], row=Math.floor(from/8), col=from%8, out=[];
+  const slide=dirs=>{for(const[dr,dc]of dirs){let r=row+dr,c=col+dc;while(r>=0&&r<8&&c>=0&&c<8){const t=r*8+c;if(state.board[t]){if(state.board[t][0]!==color)out.push(t);break;}out.push(t);r+=dr;c+=dc;}}};
+  switch(type){
+    case 'R': slide([[1,0],[-1,0],[0,1],[0,-1]]); break;
+    case 'B': slide([[1,1],[1,-1],[-1,1],[-1,-1]]); break;
+    case 'Q': slide([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]); break;
+    case 'N': for(const[dr,dc]of[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]]){const r=row+dr,c=col+dc;if(r>=0&&r<8&&c>=0&&c<8){const t=r*8+c;if(!state.board[t]||state.board[t][0]!==color)out.push(t);}} break;
+    case 'K': for(const[dr,dc]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const r=row+dr,c=col+dc;if(r>=0&&r<8&&c>=0&&c<8){const t=r*8+c;if(!state.board[t]||state.board[t][0]!==color)out.push(t);}} break;
+    case 'P':{
+      const dir=color==='w'?-1:1;
+      if(attackOnly){for(const dc of[-1,1]){const r=row+dir,c=col+dc;if(r>=0&&r<8&&c>=0&&c<8)out.push(r*8+c);}}
+      else{const r1=row+dir;if(r1>=0&&r1<8&&!state.board[r1*8+col]){out.push(r1*8+col);const sr=color==='w'?6:1;if(row===sr&&!state.board[(row+2*dir)*8+col])out.push((row+2*dir)*8+col);}for(const dc of[-1,1]){const c=col+dc;if(c>=0&&c<8&&r1>=0&&r1<8){const t=r1*8+c;if((state.board[t]&&state.board[t][0]!==color)||(t===state.ep))out.push(t);}}}
+      break;}
+  }
+  return out;
+}
+function isInCheck(state, color) { const ki=state.board.indexOf(color+'K'); if(ki===-1)return false; return pseudoAttacks(state,color==='w'?'b':'w').has(ki); }
+function legalMoves(state, from) {
+  const p=state.board[from]; if(!p||p[0]!==state.turn) return [];
+  const color=p[0], type=p[1], moves=[];
+  for(const to of rawTargets(state,from)){const next=cloneState(state);applyMoveRaw(next,from,to);if(!isInCheck(next,color))moves.push(to);}
+  if(type==='K'){const row=color==='w'?7:0,opp=pseudoAttacks(state,color==='w'?'b':'w');if(!opp.has(from)){if(state.castling.includes(color==='w'?'K':'k')&&!state.board[row*8+5]&&!state.board[row*8+6]&&!opp.has(row*8+5)&&!opp.has(row*8+6))moves.push(row*8+6);if(state.castling.includes(color==='w'?'Q':'q')&&!state.board[row*8+3]&&!state.board[row*8+2]&&!state.board[row*8+1]&&!opp.has(row*8+3)&&!opp.has(row*8+2))moves.push(row*8+2);}}
+  return moves;
+}
+function allLegalMoves(state) { const m=[]; for(let i=0;i<64;i++){const p=state.board[i];if(p&&p[0]===state.turn)legalMoves(state,i).forEach(to=>m.push([i,to]));} return m; }
+function applyMoveRaw(state, from, to, promo='Q') {
+  const p=state.board[from], color=p[0], type=p[1], cap=state.board[to];
+  state.board[to]=p; state.board[from]=null;
+  if(type==='P'&&to===state.ep) state.board[(Math.floor(to/8)+(color==='w'?1:-1))*8+(to%8)]=null;
+  if(type==='K'){const row=Math.floor(from/8);if(to===from+2){state.board[row*8+5]=color+'R';state.board[row*8+7]=null;}if(to===from-2){state.board[row*8+3]=color+'R';state.board[row*8+0]=null;}state.castling=state.castling.replace(color==='w'?/[KQ]/g:/[kq]/g,'');}
+  if(type==='R'){if(from===63)state.castling=state.castling.replace('K','');if(from===56)state.castling=state.castling.replace('Q','');if(from===7)state.castling=state.castling.replace('k','');if(from===0)state.castling=state.castling.replace('q','');}
+  if(type==='P'&&Math.floor(to/8)===(color==='w'?0:7)) state.board[to]=color+promo;
+  state.ep=(type==='P'&&Math.abs(to-from)===16)?Math.floor((from+to)/2):null;
+  state.halfMove=(type==='P'||cap)?0:state.halfMove+1;
+  if(color==='b') state.fullMove++;
+  state.turn=color==='w'?'b':'w';
+  if(!state.castling) state.castling='-';
+}
+
+// SAN → move: try every legal move and find a match
+function sanToMove(state, san) {
+  const clean = san.replace(/[+#!?]/g,'');
+  // Castling
+  if(clean==='O-O'||clean==='0-0'){const row=state.turn==='w'?7:0,from=row*8+4,to=row*8+6;if(legalMoves(state,from).includes(to))return{from,to,promo:'Q'};}
+  if(clean==='O-O-O'||clean==='0-0-0'){const row=state.turn==='w'?7:0,from=row*8+4,to=row*8+2;if(legalMoves(state,from).includes(to))return{from,to,promo:'Q'};}
+  // Promotion
+  let promo='Q';
+  const promoM=clean.match(/=([QRBN])$/);
+  if(promoM){promo=promoM[1];}
+  const base=clean.replace(/=[QRBN]$/,'');
+  // Destination square is always the last 2 chars
+  const toSq=base.slice(-2);
+  const to=algToIdx(toSq);
+  const pieceChar = base[0]===base[0].toUpperCase()&&'KQRBN'.includes(base[0]) ? base[0] : 'P';
+  const isCapture=base.includes('x');
+  const disambig=base.replace(/^[KQRBN]?/,'').replace('x','').replace(toSq,'');
+
+  for(let from=0;from<64;from++){
+    const p=state.board[from];
+    if(!p||p[0]!==state.turn) continue;
+    if(p[1]!==pieceChar) continue;
+    if(!legalMoves(state,from).includes(to)) continue;
+    if(disambig){
+      const fa=idxToAlg(from);
+      if(disambig.length===2&&fa!==disambig) continue;
+      if(disambig.length===1){
+        if(/[a-h]/.test(disambig)&&fa[0]!==disambig) continue;
+        if(/[1-8]/.test(disambig)&&fa[1]!==disambig) continue;
+      }
+    }
+    return {from, to, promo};
+  }
+  return null;
+}
+
+// ── PGN parser ────────────────────────────────────────────────────────────────
+function parsePGN(pgn) {
+  const headers = {};
+  // Extract headers
+  const headerRe = /\[(\w+)\s+"([^"]*)"\]/g;
+  let m;
+  while((m=headerRe.exec(pgn))!==null) headers[m[1]]=m[2];
+
+  // Strip headers and comments for move extraction
+  let moveText = pgn.replace(/\[[^\]]*\]/g,'');
+  // Extract comments before stripping (preserve position)
+  // We'll parse move text token by token
+  const tokens = tokenizeMoveText(moveText);
+
+  // Build move sequence
+  const startFen = headers['FEN'] || START_FEN;
+  const states = [parseFEN(startFen)];
+  const moves = []; // [{san, from, to, promo, comment}]
+
+  let state = parseFEN(startFen);
+  let pendingComment = '';
+
+  for(const tok of tokens) {
+    if(tok.type==='comment') { pendingComment=tok.value; continue; }
+    if(tok.type==='move') {
+      const result = sanToMove(state, tok.value);
+      if(!result) throw new Error(`Cannot parse move: ${tok.value}`);
+      const san = tok.value;
+      const next = cloneState(state);
+      applyMoveRaw(next, result.from, result.to, result.promo);
+      moves.push({san, from:result.from, to:result.to, promo:result.promo, comment:pendingComment});
+      pendingComment='';
+      states.push(cloneState(next));
+      state = next;
+    }
+  }
+
+  return { headers, moves, states, result: headers['Result']||'*' };
+}
+
+function tokenizeMoveText(text) {
+  const tokens = [];
+  let i = 0;
+  // Remove variations (nested parens) — simplistic but works for main line
+  text = removeVariations(text);
+  while(i < text.length) {
+    // Skip whitespace
+    if(/\s/.test(text[i])){i++;continue;}
+    // Comment
+    if(text[i]==='{'){
+      const end=text.indexOf('}',i);
+      if(end===-1){i++;continue;}
+      tokens.push({type:'comment',value:text.slice(i+1,end).trim()});
+      i=end+1; continue;
+    }
+    // Result tokens
+    if(text.slice(i,i+3)==='1-0'||text.slice(i,i+3)==='0-1'){tokens.push({type:'result',value:text.slice(i,i+3)});i+=3;continue;}
+    if(text.slice(i,i+7)==='1/2-1/2'){tokens.push({type:'result',value:'1/2-1/2'});i+=7;continue;}
+    if(text[i]==='*'){tokens.push({type:'result',value:'*'});i++;continue;}
+    // Move number (skip)
+    if(/\d/.test(text[i])){
+      while(i<text.length&&(/\d/.test(text[i])||text[i]==='.'))i++;
+      continue;
+    }
+    // NAG ($N)
+    if(text[i]==='$'){while(i<text.length&&!/\s/.test(text[i]))i++;continue;}
+    // Move token
+    if(/[a-zA-Z]/.test(text[i])){
+      let j=i;
+      while(j<text.length&&!/[\s{]/.test(text[j]))j++;
+      const tok=text.slice(i,j).trim();
+      if(tok) tokens.push({type:'move',value:tok});
+      i=j; continue;
+    }
+    i++;
+  }
+  return tokens;
+}
+
+function removeVariations(text) {
+  let result='', depth=0;
+  for(const ch of text){
+    if(ch==='('){depth++;continue;}
+    if(ch===')'){if(depth>0)depth--;continue;}
+    if(depth===0) result+=ch;
+  }
+  return result;
+}
+
+// ── App state ─────────────────────────────────────────────────────────────────
+let game=null, cursor=0, flipped=false;
+
+function loadGame(pgn) {
+  try {
+    game = parsePGN(pgn.trim());
+    cursor = 0;
+    flipped = false;
+    setupViewer();
+    document.getElementById('inputScreen').style.display='none';
+    document.getElementById('viewerScreen').style.display='flex';
+    renderBoard();
+    renderMoveList();
+  } catch(e) {
+    document.getElementById('errorMsg').textContent = e.message || 'Could not parse PGN.';
+  }
+}
+
+function setupViewer() {
+  const h=game.headers;
+  const white=h.White||'White', black=h.Black||'Black';
+  const whiteElo=h.WhiteElo?` (${h.WhiteElo})`:'', blackElo=h.BlackElo?` (${h.BlackElo})`:'';
+  const event=h.Event||'', date=h.Date||'', site=h.Site||'';
+  document.getElementById('gameTitle').textContent=`${white} vs ${black}`;
+  document.getElementById('gameMeta').textContent=[event,site,date].filter(Boolean).join(' · ');
+  document.getElementById('resultBadge').textContent=game.result;
+  updatePlayerBars();
+}
+
+function updatePlayerBars() {
+  if(!game) return;
+  const h=game.headers;
+  const white=h.White||'White', black=h.Black||'Black';
+  const topName   = flipped ? white : black;
+  const bottomName= flipped ? black : white;
+  const topElo    = flipped ? (h.WhiteElo?`ELO ${h.WhiteElo}`:'') : (h.BlackElo?`ELO ${h.BlackElo}`:'');
+  const bottomElo = flipped ? (h.BlackElo?`ELO ${h.BlackElo}`:'') : (h.WhiteElo?`ELO ${h.WhiteElo}`:'');
+  const topDot    = flipped ? 'dot-white' : 'dot-black';
+  const bottomDot = flipped ? 'dot-black' : 'dot-white';
+  document.getElementById('topName').textContent=topName;
+  document.getElementById('bottomName').textContent=bottomName;
+  document.getElementById('topElo').textContent=topElo;
+  document.getElementById('bottomElo').textContent=bottomElo;
+  document.getElementById('topDot').className=`player-color-dot ${topDot}`;
+  document.getElementById('bottomDot').className=`player-color-dot ${bottomDot}`;
+  const turn=game.states[cursor].turn;
+  const whiteOnBottom=!flipped;
+  document.getElementById('bottomPlayerBar').classList.toggle('active-player', whiteOnBottom?(turn==='w'):(turn==='b'));
+  document.getElementById('topPlayerBar').classList.toggle('active-player', whiteOnBottom?(turn==='b'):(turn==='w'));
+}
+
+function renderBoard() {
+  if(!game) return;
+  const state=game.states[cursor], boardEl=document.getElementById('board');
+  boardEl.innerHTML='';
+  const lf=cursor>0?game.moves[cursor-1].from:null;
+  const lt=cursor>0?game.moves[cursor-1].to:null;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const dr=flipped?7-r:r, dc=flipped?7-c:c, idx=dr*8+dc;
+    const sq=document.createElement('div');
+    sq.className='sq '+((dr+dc)%2===0?'light':'dark');
+    if(idx===lf||idx===lt) sq.classList.add('last-move');
+    const p=state.board[idx]; if(p) sq.innerHTML=pieceHTML(p);
+    boardEl.appendChild(sq);
+  }
+  const ranks=flipped?['1','2','3','4','5','6','7','8']:['8','7','6','5','4','3','2','1'];
+  const files=flipped?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];
+  document.getElementById('rankLabels').innerHTML=ranks.map(r=>`<span>${r}</span>`).join('');
+  document.getElementById('fileLabels').innerHTML=files.map(f=>`<span>${f}</span>`).join('');
+  updateStatus(state);
+  updatePlayerBars();
+  updateButtons();
+  scrollCurrentMove();
+}
+
+function updateStatus(state) {
+  const m=allLegalMoves(state), ch=isInCheck(state,state.turn);
+  const el=document.getElementById('statusBar');
+  if(cursor===game.moves.length){
+    const r=game.result;
+    el.textContent=r==='1-0'?'White wins':r==='0-1'?'Black wins':r==='1/2-1/2'?'Draw':cursor===0?'Starting position':'Game over';
+  } else {
+    el.textContent=(state.turn==='w'?'White':'Black')+' to move'+(ch?' — Check!':'');
+  }
+}
+
+function renderMoveList() {
+  const el=document.getElementById('moveList'); el.innerHTML='';
+  game.moves.forEach((mv,i)=>{
+    const isWhite=(i%2===0);
+    if(isWhite){const n=document.createElement('span');n.className='move-num';n.textContent=Math.floor(i/2+1)+'.';el.appendChild(n);}
+    const tok=document.createElement('span');
+    tok.className='move-tok'+(cursor===i+1?' current':'');
+    tok.textContent=mv.san;
+    tok.dataset.idx=i+1;
+    tok.addEventListener('click',()=>{cursor=i+1;renderBoard();scrollCurrentMove();});
+    el.appendChild(tok);
+    if(mv.comment){const c=document.createElement('div');c.className='move-comment';c.textContent=mv.comment;el.appendChild(c);}
+  });
+  if(game.result!=='*'){const r=document.createElement('div');r.className='result-line';r.textContent=game.result;el.appendChild(r);}
+}
+
+function scrollCurrentMove() {
+  // Update .current class
+  document.querySelectorAll('.move-tok').forEach(el=>{
+    el.classList.toggle('current', +el.dataset.idx===cursor);
+  });
+  const cur=document.querySelector('.move-tok.current');
+  if(cur) cur.scrollIntoView({block:'nearest'});
+}
+
+function updateButtons() {
+  document.getElementById('btnFirst').disabled=cursor===0;
+  document.getElementById('btnPrev').disabled=cursor===0;
+  document.getElementById('btnNext').disabled=cursor>=game.moves.length;
+  document.getElementById('btnLast').disabled=cursor>=game.moves.length;
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+document.getElementById('btnFirst').onclick=()=>{cursor=0;renderBoard();scrollCurrentMove();};
+document.getElementById('btnPrev').onclick=()=>{if(cursor>0){cursor--;renderBoard();scrollCurrentMove();}};
+document.getElementById('btnNext').onclick=()=>{if(cursor<game.moves.length){cursor++;renderBoard();scrollCurrentMove();}};
+document.getElementById('btnLast').onclick=()=>{cursor=game.moves.length;renderBoard();scrollCurrentMove();};
+document.getElementById('btnFlip').onclick=()=>{flipped=!flipped;renderBoard();};
+document.getElementById('btnNewGame').onclick=()=>{
+  document.getElementById('viewerScreen').style.display='none';
+  document.getElementById('inputScreen').style.display='flex';
+  document.getElementById('errorMsg').textContent='';
+};
+document.getElementById('btnLoad').onclick=()=>{
+  document.getElementById('errorMsg').textContent='';
+  loadGame(document.getElementById('pgnInput').value);
+};
+
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('viewerScreen').style.display==='none') return;
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp') document.getElementById('btnPrev').click();
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') document.getElementById('btnNext').click();
+  if(e.key==='f'||e.key==='F') document.getElementById('btnFlip').click();
+});
+
+// ── Sample game ───────────────────────────────────────────────────────────────
+const SAMPLE_PGN = `[Event "World Chess Championship"]
+[Site "Reykjavik, Iceland"]
+[Date "1972.08.10"]
+[Round "6"]
+[White "Fischer, Robert James"]
+[Black "Spassky, Boris V"]
+[WhiteElo "2785"]
+[BlackElo "2660"]
+[Result "1-0"]
+
+1. c4 e6 2. Nf3 d5 3. d4 Nf6 4. Nc3 Be7 5. Bg5 O-O 6. e3 h6 7. Bh4 b6
+8. cxd5 Nxd5 9. Bxe7 Qxe7 10. Nxd5 exd5 11. Rc1 Be6 12. Qa4 c5 13. Qa3 Rc8
+14. Bb5 a6 15. dxc5 bxc5 16. O-O Ra7 17. Be2 Nd7 18. Nd4 Qf8 19. Nxe6 fxe6
+20. e4 d4 21. f4 Qe7 22. e5 Rb8 23. Bc4 Kh8 24. Qh3 Nf8 25. b3 a5
+26. f5 exf5 27. Rxf5 Nh7 28. Rcf1 Qd8 29. Qg3 Re7 30. h4 Rbb7 31. e6 Rbc7
+32. Qe5 Qe8 33. a4 Qd8 34. R1f2 Qe8 35. R2f3 Qd8 36. Bd3 Qe8 37. Qe4 Nf6
+38. Rxf6 gxf6 39. Rxf6 Kg8 40. Bc4 Kh8 41. Qf4 1-0`;
+
+document.getElementById('sampleLink').onclick=()=>{
+  document.getElementById('pgnInput').value=SAMPLE_PGN;
+  document.getElementById('errorMsg').textContent='';
+};
+</script>
+</body>
+</html>

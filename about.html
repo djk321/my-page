@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px 40px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+    }
+
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: #ffffff; }
+
+    .content {
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .avatar {
+      font-size: 80px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: 16px;
+      color: #888;
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .back {
+      display: inline-block;
+      margin-top: 32px;
+      padding: 10px 24px;
+      border: 1px solid #c9a84c;
+      border-radius: 8px;
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .back:hover { background: #c9a84c; color: #0f0f14; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Games</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+  </nav>
+
+  <div class="content">
+    <div class="avatar">👤</div>
+    <h1>About Me</h1>
+    <p>Hi! I'm a developer who loves building games and interactive experiences on the web.</p>
+    <p>I created this arcade as a place to share my projects — from chess tools to experimental game hybrids. Feel free to explore and play!</p>
+    <p>Edit this page to add your own bio, links, or anything else you'd like visitors to know.</p>
+    <a class="back" href="index.html">← Back to Home</a>
+  </div>
+
+</body>
+</html>
