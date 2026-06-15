@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game Fusion</title>
+  <title>Game Merge</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f14; color: #fff; min-height: 100vh; }
@@ -29,27 +29,29 @@
     #mergeBtn:hover { transform: scale(1.04); box-shadow: 0 8px 30px #a78bfa55; }
     #mergeBtn.show { display: inline-block; }
 
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     /* ── REVEAL SCREEN ── */
-    #revealScreen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 24px; }
-    #boxArt { width: 220px; height: 280px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 28px; border: 2px solid rgba(255,255,255,.15); position: relative; overflow: hidden; }
-    #boxArt::before { content: ''; position: absolute; inset: 0; opacity: .12; background: repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 1px, transparent 10px); }
-    #boxIconA, #boxIconB { font-size: 52px; line-height: 1; position: relative; z-index: 1; }
-    #boxFusion { font-size: 28px; position: relative; z-index: 1; margin: 4px 0; opacity: .7; }
-    #boxGameName { font-size: 15px; font-weight: 700; letter-spacing: 2px; position: relative; z-index: 1; margin-top: 12px; color: rgba(255,255,255,.85); }
-    #revealName { font-size: 46px; font-weight: 800; letter-spacing: -1.5px; text-align: center; margin-bottom: 6px; }
-    #revealSub { font-size: 13px; color: #888; letter-spacing: 1.5px; margin-bottom: 24px; text-transform: uppercase; }
-    #revealTagline { font-size: 16px; color: #ccc; margin-bottom: 28px; text-align: center; max-width: 400px; line-height: 1.6; }
-    #revealPieces { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; max-width: 440px; }
-    .rpiece { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 8px 12px; text-align: center; min-width: 62px; }
+    #revealScreen { display: none; flex-direction: column; align-items: center; min-height: 100vh; padding: 48px 24px 64px; background: #0a0a10; }
+    #revealArt { width: 100%; max-width: 580px; border-radius: 16px; overflow: hidden; margin-bottom: 36px; border: 1px solid #2a2a3a; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+    #revealArt svg { display: block; width: 100%; }
+    #revealName { font-size: 52px; font-weight: 800; letter-spacing: -2px; text-align: center; margin-bottom: 10px; color: #f0f0f8; }
+    #revealTagline { font-size: 17px; font-style: italic; color: #888; margin-bottom: 28px; text-align: center; }
+    #revealDesc { font-size: 15px; color: #aaa; line-height: 1.8; max-width: 520px; text-align: center; margin-bottom: 28px; }
+    #revealMeta { display: flex; gap: 20px; font-size: 12px; color: #555; letter-spacing: .5px; margin-bottom: 36px; }
+    #revealMeta span::before { content: '•'; margin-right: 8px; color: #333; }
+    #revealMeta span:first-child::before { content: none; }
+    #revealPieces { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; max-width: 520px; }
+    .rpiece { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px 12px; text-align: center; min-width: 62px; }
     .rpiece-sym { font-size: 20px; }
-    .rpiece-name { font-size: 9px; color: #888; letter-spacing: .5px; margin-top: 2px; }
+    .rpiece-name { font-size: 9px; color: #666; letter-spacing: .5px; margin-top: 2px; }
     .rpiece-val { font-size: 10px; color: #a78bfa; font-weight: 600; margin-top: 1px; }
-    #revealRules { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 16px 20px; max-width: 440px; width: 100%; margin-bottom: 28px; font-size: 12px; color: #aaa; line-height: 1.9; }
-    #revealRules strong { color: #e2e8f0; }
-    #playBtn { padding: 14px 44px; font-size: 16px; font-weight: 700; border: none; border-radius: 14px; color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
-    #playBtn:hover { transform: scale(1.04); }
-    #backBtn { margin-top: 14px; background: none; border: none; color: #555; font-size: 13px; cursor: pointer; padding: 6px 12px; }
-    #backBtn:hover { color: #888; }
+    #revealRules { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 16px 20px; max-width: 520px; width: 100%; margin-bottom: 36px; font-size: 12px; color: #888; line-height: 1.9; }
+    #revealRules strong { color: #ccc; }
+    #playBtn { padding: 16px 56px; font-size: 17px; font-weight: 700; border: none; border-radius: 50px; color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
+    #playBtn:hover { transform: scale(1.05); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+    #backBtn { margin-top: 18px; background: none; border: none; color: #444; font-size: 13px; cursor: pointer; padding: 6px 12px; }
+    #backBtn:hover { color: #777; }
 
     /* ── GAME SCREEN ── */
     #gameScreen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 48px; background: #f5f4f0; color: #111; min-height: 100vh; }
@@ -157,7 +159,7 @@
      SELECT SCREEN
 ══════════════════════════════════════════════════════ -->
 <div id="selectScreen">
-  <div id="selectTitle">GAME FUSION</div>
+  <div id="selectTitle">GAME MERGE</div>
   <div id="selectSub">PICK 2 GAMES TO MERGE</div>
   <div id="selStatus">Choose your first game</div>
   <div id="gameGrid"></div>
@@ -168,18 +170,14 @@
      REVEAL SCREEN
 ══════════════════════════════════════════════════════ -->
 <div id="revealScreen">
-  <div id="boxArt">
-    <div id="boxIconA"></div>
-    <div id="boxFusion">⚡</div>
-    <div id="boxIconB"></div>
-    <div id="boxGameName"></div>
-  </div>
+  <div id="revealArt"></div>
   <div id="revealName"></div>
-  <div id="revealSub"></div>
   <div id="revealTagline"></div>
+  <div id="revealDesc"></div>
+  <div id="revealMeta"></div>
   <div id="revealPieces"></div>
   <div id="revealRules"></div>
-  <button id="playBtn" onclick="startGame()">▶ Play Now</button>
+  <button id="playBtn" onclick="startGame()">▶ Begin</button>
   <button id="backBtn" onclick="goToSelect()">← Pick different games</button>
 </div>
 
@@ -207,6 +205,7 @@
       </div>
       <button id="soundBtn" class="on" onclick="toggleSound()">♪ Sound on</button>
       <button id="pickNewBtn" onclick="goToSelect()">↩ Pick games</button>
+      <a href="index.html" id="arcadeBtn" style="text-decoration:none;display:inline-flex;align-items:center;">← Arcade</a>
     </div>
   </div>
 
@@ -258,6 +257,7 @@
       <button class="btn primary" onclick="showRecap()">Match recap</button>
       <button class="btn" onclick="newGame()">Play again</button>
       <button class="btn" onclick="goToSelect()">Pick new games</button>
+      <a href="index.html" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">← Back to Arcade</a>
     </div>
   </div>
 
@@ -420,89 +420,232 @@ function hybridTagline(a, b) {
   return `The ${a.name} capture engine meets ${b.name} tile-placement.`;
 }
 
+// ── Per-game flavor text ──────────────────────────────────────────────
+const GAME_FLAVOR = {
+  chess:       { theme:'royal strategy',       setting:'a marble battlefield',      tone:'cerebral and precise' },
+  dominoes:    { theme:'tile placement',        setting:'a candlelit tavern',        tone:'methodical and rhythmic' },
+  poker:       { theme:'bluff and risk',        setting:'a smoke-filled saloon',     tone:'daring and deceptive' },
+  scrabble:    { theme:'wordplay',              setting:'a quiet library',           tone:'linguistic and cunning' },
+  monopoly:    { theme:'economic domination',   setting:'a cutthroat city',          tone:'ruthless and opportunistic' },
+  battleship:  { theme:'naval warfare',         setting:'the open sea',              tone:'tactical and relentless' },
+  dnd:         { theme:'fantasy adventure',     setting:'a monster-filled dungeon',  tone:'epic and unpredictable' },
+  risk:        { theme:'world conquest',        setting:'a contested map',           tone:'aggressive and territorial' },
+  go:          { theme:'territorial control',   setting:'an ancient monastery',      tone:'patient and philosophical' },
+  mahjong:     { theme:'tile mastery',          setting:'an imperial palace',        tone:'traditional and disciplined' },
+  clue:        { theme:'mystery and deduction', setting:'a shadowy mansion',         tone:'cunning and suspicious' },
+  uno:         { theme:'card chaos',            setting:'a chaotic game night',      tone:'wild and unpredictable' },
+  tetris:      { theme:'spatial puzzling',      setting:'a digital void',            tone:'frantic and geometric' },
+  pacman:      { theme:'chase and survival',    setting:'a neon maze',               tone:'frenetic and relentless' },
+  checkers:    { theme:'jump tactics',          setting:'a checkerboard arena',      tone:'aggressive and forward-moving' },
+  backgammon:  { theme:'racing and blocking',   setting:'an ancient crossroads',     tone:'calculated and luck-defying' },
+  connect4:    { theme:'pattern building',      setting:'a vertical arena',          tone:'quick and spatial' },
+  minesweeper: { theme:'risk and deduction',    setting:'a minefield',               tone:'tense and methodical' },
+  mtg:         { theme:'spell casting',         setting:'a magical realm',           tone:'complex and strategic' },
+  minecraft:   { theme:'building and survival', setting:'a blocky wilderness',       tone:'creative and resourceful' },
+};
+
+// ── Curated stories for popular combos ───────────────────────────────
+const HYBRID_STORIES = {
+  'chess+dominoes': {
+    tagline: 'Ancient moves. Matched tiles.',
+    story: 'Two classics collide on a single board. Draw domino-style tiles of chess pieces and place them strategically — each piece captures enemies using its full movement rules the moment it lands. A Rook clears an entire rank. A Queen sweeps eight directions. But your King is also your liability: let the opponent capture it and the game ends instantly. Plan deep. Place smart. Own the board.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
+  'dominoes+chess': {
+    tagline: 'Ancient moves. Matched tiles.',
+    story: 'Two classics collide on a single board. Draw domino-style tiles of chess pieces and place them strategically — each piece captures enemies using its full movement rules the moment it lands. A Rook clears an entire rank. A Queen sweeps eight directions. But your King is also your liability: let the opponent capture it and the game ends instantly. Plan deep. Place smart. Own the board.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
+  'chess+poker': {
+    tagline: 'The smartest player at the table wins.',
+    story: 'Your chess pieces are your hand — and your opponent can\'t see them until you play. Place a tile face-down as a bluff, or reveal it and trigger its full capture power. Captured pieces score points like poker chips. Capture the King and you take the whole pot. Three rounds, rising stakes, one champion. Nerves of steel required.',
+    players: '2', time: '15–25 min', age: '10+',
+  },
+  'chess+battleship': {
+    tagline: 'Hunt. Place. Capture. Sink.',
+    story: 'You don\'t know where your enemy hides until your pieces find them. Each turn, place a chess tile on the grid — pieces that land adjacent to hidden enemy formations reveal and capture them. Rooks sweep rows for guaranteed hits. Bishops probe diagonals. Place the King tile and you\'ve ended the whole engagement. Strategy meets suspense on every single move.',
+    players: '2', time: '10–20 min', age: '9+',
+  },
+  'chess+dnd': {
+    tagline: 'Roll for strategy.',
+    story: 'Your army isn\'t chess pieces — it\'s a party of adventurers. Knights leap in their signature L-shape. Wizards sweep diagonals. The Dragon dominates all eight directions at once. Every tile you place triggers an encounter: land next to an enemy and the fight resolves instantly. Somewhere in your hand lurks the King — capture theirs and the campaign ends in legend.',
+    players: '2', time: '15–25 min', age: '10+',
+  },
+  'chess+risk': {
+    tagline: 'Conquer the board. Hold every square.',
+    story: 'Every square you control is territory. Every tile you place either claims new ground or contests what your opponent already holds. Powerful pieces dominate large regions; weaker ones dig in and defend. Capture the King and the whole continent surrenders. This is chess played at the scale of empires.',
+    players: '2', time: '15–20 min', age: '10+',
+  },
+  'chess+monopoly': {
+    tagline: 'Conquer the board. Own the city.',
+    story: 'Placing a chess tile doesn\'t just score points — it claims property. Each square you control earns rent from the opponent\'s future moves. The more powerful the piece, the more valuable the location. Drop a Queen on the prime real estate and watch the money flow. But let the opponent capture your King and you lose the whole portfolio.',
+    players: '2', time: '15–25 min', age: '10+',
+  },
+  'chess+tetris': {
+    tagline: 'The pieces fall. The board fights back.',
+    story: 'Pieces don\'t just drop — they attack. As each tile falls into position, the chess piece shown captures any enemy it lands near. Clear a full row and earn bonus points. Fill the board with your color. But leave gaps and your opponent will fill them with their own pieces, claiming captures you missed. Think fast. Think deep. The board doesn\'t wait.',
+    players: '2', time: '10–15 min', age: '8+',
+  },
+  'chess+go': {
+    tagline: 'Territory meets tactics.',
+    story: 'The ancient stones meet the royal army. Place chess tiles to claim territory like a Go board — each piece you land extends your influence across adjacent intersections. Bishops radiate diagonally; Rooks lock down entire lines. Unlike Go, captured pieces score points immediately. The board fills slowly. The power shifts constantly. Patience and aggression must coexist.',
+    players: '2', time: '15–20 min', age: '10+',
+  },
+  'chess+mahjong': {
+    tagline: 'Draw from the wall. Rule the board.',
+    story: 'Your tiles come from the wall, mahjong-style — drawn blind and placed with chess-piece movement power. Build sets of matching pieces to unlock bonus captures. Complete a sequence of Pawns and unleash a sweeping attack. Draw the Dragon and dominate the center. The wall runs out faster than you think.',
+    players: '2', time: '12–20 min', age: '10+',
+  },
+  'poker+monopoly': {
+    tagline: 'Buy smart. Bet smarter.',
+    story: 'Every property on the board has a poker hand attached. Land on one, reveal your cards, and the higher hand wins the deed. Bluff your way into Boardwalk. Go all-in on the railroads. Every round of betting is a property auction, and every property is worth a hand of cards. The player who reads both the board and the table wins it all.',
+    players: '2–4', time: '20–35 min', age: '12+',
+  },
+  'battleship+minesweeper': {
+    tagline: 'Every click could be your last.',
+    story: 'The grid hides both ships and mines. On your turn, place a tile that reveals a zone — hit a ship and score points, trigger a mine and lose your turn. Some tiles defuse mines; others launch torpedoes that clear whole rows. The tension never lets up. Every square is a gamble. Victory belongs to the careful — and the lucky.',
+    players: '2', time: '10–15 min', age: '9+',
+  },
+  'dnd+risk': {
+    tagline: 'Conquer the realm. Survive the dungeon.',
+    story: 'The map is your campaign setting. Each territory holds an encounter: defeat it by placing the right tile and you claim the region, recruit its units, and advance your army. A Dragon tile ends any encounter outright. A Goblin tile holds the line. Expand your empire one dungeon at a time — and guard your King with your life.',
+    players: '2–3', time: '20–30 min', age: '10+',
+  },
+  'poker+dnd': {
+    tagline: 'Cast your hand. Roll your fate.',
+    story: 'Deal a hand of adventurer cards and wager on the outcome of each dungeon encounter. High hand wins the treasure. Low hand faces the consequences. But every bet you make places a tile on the shared board — and whoever fills the most territory by the time the dungeon is cleared wins the campaign. Luck opens the door. Strategy decides who walks out.',
+    players: '2–4', time: '20–30 min', age: '12+',
+  },
+};
+
+// ── Per-game visual descriptions for image prompts ────────────────────
+const GAME_VISUALS = {
+  chess:       'giant marble chess pieces, knights and queens on a stone battlefield',
+  dominoes:    'classic ivory domino tiles arranged in patterns on a wooden table',
+  poker:       'playing cards fanned out, poker chips stacked, green felt table, saloon',
+  scrabble:    'wooden letter tiles spelling words on a crossword board',
+  monopoly:    'city skyline with skyscrapers, paper money and property deeds flying',
+  battleship:  'warships on stormy ocean waves, naval artillery firing',
+  dnd:         'fire-breathing dragon looming over armored warriors in a dungeon',
+  risk:        'world map covered in armies and flags, strategic warfare',
+  go:          'ancient wooden go board with black and white stones, peaceful monastery',
+  mahjong:     'ornate Chinese mahjong tiles on red silk cloth, lanterns glowing',
+  clue:        'dark mysterious mansion hallway, candlelight, shadowy detective figure',
+  uno:         'explosion of colorful wild cards, bright chaotic game night energy',
+  tetris:      'neon glowing geometric blocks stacking and falling in a digital void',
+  pacman:      'neon arcade maze with ghosts and glowing power pellets',
+  checkers:    'red and black checker pieces mid-jump on a checkerboard',
+  backgammon:  'ancient backgammon board with dice rolling, tavern setting',
+  connect4:    'colorful discs cascading into a tall vertical grid',
+  minesweeper: 'minefield with warning flags, tense soldier carefully stepping',
+  mtg:         'powerful wizard casting a blazing fireball spell in a fantasy realm',
+  minecraft:   'pixelated cubic landscape with mountains, blocks and creatures',
+};
+
+// ── Build AI image URL via Pollinations.ai ────────────────────────────
+function buildBoxArtURL(a, b, gameName) {
+  const visA = GAME_VISUALS[a.id] || a.tag;
+  const visB = GAME_VISUALS[b.id] || b.tag;
+  const prompt = [
+    `vintage 1950s retro board game box cover illustration`,
+    `${visA}`,
+    `combined with ${visB}`,
+    `dramatic action scene`,
+    `painted illustration style`,
+    `warm golden dramatic lighting`,
+    `highly detailed`,
+    `no text no words no letters no title`,
+  ].join(', ');
+  const seed = (a.id + b.id).split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=560&height=420&nologo=true&seed=${seed}`;
+}
+
+// ── Story builder ─────────────────────────────────────────────────────
+function buildStory(a, b) {
+  const key = a.id + '+' + b.id;
+  const keyAlt = b.id + '+' + a.id;
+  if (HYBRID_STORIES[key]) return HYBRID_STORIES[key];
+  if (HYBRID_STORIES[keyAlt]) return HYBRID_STORIES[keyAlt];
+
+  const fa = GAME_FLAVOR[a.id] || { theme: a.tag, setting: 'an unknown arena', tone: 'strategic' };
+  const fb = GAME_FLAVOR[b.id] || { theme: b.tag, setting: 'another realm',    tone: 'unpredictable' };
+  const king  = a.units[5].n;
+  const queen = a.units[4].n;
+
+  return {
+    tagline: `${fa.tone.split(' ')[0].charAt(0).toUpperCase() + fa.tone.split(' ')[0].slice(1)} meets ${fb.tone}.`,
+    story: `Set in ${fa.setting}, the ${fa.theme} of ${a.name} collides with the ${fb.theme} of ${b.name}. Players draw dual-unit tiles and place them on a shared 6×6 board — each half bearing a ${a.name} piece that captures enemies using its full movement rules on placement. The ${queen} sweeps in all eight directions. The ${king} is the ultimate prize: capture it and the game ends instantly in your favor. Place wisely. Every tile matters.`,
+    players: '2', time: '10–20 min', age: '8+',
+  };
+}
+
 function applyGameTheme(a, b) {
   const cfg = BOARD_CONFIGS[a.id] || {};
-  const screenBg    = cfg.screenBg    || '#f5f4f0';
-  const screenColor = cfg.screenColor || '#111';
-  const cellBg      = cfg.cellBg      || '#fff';
-  const cellBorder  = cfg.cellBorder  || '#ddd';
-  const cellColor   = cfg.cellColor   || '#111';
-  const label       = cfg.label       || '#bbb';
+
+  // Consistent dark theme
+  const screenBg  = '#0f0f14';
+  const cellBg    = '#1a1a24';
+  const cellBorder = '#2a2a3a';
 
   // P1 = game A accent, P2 = game B accent
-  const p1bg   = a.accentB + '28';
-  const p1brd  = a.accentB;
-  const p1txt  = a.accent;
-  const p2bg   = b.accentB + '28';
-  const p2brd  = b.accentB;
-  const p2txt  = b.accent;
-
-  // Determine readable text for muted elements on dark/light backgrounds
-  const isDark = parseInt(screenBg.replace('#','').slice(0,2), 16) < 100;
-  const mutedTxt = isDark ? screenColor + 'aa' : '#555';
-  const subtleTxt = isDark ? screenColor + '66' : '#aaa';
+  const p1bg  = a.accentB + '28';
+  const p1brd = a.accentB;
+  const p2bg  = b.accentB + '28';
+  const p2brd = b.accentB;
 
   let el = document.getElementById('game-theme');
   if (!el) { el = document.createElement('style'); el.id = 'game-theme'; document.head.appendChild(el); }
 
   el.textContent = `
-    #gameScreen { background: ${screenBg} !important; color: ${screenColor} !important; }
-    #gameScreen h1 { color: ${screenColor}; }
+    #gameScreen { background: ${screenBg} !important; color: #e8e8f0 !important; }
+    #gameScreen h1 { color: #e8e8f0; }
     #gameScreen .subtitle { color: ${p1brd}; }
-    #gameScreen .col-label, #gameScreen .row-label { color: ${label}; }
-    #gameScreen .gc { background: ${cellBg}; border-color: ${cellBorder}; color: ${cellColor}; }
+    #gameScreen .col-label, #gameScreen .row-label { color: #444; }
+    #gameScreen .gc { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
     #gameScreen .gc.pcl { background: ${p1bg}; border-color: ${p1brd}; }
     #gameScreen .gc.acl { background: ${p2bg}; border-color: ${p2brd}; }
-    #gameScreen .gc.pcl .lb { color: ${p1txt}; }
-    #gameScreen .gc.acl .lb { color: ${p2txt}; }
+    #gameScreen .gc.pcl .lb { color: ${p1brd}; }
+    #gameScreen .gc.acl .lb { color: ${p2brd}; }
     #gameScreen .gc.pvc { background: ${p1bg}; border-color: ${p1brd}; }
     #gameScreen .score-box.p1 { background: ${p1bg}; border-color: ${p1brd}; }
-    #gameScreen .score-box.p1 .score-label { color: ${p1txt}; }
-    #gameScreen .score-box.p1 .score-num { color: ${p1txt}; }
+    #gameScreen .score-box.p1 .score-label, #gameScreen .score-box.p1 .score-num { color: ${p1brd}; }
     #gameScreen .score-box.p2 { background: ${p2bg}; border-color: ${p2brd}; }
-    #gameScreen .score-box.p2 .score-label { color: ${p2txt}; }
-    #gameScreen .score-box.p2 .score-num { color: ${p2txt}; }
-    #gameScreen .tc { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
+    #gameScreen .score-box.p2 .score-label, #gameScreen .score-box.p2 .score-num { color: ${p2brd}; }
+    #gameScreen .tc { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
     #gameScreen .tc:hover { border-color: ${p1brd}88; }
     #gameScreen .tc.sel { border-color: ${p1brd}; background: ${p1bg}; }
-    #gameScreen .tc-name { color: ${mutedTxt}; }
-    #gameScreen .tc-pts { color: ${subtleTxt}; }
-    #gameScreen .ori-btn { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #gameScreen .ori-btn:hover { background: ${cellBg}; }
-    #gameScreen .ori-btn.active { background: ${p1bg}; border-color: ${p1brd}; color: ${p1txt}; }
-    #gameScreen .seg button { background: ${cellBg}; color: ${screenColor}; border-color: ${cellBorder}; }
-    #gameScreen .seg button.active { background: ${p1txt}; color: #fff; }
-    #gameScreen .section-label { color: ${label}; }
-    #gameScreen #msg { color: ${mutedTxt}; }
-    #gameScreen #poolTxt { color: ${subtleTxt}; }
-    #gameScreen #capLog { color: ${subtleTxt}; }
-    #gameScreen #boardNote { color: ${subtleTxt}; }
-    #gameScreen #poolToggleBtn { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #gameScreen #poolGrid { background: ${cellBg}; border-color: ${cellBorder}; }
+    #gameScreen .tc-name { color: #888; }
+    #gameScreen .tc-pts { color: #555; }
+    #gameScreen .ori-btn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .ori-btn.active { background: ${p1bg}; border-color: ${p1brd}; color: ${p1brd}; }
+    #gameScreen .seg button { background: ${cellBg}; color: #e8e8f0; border-color: ${cellBorder}; }
+    #gameScreen .seg button.active { background: ${p1brd}; color: #fff; }
+    #gameScreen .section-label, #gameScreen #msg, #gameScreen #poolTxt,
+    #gameScreen #capLog, #gameScreen #boardNote, #gameScreen #histLabel { color: #666; }
+    #gameScreen #poolToggleBtn, #gameScreen #poolGrid { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
     #gameScreen .pt { background: ${cellBg}; border-color: ${cellBorder}; }
     #gameScreen .pt-div { background: ${cellBorder}; }
-    #gameScreen .nav-btn { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #gameScreen .nav-btn.live-btn { background: ${p1txt}; border-color: ${p1txt}; color: #fff; }
-    #gameScreen #histBanner { background: ${p1bg}; border-color: ${p1brd}; color: ${p1txt}; }
-    #gameScreen #histLabel { color: ${mutedTxt}; }
-    #gameScreen #goEl { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #gameScreen #goMsg { color: ${screenColor}; }
-    #gameScreen #goSub { color: ${mutedTxt}; }
-    #gameScreen .btn { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #gameScreen .btn.primary { background: ${p1txt}; border-color: ${p1txt}; color: #fff; }
-    #gameScreen .score-big .side.you .val { color: ${p1txt}; }
-    #gameScreen .score-big .side.ai .val { color: ${p2txt}; }
-    #pickNewBtn { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #soundBtn { background: ${cellBg}; border-color: ${cellBorder}; color: ${screenColor}; }
-    #soundBtn.on { background: ${p1bg}; border-color: ${p1brd}; color: ${p1txt}; }
-    #diffLabel { color: ${label}; }
+    #gameScreen .nav-btn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .nav-btn.live-btn { background: ${p1brd}; border-color: ${p1brd}; color: #fff; }
+    #gameScreen #histBanner { background: ${p1bg}; border-color: ${p1brd}; color: ${p1brd}; }
+    #gameScreen #goEl { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen #goMsg { color: #e8e8f0; }
+    #gameScreen #goSub { color: #888; }
+    #gameScreen .btn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; text-decoration: none; }
+    #gameScreen .btn.primary { background: ${p1brd}; border-color: ${p1brd}; color: #fff; }
+    #gameScreen .score-big .side.you .val { color: ${p1brd}; }
+    #gameScreen .score-big .side.ai .val { color: ${p2brd}; }
+    #pickNewBtn, #arcadeBtn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; text-decoration: none; }
+    #soundBtn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #soundBtn.on { background: ${p1bg}; border-color: ${p1brd}; color: ${p1brd}; }
+    #diffLabel { color: #555; }
   `;
 
-  // Store for per-cell JS rendering
+  // Store for per-cell JS rendering (chess/checkers checkered board)
   window._chTheme = {
-    checkered:   cfg.checkered  || false,
-    darkCell:    cfg.darkCell   || '#b58863',
-    darkBorder:  cfg.darkBorder || '#9a7050',
+    checkered:  cfg.checkered || false,
+    darkCell:   '#141420',
+    darkBorder: '#222233',
   };
 }
 
@@ -526,7 +669,7 @@ function buildSelectScreen() {
 }
 
 function selectGame(g) {
-  if (selA === g.id && selB === null) { deselectA(); return; }
+  if (selA === g.id) { deselectA(); return; }
   if (selB === g.id) { deselectB(); return; }
   if (selA === null) {
     selA = g.id;
@@ -544,6 +687,7 @@ function selectGame(g) {
 }
 
 function deselectA() {
+  if (selB) deselectB();
   document.getElementById('gc_' + selA).classList.remove('selA');
   document.getElementById('badge_' + selA).textContent = '';
   selA = null;
@@ -589,39 +733,54 @@ function doReveal() {
 // ══════════════════════════════════════════════════════════════════════
 function buildRevealScreen(a, b) {
   const name = hybridName(a, b);
-  document.getElementById('boxArt').style.background = a.bg;
-  document.getElementById('boxIconA').textContent = a.icon;
-  document.getElementById('boxIconB').textContent = b.icon;
-  document.getElementById('boxGameName').textContent = name.toUpperCase();
-  document.getElementById('revealName').textContent = name.toUpperCase();
-  document.getElementById('revealSub').textContent = a.name + ' × ' + b.name;
-  document.getElementById('revealTagline').textContent = hybridTagline(a, b);
+  const story = buildStory(a, b);
+  const kingUnit  = a.units[5];
+  const queenUnit = a.units[4];
+
+  // Box art — AI generated image
+  const artEl = document.getElementById('revealArt');
+  const imgUrl = buildBoxArtURL(a, b, name);
+  artEl.innerHTML = `
+    <div id="artLoader" style="width:100%;aspect-ratio:4/3;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111;color:#555;font-size:13px;gap:10px;">
+      <div style="font-size:28px;animation:spin 1.5s linear infinite">⚡</div>
+      <div>Generating box art…</div>
+    </div>
+    <img src="${imgUrl}" alt="${name} box art"
+      style="width:100%;display:none;border-radius:14px;"
+      onload="this.style.display='block';document.getElementById('artLoader').style.display='none';"
+      onerror="document.getElementById('artLoader').innerHTML='<div style=font-size:32px>${a.icon}⚡${b.icon}</div><div>Art unavailable offline</div>';"
+    />`;
+
+  // Title & text
+  document.getElementById('revealName').textContent = name;
+  document.getElementById('revealTagline').textContent = story.tagline;
+  document.getElementById('revealDesc').textContent = story.story;
+
+  // Meta row
+  document.getElementById('revealMeta').innerHTML =
+    `<span>${story.players} players</span><span>${story.time}</span><span>Ages ${story.age}</span>`;
 
   // Pieces
-  const piecesEl = document.getElementById('revealPieces');
-  piecesEl.innerHTML = '';
-  a.units.forEach((u, i) => {
-    const val = VALS[i];
-    const valTxt = val === 0 ? 'WIN' : val + 'pt';
-    piecesEl.innerHTML += `<div class="rpiece"><div class="rpiece-sym">${u.s}</div><div class="rpiece-name">${u.n}</div><div class="rpiece-val">${valTxt}</div></div>`;
-  });
+  document.getElementById('revealPieces').innerHTML = a.units.map((u, i) => {
+    const v = VALS[i]; const vt = v === 0 ? 'WIN' : v + 'pt';
+    return `<div class="rpiece"><div class="rpiece-sym">${u.s}</div><div class="rpiece-name">${u.n}</div><div class="rpiece-val">${vt}</div></div>`;
+  }).join('');
 
   // Rules
-  const kingUnit = a.units[5];
-  const queenUnit = a.units[4];
   document.getElementById('revealRules').innerHTML = `
-    <strong>How to play:</strong><br>
-    • 6×6 board · 21 tiles (pairs of ${a.name} units)<br>
-    • Each turn: place one tile (1×2) on the board<br>
-    • Units capture enemies using their movement rules on placement<br>
-    • Capture the <strong>${kingUnit.n}</strong> for an instant win!<br>
-    • Otherwise highest score when all tiles are played wins<br>
-    • <strong>${queenUnit.n}</strong> (${queenUnit.s}) captures in all 8 directions · <strong>${kingUnit.n}</strong> (${kingUnit.s}) = instant win
+    <strong>Quick rules:</strong><br>
+    • 6×6 board · 21 domino-style tiles, each showing two ${a.name} pieces<br>
+    • On your turn: pick a tile from your hand and place it (1×2) anywhere it fits<br>
+    • Each piece captures nearby enemies using its movement rule on placement<br>
+    • <strong>${queenUnit.n}</strong> (${queenUnit.s}) — captures in all 8 directions<br>
+    • <strong>${kingUnit.n}</strong> (${kingUnit.s}) — capturing one wins the game instantly<br>
+    • No instant win? Highest score when the board fills wins
   `;
 
-  // Style play button with game A color
-  document.getElementById('playBtn').style.background = a.bg;
-  document.getElementById('playBtn').style.border = 'none';
+  // Play button styled with game A gradient
+  const btn = document.getElementById('playBtn');
+  btn.style.background = a.bg;
+  btn.style.boxShadow = `0 8px 28px ${a.accent}66`;
 }
 
 function startGame() {
