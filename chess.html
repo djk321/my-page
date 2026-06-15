@@ -161,8 +161,54 @@
   .move-number { color: #666; padding: 2px 2px; }
   .move-token.variation { color: #888; font-style: italic; }
   .move-token.variation:hover { background: #3d3d6e; color: #ccc; }
+  .move-token.opening-move { color: #f0c040; }
+  .move-token.opening-move.current { background: #6a5a10; color: #f0c040; }
   .var-bracket { color: #555; padding: 0 1px; font-size: 12px; }
   .kbd-hint { font-size: 11px; color: #555; margin-top: 6px; }
+
+  /* ── Opening explorer ── */
+  .opening-wrap {
+    margin-top: 14px;
+    width: 100%;
+    max-width: 540px;
+    position: relative;
+  }
+  .opening-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .opening-search-row { display: flex; gap: 8px; }
+  #openingInput {
+    flex: 1;
+    background: #2d2d4e;
+    color: #e0e0e0;
+    border: 1px solid #4a4a6a;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  #openingInput:focus { outline: none; border-color: #a0c4ff; }
+  .opening-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: #2d2d4e;
+    border: 1px solid #4a4a6a;
+    border-radius: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 100;
+    margin-top: 2px;
+  }
+  .opening-item {
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .opening-item:hover { background: #3d3d6e; }
+  .opening-item .eco { color: #a0c4ff; font-size: 11px; font-family: monospace; flex-shrink: 0; }
+  .opening-item .opening-name { color: #e0e0e0; }
+  .opening-item .opening-moves { color: #666; font-size: 11px; font-family: monospace; }
 
   /* ── Eval bar ── */
   .eval-bar-wrap {
@@ -245,6 +291,14 @@
 </div>
 
 <div class="status" id="status"></div>
+
+<div class="opening-wrap">
+  <div class="opening-label">Opening Explorer</div>
+  <div class="opening-search-row">
+    <input id="openingInput" type="text" placeholder="Search opening name or ECO code…" spellcheck="false" autocomplete="off">
+  </div>
+  <div class="opening-dropdown" id="openingDropdown" style="display:none"></div>
+</div>
 
 <div class="move-list-wrap">
   <div class="move-list-label">Moves — click any move to jump to it</div>
@@ -586,6 +640,243 @@ function moveToSAN(state, from, to, promo='Q') {
   return san;
 }
 
+// ── Opening database ──────────────────────────────────────────────────────────
+const OPENINGS = [
+  // e4 openings
+  { eco:'B00', name:"King's Pawn",               moves:['e4'] },
+  { eco:'C20', name:"King's Pawn Game",           moves:['e4','e5'] },
+  { eco:'C50', name:"Italian Game",               moves:['e4','e5','Nf3','Nc6','Bc4'] },
+  { eco:'C51', name:"Evans Gambit",               moves:['e4','e5','Nf3','Nc6','Bc4','Bc5','b4'] },
+  { eco:'C53', name:"Italian: Classical",         moves:['e4','e5','Nf3','Nc6','Bc4','Bc5','c3'] },
+  { eco:'C60', name:"Ruy Lopez",                  moves:['e4','e5','Nf3','Nc6','Bb5'] },
+  { eco:'C65', name:"Ruy Lopez: Berlin Defense",  moves:['e4','e5','Nf3','Nc6','Bb5','Nf6'] },
+  { eco:'C84', name:"Ruy Lopez: Closed",          moves:['e4','e5','Nf3','Nc6','Bb5','a6','Ba4','Nf6','O-O','Be7'] },
+  { eco:'C30', name:"King's Gambit",              moves:['e4','e5','f4'] },
+  { eco:'C37', name:"King's Gambit Accepted",     moves:['e4','e5','f4','exf4','Nf3'] },
+  { eco:'C44', name:"Scotch Game",                moves:['e4','e5','Nf3','Nc6','d4'] },
+  { eco:'C45', name:"Scotch: Classical",          moves:['e4','e5','Nf3','Nc6','d4','exd4','Nxd4','Bc5'] },
+  { eco:'C46', name:"Three Knights",              moves:['e4','e5','Nf3','Nc6','Nc3'] },
+  { eco:'C47', name:"Four Knights",               moves:['e4','e5','Nf3','Nc6','Nc3','Nf6'] },
+  { eco:'C25', name:"Vienna Game",                moves:['e4','e5','Nc3'] },
+  { eco:'C42', name:"Petrov Defense",             moves:['e4','e5','Nf3','Nf6'] },
+  { eco:'C41', name:"Philidor Defense",           moves:['e4','e5','Nf3','d6'] },
+  { eco:'B20', name:"Sicilian Defense",           moves:['e4','c5'] },
+  { eco:'B23', name:"Sicilian: Closed",           moves:['e4','c5','Nc3','Nc6','g3'] },
+  { eco:'B30', name:"Sicilian: Old Sicilian",     moves:['e4','c5','Nf3','Nc6'] },
+  { eco:'B40', name:"Sicilian: French Var",       moves:['e4','c5','Nf3','e6'] },
+  { eco:'B54', name:"Sicilian: Dragon",           moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','g6'] },
+  { eco:'B90', name:"Sicilian: Najdorf",          moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','a6'] },
+  { eco:'B80', name:"Sicilian: Scheveningen",     moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','e6'] },
+  { eco:'B70', name:"Sicilian: Classical Dragon", moves:['e4','c5','Nf3','Nc6','d4','cxd4','Nxd4','g6','Nc3','Bg7'] },
+  { eco:'C00', name:"French Defense",             moves:['e4','e6'] },
+  { eco:'C02', name:"French: Advance",            moves:['e4','e6','d4','d5','e5'] },
+  { eco:'C11', name:"French: Classical",          moves:['e4','e6','d4','d5','Nc3','Nf6'] },
+  { eco:'C06', name:"French: Tarrasch",           moves:['e4','e6','d4','d5','Nd2'] },
+  { eco:'B10', name:"Caro-Kann Defense",          moves:['e4','c6'] },
+  { eco:'B12', name:"Caro-Kann: Advance",         moves:['e4','c6','d4','d5','e5'] },
+  { eco:'B14', name:"Caro-Kann: Panov Attack",    moves:['e4','c6','d4','d5','exd5','cxd5','c4'] },
+  { eco:'B18', name:"Caro-Kann: Classical",       moves:['e4','c6','d4','d5','Nc3','dxe4','Nxe4','Bf5'] },
+  { eco:'B07', name:"Pirc Defense",               moves:['e4','d6','d4','Nf6','Nc3','g6'] },
+  { eco:'B06', name:"Modern Defense",             moves:['e4','g6','d4','Bg7'] },
+  // d4 openings
+  { eco:'A40', name:"Queen's Pawn",               moves:['d4'] },
+  { eco:'D06', name:"Queen's Gambit",             moves:['d4','d5','c4'] },
+  { eco:'D20', name:"Queen's Gambit Accepted",    moves:['d4','d5','c4','dxc4'] },
+  { eco:'D30', name:"Queen's Gambit Declined",    moves:['d4','d5','c4','e6'] },
+  { eco:'D43', name:"Semi-Slav Defense",          moves:['d4','d5','c4','c6','Nc3','Nf6','Nf3','e6'] },
+  { eco:'D10', name:"Slav Defense",               moves:['d4','d5','c4','c6'] },
+  { eco:'E60', name:"King's Indian Defense",      moves:['d4','Nf6','c4','g6','Nc3','Bg7'] },
+  { eco:'E62', name:"King's Indian: Fianchetto",  moves:['d4','Nf6','c4','g6','Nc3','Bg7','Nf3','O-O','g3'] },
+  { eco:'E97', name:"King's Indian: Classical",   moves:['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6','Nf3','O-O','Be2','e5'] },
+  { eco:'E20', name:"Nimzo-Indian Defense",       moves:['d4','Nf6','c4','e6','Nc3','Bb4'] },
+  { eco:'E15', name:"Queen's Indian Defense",     moves:['d4','Nf6','c4','e6','Nf3','b6'] },
+  { eco:'D80', name:"Grünfeld Defense",           moves:['d4','Nf6','c4','g6','Nc3','d5'] },
+  { eco:'D85', name:"Grünfeld: Exchange",         moves:['d4','Nf6','c4','g6','Nc3','d5','cxd5','Nxd5','e4','Nxc3','bxc3'] },
+  { eco:'A80', name:"Dutch Defense",              moves:['d4','f5'] },
+  { eco:'A85', name:"Dutch: Stonewall",           moves:['d4','f5','c4','Nf6','Nc3','e6','Nf3','d5'] },
+  { eco:'A45', name:"Trompowsky Attack",          moves:['d4','Nf6','Bg5'] },
+  { eco:'D00', name:"London System",              moves:['d4','d5','Nf3','Nf6','Bf4'] },
+  { eco:'D05', name:"Colle System",               moves:['d4','d5','Nf3','Nf6','e3','e6','Bd3'] },
+  // Flank openings
+  { eco:'A10', name:"English Opening",            moves:['c4'] },
+  { eco:'A20', name:"English: King's English",    moves:['c4','e5'] },
+  { eco:'A15', name:"English: Anglo-Indian",      moves:['c4','Nf6'] },
+  { eco:'A07', name:"Réti Opening",               moves:['Nf3','d5','g3'] },
+  { eco:'A04', name:"Réti: King's Indian Attack", moves:['Nf3','d5','g3','Nf6','Bg2','e6','O-O','Be7','d3'] },
+  { eco:'A02', name:"Bird's Opening",             moves:['f4'] },
+
+  // Sicilian variations
+  { eco:'B29', name:"Sicilian: Nimzowitsch",                  moves:['e4','c5','Nf3','Nf6'] },
+  { eco:'B29', name:"Sicilian: Nimzowitsch, Main Line",       moves:['e4','c5','Nf3','Nf6','e5','Nd5','Nc3','e6','Nxd5','exd5','d4','cxd4','Qxd4'] },
+  { eco:'B29', name:"Sicilian: Nimzowitsch, Advance",         moves:['e4','c5','Nf3','Nf6','e5','Nd5','Nc3','Nxc3','dxc3'] },
+  { eco:'B10', name:"Sicilian: Nimzowitsch-Rubinstein",       moves:['e4','c5','Nc3','Nf6'] },
+  { eco:'B21', name:"Sicilian: Grand Prix Attack",            moves:['e4','c5','Nc3','Nc6','f4'] },
+  { eco:'B22', name:"Sicilian: Alapin",                       moves:['e4','c5','c3'] },
+  { eco:'B22', name:"Sicilian: Alapin, c6",                   moves:['e4','c5','c3','Nf6','e5','Nd5','d4','cxd4','cxd4','d6'] },
+  { eco:'B21', name:"Sicilian: Smith-Morra Gambit",           moves:['e4','c5','d4','cxd4','c3'] },
+  { eco:'B21', name:"Sicilian: Smith-Morra Accepted",         moves:['e4','c5','d4','cxd4','c3','dxc3','Nxc3'] },
+  { eco:'B25', name:"Sicilian: Closed, Keres Attack",         moves:['e4','c5','Nc3','Nc6','g3','g6','Bg2','Bg7','d3','d6','f4'] },
+  { eco:'B31', name:"Sicilian: Nimzowitsch, Bogoljubov",      moves:['e4','c5','Nf3','Nf6','Nc3','d5','exd5','Nxd5'] },
+  { eco:'B32', name:"Sicilian: Löwenthal",                    moves:['e4','c5','Nf3','Nc6','d4','cxd4','Nxd4','e5','Nb5','a6','Nd6+','Bxd6','Qxd6'] },
+  { eco:'B33', name:"Sicilian: Pelikan (Sveshnikov)",         moves:['e4','c5','Nf3','Nc6','d4','cxd4','Nxd4','Nf6','Nc3','e5','Ndb5','d6','Bg5','a6','Na3','b5'] },
+  { eco:'B36', name:"Sicilian: Maroczy Bind",                 moves:['e4','c5','Nf3','Nc6','d4','cxd4','Nxd4','g6','c4'] },
+  { eco:'B40', name:"Sicilian: Kan (Paulsen)",                moves:['e4','c5','Nf3','e6','d4','cxd4','Nxd4','a6'] },
+  { eco:'B41', name:"Sicilian: Taimanov",                     moves:['e4','c5','Nf3','e6','d4','cxd4','Nxd4','Nc6'] },
+  { eco:'B44', name:"Sicilian: Szen",                         moves:['e4','c5','Nf3','e6','d4','cxd4','Nxd4','Nc6','Nb5'] },
+  { eco:'B45', name:"Sicilian: Four Knights",                 moves:['e4','c5','Nf3','e6','d4','cxd4','Nxd4','Nc6','Nc3','Nf6'] },
+  { eco:'B57', name:"Sicilian: Sozin Attack",                 moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','Nc6','Bc4'] },
+  { eco:'B58', name:"Sicilian: Boleslavsky",                  moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','Nc6','Be2','e5','Nf3'] },
+  { eco:'B60', name:"Sicilian: Richter-Rauzer",               moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','Nc6','Bg5'] },
+  { eco:'B72', name:"Sicilian: Dragon, 6.Be3",                moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','g6','Be3','Bg7','f3'] },
+  { eco:'B76', name:"Sicilian: Yugoslav Attack",              moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','g6','Be3','Bg7','f3','O-O','Qd2','Nc6','O-O-O'] },
+  { eco:'B85', name:"Sicilian: Scheveningen, Classical",      moves:['e4','c5','Nf3','e6','d4','cxd4','Nxd4','Nf6','Nc3','d6','Be2','Be7','O-O','O-O','f4'] },
+  { eco:'B96', name:"Sicilian: Najdorf, Poisoned Pawn",       moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','a6','Bg5','e6','f4','Qb6'] },
+  { eco:'B99', name:"Sicilian: Najdorf, Main Line",           moves:['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6','Nc3','a6','Bg5','e6','f4','Be7','Qf3','Qc7','O-O-O','Nbd7'] },
+
+  // More e4 openings
+  { eco:'C11', name:"French: Steinitz",                       moves:['e4','e6','d4','d5','Nc3','Nf6','e5','Nfd7','f4'] },
+  { eco:'C13', name:"French: Classical, Normal",              moves:['e4','e6','d4','d5','Nc3','Nf6','Bg5','dxe4','Nxe4'] },
+  { eco:'C17', name:"French: Winawer",                        moves:['e4','e6','d4','d5','Nc3','Bb4'] },
+  { eco:'C19', name:"French: Winawer, Advance",               moves:['e4','e6','d4','d5','Nc3','Bb4','e5','c5','a3','Bxc3+','bxc3'] },
+  { eco:'B15', name:"Caro-Kann: Forgacs",                     moves:['e4','c6','d4','d5','Nc3','dxe4','Nxe4','Nf6'] },
+  { eco:'B16', name:"Caro-Kann: Bronstein-Larsen",            moves:['e4','c6','d4','d5','Nc3','dxe4','Nxe4','Nf6','Nxf6+','gxf6'] },
+  { eco:'B17', name:"Caro-Kann: Steinitz",                    moves:['e4','c6','d4','d5','Nc3','dxe4','Nxe4','Nd7'] },
+  { eco:'C55', name:"Two Knights Defense",                    moves:['e4','e5','Nf3','Nc6','Bc4','Nf6'] },
+  { eco:'C57', name:"Two Knights: Fried Liver Attack",        moves:['e4','e5','Nf3','Nc6','Bc4','Nf6','Ng5','d5','exd5','Nxd5','Nxf7'] },
+  { eco:'C56', name:"Two Knights: Max Lange Attack",          moves:['e4','e5','Nf3','Nc6','Bc4','Nf6','d4','exd4','O-O'] },
+  { eco:'C67', name:"Ruy Lopez: Berlin Endgame",              moves:['e4','e5','Nf3','Nc6','Bb5','Nf6','O-O','Nxe4','d4','Nd6','Bxc6','dxc6','dxe5','Nf5','Qxd8+','Kxd8'] },
+  { eco:'C78', name:"Ruy Lopez: Archangel",                   moves:['e4','e5','Nf3','Nc6','Bb5','a6','Ba4','Nf6','O-O','b5','Bb3','Bc5'] },
+  { eco:'C88', name:"Ruy Lopez: Marshall Attack",             moves:['e4','e5','Nf3','Nc6','Bb5','a6','Ba4','Nf6','O-O','Be7','Re1','b5','Bb3','O-O','c3','d5'] },
+  { eco:'C36', name:"King's Gambit: Modern",                  moves:['e4','e5','f4','exf4','Nf3','d5'] },
+  { eco:'C33', name:"King's Gambit: Bishop's Gambit",         moves:['e4','e5','f4','exf4','Bc4'] },
+  { eco:'C48', name:"Four Knights: Spanish",                  moves:['e4','e5','Nf3','Nc6','Nc3','Nf6','Bb5'] },
+  { eco:'C49', name:"Four Knights: Double Ruy",               moves:['e4','e5','Nf3','Nc6','Nc3','Nf6','Bb5','Bb4'] },
+  { eco:'C26', name:"Vienna: Falkbeer",                       moves:['e4','e5','Nc3','Nf6','f4'] },
+  { eco:'C27', name:"Vienna Gambit",                          moves:['e4','e5','Nc3','Nf6','Bc4','Nxe4'] },
+  { eco:'C43', name:"Petrov: Modern Attack",                  moves:['e4','e5','Nf3','Nf6','d4'] },
+  { eco:'C43', name:"Petrov: Classical",                      moves:['e4','e5','Nf3','Nf6','Nxe5','d6','Nf3','Nxe4','d4'] },
+
+  // More d4 openings
+  { eco:'D07', name:"Queen's Gambit: Chigorin Defense",       moves:['d4','d5','c4','Nc6'] },
+  { eco:'D15', name:"Slav: Quiet",                            moves:['d4','d5','c4','c6','Nf3','Nf6','Nc3','dxc4'] },
+  { eco:'D17', name:"Slav: Czech",                            moves:['d4','d5','c4','c6','Nf3','Nf6','Nc3','dxc4','a4','Bf5'] },
+  { eco:'D44', name:"Semi-Slav: Botvinnik",                   moves:['d4','d5','c4','c6','Nc3','Nf6','Nf3','e6','Bg5','dxc4','e4','b5'] },
+  { eco:'D45', name:"Semi-Slav: Meran",                       moves:['d4','d5','c4','c6','Nc3','Nf6','Nf3','e6','e3','Nbd7','Bd3','dxc4','Bxc4','b5'] },
+  { eco:'D31', name:"Queen's Gambit: Alapin",                 moves:['d4','d5','c4','e6','Nc3','c6'] },
+  { eco:'D35', name:"QGD: Exchange",                          moves:['d4','d5','c4','e6','Nc3','Nf6','cxd5','exd5'] },
+  { eco:'D37', name:"QGD: Classical",                         moves:['d4','d5','c4','e6','Nc3','Nf6','Nf3','Be7','Bf4'] },
+  { eco:'D41', name:"QGD: Semi-Tarrasch",                     moves:['d4','d5','c4','e6','Nc3','Nf6','Nf3','c5'] },
+  { eco:'D50', name:"QGD: Semi-Tarrasch with 5.Bg5",         moves:['d4','d5','c4','e6','Nc3','Nf6','Bg5','c5'] },
+  { eco:'D55', name:"QGD: Anti-Tartakower",                   moves:['d4','d5','c4','e6','Nc3','Nf6','Bg5','Be7','e3','h6','Bh4','O-O','Rc1','b6'] },
+  { eco:'E32', name:"Nimzo-Indian: Classical",                moves:['d4','Nf6','c4','e6','Nc3','Bb4','Qc2'] },
+  { eco:'E21', name:"Nimzo-Indian: Three Knights",            moves:['d4','Nf6','c4','e6','Nc3','Bb4','Nf3'] },
+  { eco:'E41', name:"Nimzo-Indian: Huebner",                  moves:['d4','Nf6','c4','e6','Nc3','Bb4','e3','c5','Bd3','Nc6','Nf3','Bxc3+','bxc3','d6'] },
+  { eco:'E17', name:"Queen's Indian: Classical",              moves:['d4','Nf6','c4','e6','Nf3','b6','g3','Be7','Bg2','Bb7','O-O','O-O'] },
+  { eco:'E12', name:"Queen's Indian: Petrosian",              moves:['d4','Nf6','c4','e6','Nf3','b6','a3'] },
+  { eco:'D82', name:"Grünfeld: 4.Bf4",                        moves:['d4','Nf6','c4','g6','Nc3','d5','Bf4'] },
+  { eco:'D86', name:"Grünfeld: Exchange, Classical",          moves:['d4','Nf6','c4','g6','Nc3','d5','cxd5','Nxd5','e4','Nxc3','bxc3','Bg7','Bc4','O-O','Ne2'] },
+  { eco:'D90', name:"Grünfeld: Taimanov",                     moves:['d4','Nf6','c4','g6','Nc3','d5','Nf3','Bg7','Qb3'] },
+  { eco:'E70', name:"King's Indian: Averbakh",                moves:['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6','Be2','O-O','Bg5'] },
+  { eco:'E73', name:"King's Indian: Averbakh, 6...c5",        moves:['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6','Be2','O-O','Bg5','c5'] },
+  { eco:'E76', name:"King's Indian: Four Pawns Attack",       moves:['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6','f4','O-O','Nf3','c5','d5','e6','dxe6'] },
+  { eco:'E80', name:"King's Indian: Sämisch",                 moves:['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6','f3'] },
+  { eco:'E92', name:"King's Indian: Petrosian",               moves:['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6','Nf3','O-O','Be2','e5','d5'] },
+  { eco:'A81', name:"Dutch: Leningrad",                       moves:['d4','f5','g3','Nf6','Bg2','g6','Nf3','Bg7','O-O','O-O'] },
+  { eco:'A84', name:"Dutch: Classical",                       moves:['d4','f5','c4','Nf6','Nc3','e6','Nf3','Be7'] },
+  { eco:'A46', name:"Indian: Torre Attack",                   moves:['d4','Nf6','Nf3','e6','Bg5'] },
+  { eco:'A48', name:"King's Indian: London System",           moves:['d4','Nf6','Nf3','g6','Bf4'] },
+  { eco:'A51', name:"Budapest Gambit",                        moves:['d4','Nf6','c4','e5'] },
+  { eco:'A57', name:"Benko Gambit",                           moves:['d4','Nf6','c4','c5','d5','b5'] },
+  { eco:'A58', name:"Benko Gambit Accepted",                  moves:['d4','Nf6','c4','c5','d5','b5','cxb5','a6','bxa6','Bxa6'] },
+  { eco:'A43', name:"Benoni: Old",                            moves:['d4','c5','d5'] },
+  { eco:'A61', name:"Benoni: Modern",                         moves:['d4','Nf6','c4','c5','d5','e6','Nc3','exd5','cxd5','d6','Nf3','g6'] },
+  { eco:'A65', name:"Benoni: King's Indian",                  moves:['d4','Nf6','c4','c5','d5','e6','Nc3','exd5','cxd5','d6','e4','g6','f4'] },
+
+  // Flank / others
+  { eco:'A13', name:"English: Nimzo-English",                 moves:['c4','Nf6','Nc3','e6','Nf3','Bb4'] },
+  { eco:'A21', name:"English: Kramnik-Shirov Attack",         moves:['c4','e5','Nc3','Bb4','Nd5'] },
+  { eco:'A28', name:"English: Four Knights",                  moves:['c4','Nf6','Nc3','Nc6','Nf3','e5'] },
+  { eco:'A30', name:"English: Symmetrical",                   moves:['c4','c5','Nf3','Nf6','Nc3','Nc6','g3','g6','Bg2','Bg7'] },
+  { eco:'A05', name:"Réti: Zukertort",                        moves:['Nf3','Nf6','g3','g6','Bg2','Bg7','O-O','O-O','d3','d6','Nbd2'] },
+  { eco:'A00', name:"Grob's Attack",                          moves:['g4'] },
+  { eco:'A00', name:"Larsen's Opening",                       moves:['b3'] },
+  { eco:'A00', name:"Sokolsky (Orangutan)",                   moves:['b4'] },
+  { eco:'A03', name:"Bird's: Dutch Variation",                moves:['f4','d5','Nf3','Nf6','e3','g6','Be2','Bg7','O-O','O-O'] },
+];
+
+// Parse a SAN move and return {from, to, promo} or null
+function sanToMove(state, san) {
+  for (let from = 0; from < 64; from++) {
+    const p = state.board[from];
+    if (!p || p[0] !== state.turn) continue;
+    for (const to of legalMoves(state, from)) {
+      const isPromo = p[1]==='P' && Math.floor(to/8)===(p[0]==='w'?0:7);
+      const promos = isPromo ? ['Q','R','B','N'] : [undefined];
+      for (const promo of promos) {
+        if (moveToSAN(state, from, to, promo) === san) return { from, to, promo };
+      }
+    }
+  }
+  return null;
+}
+
+function loadOpening(opening) {
+  initTree(parseFEN(START_FEN));
+  selected=null; legalTargets=[];
+  let node = root;
+  for (const san of opening.moves) {
+    const state = cloneState(node.state);
+    const m = sanToMove(state, san);
+    if (!m) { console.warn('Could not parse move:', san); break; }
+    const moveSan = moveToSAN(state, m.from, m.to, m.promo);
+    const next = cloneState(state);
+    applyMoveRaw(next, m.from, m.to, m.promo || 'Q');
+    const child = { state: next, san: moveSan, from: m.from, to: m.to, parent: node, children: [], moveNum: node.moveNum + 1, opening: true };
+    node.children.push(child);
+    node = child;
+  }
+  currentNode = root;
+  renderBoard();
+  while (currentNode.children.length) currentNode = currentNode.children[0];
+  renderBoard();
+}
+
+// ── Opening search UI ─────────────────────────────────────────────────────────
+function initOpeningSearch() {
+  const input = document.getElementById('openingInput');
+  const dropdown = document.getElementById('openingDropdown');
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    dropdown.innerHTML = '';
+    if (!q) { dropdown.style.display='none'; return; }
+    const matches = OPENINGS.filter(o =>
+      o.name.toLowerCase().includes(q) || o.eco.toLowerCase().includes(q)
+    ).slice(0, 20);
+    if (!matches.length) { dropdown.style.display='none'; return; }
+    matches.forEach(o => {
+      const item = document.createElement('div');
+      item.className = 'opening-item';
+      item.innerHTML = `<span class="eco">${o.eco}</span><span class="opening-name">${o.name}</span><span class="opening-moves">${o.moves.join(' ')}</span>`;
+      item.addEventListener('click', () => {
+        input.value = o.name;
+        dropdown.style.display = 'none';
+        loadOpening(o);
+      });
+      dropdown.appendChild(item);
+    });
+    dropdown.style.display = 'block';
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { dropdown.style.display='none'; input.blur(); }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.opening-wrap')) dropdown.style.display='none';
+  });
+}
+
 // ── UI state (tree-based for branching) ───────────────────────────────────────
 let flipped=false;
 let selected=null;
@@ -685,7 +976,10 @@ function renderMoveList() {
     }
 
     const tok = document.createElement('span');
-    tok.className = 'move-token' + (isCurrent ? ' current' : '') + (isOnPath ? '' : ' variation');
+    tok.className = 'move-token'
+      + (isCurrent ? ' current' : '')
+      + (isOnPath ? '' : ' variation')
+      + (node.opening ? ' opening-move' : '');
     tok.textContent = node.san;
     tok.title = isOnPath ? '' : 'variation';
     tok.addEventListener('click', () => { currentNode=node; selected=null; legalTargets=[]; renderBoard(); });
@@ -834,6 +1128,7 @@ document.addEventListener('keydown',e=>{
 
 initTree(parseFEN(START_FEN));
 initEngine();
+initOpeningSearch();
 renderBoard();
 </script>
 </body>
