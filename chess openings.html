@@ -92,7 +92,9 @@
     flex: 1;
     overflow-y: auto;
     padding: 4px 0;
+    display: none;
   }
+  .opening-list.visible { display: block; }
   .opening-list-item {
     padding: 8px 14px;
     cursor: pointer;
@@ -228,7 +230,7 @@
 <body>
 
 <header>
-  <a href="index.html" style="padding:5px 12px;font-size:12px;border:1px solid #4a4a6a;border-radius:6px;background:#2d2d4e;color:#ccc;text-decoration:none;display:inline-flex;align-items:center;">← Arcade</a>
+  <a href="index.html" style="padding:6px 14px;font-size:13px;border:1px solid #a0c4ff;border-radius:6px;background:#2d2d4e;color:#a0c4ff;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Arcade</a>
   <h1>CHESS OPENINGS</h1>
   <div class="opening-tag" id="openingTag">Select an opening →</div>
   <button id="btnFlip" style="padding:5px 12px;font-size:12px">Flip (F)</button>
@@ -732,9 +734,12 @@ function buildCategoryTabs(){
   });
 }
 
-function renderOpeningList(){
+function renderOpeningList(show=true){
   const el=document.getElementById('openingList');el.innerHTML='';
   const q=searchQuery.toLowerCase();
+  const listActive=show;
+  el.classList.toggle('visible',listActive);
+  if(!listActive)return;
   const filtered=OPENINGS.filter(o=>{
     const catMatch=activeCategory==='all'||o.cat===activeCategory;
     const qMatch=!q||o.name.toLowerCase().includes(q)||o.eco.toLowerCase().includes(q)||o.moves.join(' ').toLowerCase().includes(q);
@@ -748,6 +753,8 @@ function renderOpeningList(){
       document.querySelectorAll('.opening-list-item').forEach(i=>i.classList.remove('active'));
       item.classList.add('active');
       loadOpening(o);
+      // collapse list after selection
+      el.classList.remove('visible');
     });
     el.appendChild(item);
   });
@@ -782,7 +789,7 @@ document.addEventListener('keydown',e=>{
 initTree(parseFEN(START_FEN));
 initEngine();
 buildCategoryTabs();
-renderOpeningList();
+renderOpeningList(false);
 renderBoard();
 </script>
 </body>

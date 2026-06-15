@@ -86,6 +86,7 @@
     transition: background 0.15s;
   }
   .header-btn:hover { background: #3d3d6e; color: #ccc; }
+  a.header-btn[href="index.html"] { color: #a0c4ff; border-color: #a0c4ff; font-weight: 600; letter-spacing: 0.5px; }
 
   .viewer-body {
     display: flex;
@@ -217,18 +218,18 @@
 <!-- ── Input screen ── -->
 <div id="inputScreen">
   <h1>GAME REVIEW</h1>
-  <p>Paste a PGN below to replay the game move by move</p>
-  <textarea id="pgnInput" spellcheck="false" placeholder='[Event "World Chess Championship"]
-[Site "Reykjavik, Iceland"]
-[Date "1972.07.11"]
-[White "Spassky, Boris V"]
-[Black "Fischer, Robert James"]
-[Result "0-1"]
+  <p>Copy a PGN from Chess.com, Lichess, or any chess database and paste it below</p>
+  <textarea id="pgnInput" spellcheck="false" placeholder='Paste PGN here…
 
-1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 ...'></textarea>
+Example:
+[White "Fischer"]
+[Black "Spassky"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 ...'></textarea>
   <div class="error-msg" id="errorMsg"></div>
-  <button class="load-btn" id="btnLoad">Load Game →</button>
-  <span class="sample-link" id="sampleLink">Load a sample game</span>
+  <button class="load-btn" id="btnLoad">Review Game →</button>
+  <span class="sample-link" id="sampleLink">Try a sample game</span>
 </div>
 
 <!-- ── Viewer screen ── -->

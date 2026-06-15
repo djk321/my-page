@@ -11,15 +11,15 @@
     /* ── Top bar ── */
     #topBar { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:820px; margin-bottom:20px; flex-wrap:wrap; gap:10px; }
     h1 { font-size:24px; font-weight:500; letter-spacing:-0.5px; }
-    .subtitle { font-size:11px; color:#aaa; letter-spacing:1px; }
+    .subtitle { font-size:11px; color:#777; letter-spacing:1px; }
     #controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .seg { display:flex; border:0.5px solid #ddd; border-radius:8px; overflow:hidden; }
-    .seg button { padding:6px 14px; font-size:12px; border:none; background:#fff; cursor:pointer; color:#555; }
+    .seg { display:flex; border:0.5px solid #ccc; border-radius:8px; overflow:hidden; }
+    .seg button { padding:6px 14px; font-size:12px; border:none; background:#fff; cursor:pointer; color:#333; }
     .seg button.active { background:#1a1a2e; color:#fff; }
-    .seg button:not(:last-child) { border-right:0.5px solid #ddd; }
+    .seg button:not(:last-child) { border-right:0.5px solid #ccc; }
     #diffRow { display:flex; gap:8px; align-items:center; }
-    #diffLabel { font-size:11px; color:#aaa; letter-spacing:.5px; }
-    #soundBtn { padding:6px 12px; font-size:12px; border:0.5px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; color:#555; }
+    #diffLabel { font-size:11px; color:#777; letter-spacing:.5px; }
+    #soundBtn { padding:6px 12px; font-size:12px; border:0.5px solid #ccc; border-radius:8px; background:#fff; cursor:pointer; color:#333; }
     #soundBtn.on { background:#E1F5EE; border-color:#5DCAA5; color:#0F6E56; }
 
     /* ── Game root ── */
@@ -27,7 +27,7 @@
     #histBanner { display:none; background:#FAEEDA; border:0.5px solid #EF9F27; border-radius:8px; padding:6px 12px; font-size:12px; color:#633806; text-align:center; margin-bottom:10px; }
     #histBanner.visible { display:block; }
     #statusBar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
-    #msg { font-size:13px; color:#555; flex:1; min-width:180px; line-height:1.5; }
+    #msg { font-size:13px; color:#222; flex:1; min-width:180px; line-height:1.5; }
     .score-box { text-align:center; border-radius:10px; padding:5px 14px; border:0.5px solid; }
     .score-box.p1 { background:#EEEDFE; border-color:#AFA9EC; }
     .score-box.p2 { background:#E1F5EE; border-color:#5DCAA5; }
@@ -44,14 +44,18 @@
     /* ── Board ── */
     #boardWrap { display:grid; grid-template-columns:16px repeat(6,50px); grid-template-rows:16px repeat(6,50px); gap:3px; cursor:crosshair; user-select:none; }
     #boardWrap.hist-mode { cursor:default; }
-    .col-label,.row-label { font-size:10px; color:#bbb; display:flex; align-items:center; justify-content:center; }
-    .gc { width:50px; height:50px; border-radius:4px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:0.5px solid #ddd; background:#fff; position:relative; pointer-events:none; }
-    .gc.pcl { background:#EEEDFE; border-color:#7F77DD; }
-    .gc.acl { background:#E1F5EE; border-color:#1D9E75; }
-    .gc.pvc { background:#FAEEDA; border-color:#EF9F27; }
-    .gc.fxc { background:#FCEBEB; border-color:#E24B4A; }
+    .col-label,.row-label { font-size:10px; color:#777; display:flex; align-items:center; justify-content:center; }
+    .gc { width:50px; height:50px; border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; border:none; background:#f0d9b5; position:relative; pointer-events:none; }
+    .gc.dark-sq { background:#b58863; }
+    .gc.pcl { background:#c9b8e8; }
+    .gc.pcl.dark-sq { background:#9a7dc0; }
+    .gc.acl { background:#b8e4d2; }
+    .gc.acl.dark-sq { background:#7abda0; }
+    .gc.pvc { background:#FAEEDA; }
+    .gc.fxc { background:#FCEBEB; }
     .gc.new-tile { box-shadow:0 0 0 2.5px #7F77DD inset; }
     .gc.new-tile.acl { box-shadow:0 0 0 2.5px #1D9E75 inset; }
+    #boardWrap { border:3px solid #4a4a6a; border-radius:4px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
     .gc .sy { font-size:22px; line-height:1; pointer-events:none; }
     .gc .lb { position:absolute; bottom:2px; right:4px; font-size:9px; font-weight:500; pointer-events:none; }
     .gc.pcl .lb { color:#534AB7; } .gc.acl .lb { color:#0F6E56; } .gc.fxc .sy { opacity:.3; }
@@ -59,12 +63,12 @@
     /* ── History nav ── */
     #histNav { display:none; align-items:center; gap:6px; margin-top:8px; padding:7px 10px; background:#fff; border-radius:10px; border:0.5px solid #ddd; flex-wrap:wrap; }
     #histNav.visible { display:flex; }
-    #histLabel { font-size:12px; color:#888; flex:1; text-align:center; white-space:nowrap; }
-    .nav-btn { padding:5px 12px; font-size:12px; border:0.5px solid #ddd; border-radius:7px; background:#fff; cursor:pointer; color:#333; white-space:nowrap; }
+    #histLabel { font-size:12px; color:#444; flex:1; text-align:center; white-space:nowrap; }
+    .nav-btn { padding:5px 12px; font-size:12px; border:0.5px solid #ccc; border-radius:7px; background:#fff; cursor:pointer; color:#222; white-space:nowrap; }
     .nav-btn:hover:not(:disabled) { background:#f5f4f0; } .nav-btn:disabled { opacity:.3; cursor:default; }
     .nav-btn.live-btn { background:#1a1a2e; color:#fff; border-color:#1a1a2e; }
     .nav-btn.live-btn:hover { background:#2a2a3e; }
-    #boardNote { font-size:10px; color:#bbb; margin-top:5px; line-height:1.6; }
+    #boardNote { font-size:10px; color:#666; margin-top:5px; line-height:1.6; }
 
     /* ── Tile pool ── */
     #poolSection { margin-top:10px; }
@@ -113,15 +117,10 @@
     .tips { text-align:left; background:#f5f4f0; border-radius:9px; padding:12px 14px; margin-bottom:18px; }
     .tips .tip { font-size:12px; color:#444; line-height:1.7; display:flex; gap:7px; }
 
-    /* ── Pass overlay ── */
-    #passOverlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:90; align-items:center; justify-content:center; }
-    #passOverlay.show { display:flex; }
-    #passBox { background:#fff; border-radius:18px; padding:36px 40px; max-width:360px; width:90%; text-align:center; }
-    #passBox h2 { font-size:22px; font-weight:500; margin-bottom:8px; }
-    #passBox p  { font-size:14px; color:#666; margin-bottom:24px; }
-    #passBox .badge { display:inline-block; padding:4px 14px; border-radius:20px; font-size:12px; font-weight:500; margin-bottom:20px; }
-    #passBox .badge.p1 { background:#EEEDFE; color:#3C3489; }
-    #passBox .badge.p2 { background:#E1F5EE; color:#0F6E56; }
+    /* ── Pass button ── */
+    #passBtn { display:none; width:100%; padding:10px 14px; font-size:13px; font-weight:500; border:1.5px solid #7F77DD; border-radius:10px; background:#EEEDFE; color:#3C3489; cursor:pointer; text-align:center; margin-bottom:10px; }
+    #passBtn.p2 { border-color:#5DCAA5; background:#E1F5EE; color:#0F6E56; }
+    #passBtn:hover { opacity:.85; }
   </style>
 </head>
 <body>
@@ -146,7 +145,7 @@
       </div>
     </div>
     <button id="soundBtn" class="on" onclick="toggleSound()">♪ Sound on</button>
-    <a href="index.html" style="padding:6px 12px;font-size:12px;border:0.5px solid #ddd;border-radius:8px;background:#fff;color:#555;text-decoration:none;display:inline-flex;align-items:center;">← Arcade</a>
+    <a href="index.html" style="padding:6px 14px;font-size:12px;border:0.5px solid #1a1a2e;border-radius:8px;background:#fff;color:#1a1a2e;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Arcade</a>
   </div>
 </div>
 
@@ -183,6 +182,7 @@
 
     <div id="sidebar">
       <div id="turnBadge">Setting up…</div>
+      <button id="passBtn" onclick="dismissPass()"></button>
       <div class="section-label" id="handLabel">YOUR HAND <span id="hCnt"></span></div>
       <div id="handEl"></div>
       <div class="section-label">PLACE AS</div>
@@ -225,15 +225,6 @@
   </div>
 </div>
 
-<!-- Pass-device overlay (2p mode) -->
-<div id="passOverlay">
-  <div id="passBox">
-    <h2 id="passTitle">Player 2's turn</h2>
-    <div class="badge p2" id="passBadge">PLAYER 2</div>
-    <p>Pass the screen to the next player, then tap when ready.</p>
-    <button class="btn primary" onclick="dismissPass()">I'm ready — show my hand</button>
-  </div>
-</div>
 
 <script>
   // ── Constants ─────────────────────────────────────────────────────────────
@@ -251,7 +242,7 @@
   let poolOpen = false;
 
   // ── Live game state ───────────────────────────────────────────────────────
-  let board, pH, aH, pool, sc, turn, sel, ori, over, pTurns, aTurns, hovR, hovC, flash, logLines;
+  let board, pH, aH, pool, sc, turn, sel, ori, over, pTurns, aTurns, hovR, hovC, flash, logLines, awaitingPass;
 
   // ── History ───────────────────────────────────────────────────────────────
   let history = [];
@@ -372,7 +363,7 @@
     for(let r=0;r<6;r++){
       const rl=document.createElement('div');rl.className='row-label';rl.textContent=r+1;wrap.appendChild(rl);
       for(let c=0;c<6;c++){
-        const cell=document.createElement('div'); cell.className='gc';
+        const cell=document.createElement('div'); cell.className='gc'+((r+c)%2===1?' dark-sq':'');
         const d=snap.board[r][c];
         const isFlash=snap.flash.some(f=>f.r===r&&f.c===c);
         const isNew=snap.placed.some(p=>p.r===r&&p.c===c);
@@ -430,21 +421,22 @@
   function showPass(nextTurn){
     const isP1=nextTurn==='p';
     const name=isP1?'Player 1':'Player 2';
-    document.getElementById('passTitle').textContent=`${name}'s turn`;
-    document.getElementById('passBadge').textContent=name.toUpperCase();
-    document.getElementById('passBadge').className='badge '+(isP1?'p1':'p2');
-    document.getElementById('passOverlay').classList.add('show');
-    sel=null;
+    awaitingPass=true; sel=null;
+    const btn=document.getElementById('passBtn');
+    btn.textContent=`Hand to ${name} — tap to show hand`;
+    btn.className=isP1?'':'p2';
+    btn.style.display='block';
+    renderHand(); syncUI();
   }
   function dismissPass(){
-    document.getElementById('passOverlay').classList.remove('show');
+    awaitingPass=false;
+    document.getElementById('passBtn').style.display='none';
     render();
   }
 
   // ── Game setup ────────────────────────────────────────────────────────────
   function newGame(){
     document.getElementById('goEl').style.display='none';
-    document.getElementById('passOverlay').classList.remove('show');
     closeRecap();
     histIdx=null;
     document.getElementById('histBanner').classList.remove('visible');
@@ -456,22 +448,18 @@
     shuf(all);
     pH=all.splice(0,4); aH=all.splice(0,4); pool=all;
     board=Array(6).fill(0).map(()=>Array(6).fill(null));
-    sc={p:0,a:0}; turn='a'; sel=null; ori='H'; over=false;
+    sc={p:0,a:0}; turn=(gameMode==='2p'?'p':'a'); sel=null; ori='H'; over=false;
     pTurns=0; aTurns=0; hovR=-1; hovC=-1; flash=[]; logLines=[];
-    poolOpen=false;
+    poolOpen=false; awaitingPass=false;
+    document.getElementById('passBtn').style.display='none';
     document.getElementById('poolGrid').className='';
     document.getElementById('poolArrow').textContent='▾';
     updateHistNav(); updatePoolBtn();
     document.getElementById('p1Label').textContent=gameMode==='2p'?'PLAYER 1':'YOU';
     document.getElementById('p2Label').textContent=gameMode==='2p'?'PLAYER 2':'AI';
-    setMsg(gameMode==='2p'?'Player 2 places the first tile…':'AI is placing the first tile…');
+    setMsg(gameMode==='2p'?'Player 1 — select a tile and place it.':'AI is placing the first tile…');
     render();
-    setTimeout(gameMode==='2p'?()=>handleP2Start():aiTurn, 800);
-  }
-
-  function handleP2Start(){
-    // In 2p mode, turn='a' means player 2's turn — show pass overlay
-    showPass('a');
+    if(gameMode==='ai') setTimeout(aiTurn, 800);
   }
 
   function shuf(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -746,7 +734,7 @@
     for(let r=0;r<6;r++){
       const rl=document.createElement('div');rl.className='row-label';rl.textContent=r+1;wrap.appendChild(rl);
       for(let c=0;c<6;c++){
-        const cell=document.createElement('div'); cell.className='gc';
+        const cell=document.createElement('div'); cell.className='gc'+((r+c)%2===1?' dark-sq':'');
         const d=board[r][c];
         const isFlash=flash.some(f=>f.r===r&&f.c===c);
         if(d){
@@ -773,6 +761,7 @@
 
   function renderHand(){
     const el=document.getElementById('handEl'); el.innerHTML='';
+    if(awaitingPass){ el.innerHTML='<div style="font-size:12px;color:#aaa;">Hand hidden — tap the button above to reveal.</div>'; return; }
     const inHistMode=histIdx!==null;
     const ah=turn==='p'?pH:aH;
     if(!ah||!ah.length){el.innerHTML='<div style="font-size:12px;color:#aaa;">No tiles in hand</div>';return;}
