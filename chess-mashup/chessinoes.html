@@ -239,7 +239,7 @@
       </div>
     </div>
     <button id="soundBtn" class="on" onclick="toggleSound()">♪ Sound on</button>
-    <a href="../index.html" style="padding:6px 14px;font-size:12px;border:0.5px solid #c9a84c;border-radius:8px;background:#1a1a24;color:#c9a84c;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Arcade</a>
+    <a data-back-btn href="javascript:history.back()" style="padding:6px 14px;font-size:12px;border:0.5px solid #c9a84c;border-radius:8px;background:#1a1a24;color:#c9a84c;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Back</a>
   </div>
 </div>
 
@@ -295,7 +295,7 @@
     <div id="goSub"></div>
     <button class="btn primary" onclick="showRecap()">Match recap</button>
     <button class="btn" onclick="newGame()">Play again</button>
-    <a href="../index.html" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">← Back to Arcade</a>
+    <a data-back-btn href="javascript:history.back()" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">← Back</a>
   </div>
 </div>
 
@@ -321,6 +321,7 @@
 
 
 <script>
+(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();
   // ── Constants ─────────────────────────────────────────────────────────────
   const PC   = ['P','N','B','R','Q','K'];
   const SY   = {P:'♟',N:'♞',B:'♝',R:'♜',Q:'♛',K:'♚'};

@@ -561,7 +561,18 @@ function initPuzzle(data) {
     if (history[i]) chess.move(history[i]);
   }
 
-  playerColor = chess.turn();
+  // Derive solver's color from the first solution move's piece,
+  // rather than chess.turn(), because initialPly indexing can be off-by-one.
+  const firstUci = solution[0];
+  const firstFrom = firstUci ? firstUci.slice(0, 2) : null;
+  const firstPiece = firstFrom ? chess.get(firstFrom) : null;
+  if (firstPiece) {
+    playerColor = firstPiece.color;
+  } else {
+    // Fallback: maybe we need one more ply
+    if (history[initialPly]) chess.move(history[initialPly]);
+    playerColor = chess.turn();
+  }
 
   // Info panel
   document.getElementById('info-rating').textContent = data.puzzle.rating;

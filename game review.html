@@ -86,7 +86,8 @@
     transition: background 0.15s;
   }
   .header-btn:hover { background: #3d3d6e; color: #ccc; }
-  a.header-btn[href="index.html"] { color: #a0c4ff; border-color: #a0c4ff; font-weight: 600; letter-spacing: 0.5px; }
+  [data-back-btn] { color: #a0c4ff !important; border-color: #a0c4ff !important; background: #1e1e3a !important; font-weight: 600; letter-spacing: 0.5px; }
+  [data-back-btn]:hover { background: #2a2a50 !important; }
 
   .viewer-body {
     display: flex;
@@ -244,7 +245,8 @@ Example:
     <div class="result-badge" id="resultBadge"></div>
     <button class="header-btn" id="btnFlip">Flip (F)</button>
     <span class="header-btn" id="btnNewGame" style="cursor:pointer">← New Game</span>
-    <a href="index.html" class="header-btn">← Arcade</a>
+    <a data-back-btn href="javascript:history.back()" class="header-btn">← Back</a>
+    <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
   </header>
 
   <div class="viewer-body">

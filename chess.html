@@ -116,7 +116,8 @@
   <button id="btnNext">Next &gt;</button>
   <button id="btnLast">Last &gt;|</button>
   <button id="btnReset">Reset</button>
-  <a href="index.html" style="margin-left:auto;padding:6px 14px;font-size:13px;border:1px solid #a0c4ff;border-radius:6px;background:#2d2d4e;color:#a0c4ff;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Arcade</a>
+  <a data-back-btn href="javascript:history.back()" style="margin-left:auto;padding:6px 14px;font-size:13px;border:1px solid #a0c4ff;border-radius:6px;background:#2d2d4e;color:#a0c4ff;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Back</a>
+  <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
 </div>
 
 <div class="fen-row">
