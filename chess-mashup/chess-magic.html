@@ -47,9 +47,127 @@
 
     .legend { font-size: 11px; color: #555; line-height: 1.9; }
     .legend span { color: #9b94e8; }
+
+    /* ── Intro screen ── */
+    #introScreen { display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:48px 24px 64px; background:#0a0a10; }
+    #introArt { width:100%; max-width:560px; border-radius:16px; overflow:hidden; margin-bottom:32px; border:1px solid #2a2a3a; box-shadow:0 24px 60px rgba(0,0,0,.6); }
+    #introArt svg { display:block; width:100%; }
+    #introName { font-size:46px; font-weight:800; letter-spacing:-2px; text-align:center; margin-bottom:8px; background:linear-gradient(135deg,#b8b0ff,#c940c9); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    #introTagline { font-size:16px; font-style:italic; color:#666; margin-bottom:24px; text-align:center; }
+    #introDesc { font-size:14px; color:#aaa; line-height:1.8; max-width:500px; text-align:center; margin-bottom:24px; }
+    #introMeta { display:flex; gap:20px; font-size:12px; color:#555; letter-spacing:.5px; margin-bottom:32px; flex-wrap:wrap; justify-content:center; }
+    #introMeta span::before { content:'•'; margin-right:8px; color:#333; }
+    #introMeta span:first-child::before { content:none; }
+    #introAbilities { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; max-width:500px; width:100%; margin-bottom:28px; }
+    .iability { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 12px; }
+    .iability-piece { font-size:22px; margin-bottom:4px; }
+    .iability-name { font-size:11px; font-weight:600; color:#b8b0ff; margin-bottom:2px; }
+    .iability-desc { font-size:10px; color:#555; line-height:1.5; }
+    .iability-cost { font-size:10px; color:#c940c9; margin-top:3px; font-weight:600; }
+    #introRules { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:16px 20px; max-width:500px; width:100%; margin-bottom:32px; font-size:12px; color:#777; line-height:2; }
+    #introRules strong { color:#bbb; }
+    #introPlayBtn { padding:14px 52px; font-size:16px; font-weight:700; border:none; border-radius:50px; background:linear-gradient(135deg,#6b46c1,#c940c9); color:#fff; cursor:pointer; letter-spacing:.5px; transition:transform .15s, box-shadow .15s; }
+    #introPlayBtn:hover { transform:scale(1.04); box-shadow:0 8px 30px rgba(107,70,193,0.45); }
+    #introBack { margin-top:14px; background:none; border:none; color:#444; font-size:13px; cursor:pointer; padding:6px 12px; }
+    #introBack:hover { color:#777; }
   </style>
 </head>
 <body>
+
+<!-- ── Intro / Rules screen ── -->
+<div id="introScreen">
+  <div id="introArt">
+    <svg viewBox="0 0 560 280" xmlns="http://www.w3.org/2000/svg">
+      <rect width="560" height="280" fill="#0d0d18"/>
+      <!-- board squares -->
+      <g opacity="0.2">
+        <rect x="0"   y="0"   width="70" height="70" fill="#4a3822"/>
+        <rect x="70"  y="0"   width="70" height="70" fill="#2e2214"/>
+        <rect x="140" y="0"   width="70" height="70" fill="#4a3822"/>
+        <rect x="210" y="0"   width="70" height="70" fill="#2e2214"/>
+        <rect x="280" y="0"   width="70" height="70" fill="#4a3822"/>
+        <rect x="350" y="0"   width="70" height="70" fill="#2e2214"/>
+        <rect x="420" y="0"   width="70" height="70" fill="#4a3822"/>
+        <rect x="490" y="0"   width="70" height="70" fill="#2e2214"/>
+        <rect x="0"   y="70"  width="70" height="70" fill="#2e2214"/>
+        <rect x="70"  y="70"  width="70" height="70" fill="#4a3822"/>
+        <rect x="140" y="70"  width="70" height="70" fill="#2e2214"/>
+        <rect x="210" y="70"  width="70" height="70" fill="#4a3822"/>
+        <rect x="280" y="70"  width="70" height="70" fill="#2e2214"/>
+        <rect x="350" y="70"  width="70" height="70" fill="#4a3822"/>
+        <rect x="420" y="70"  width="70" height="70" fill="#2e2214"/>
+        <rect x="490" y="70"  width="70" height="70" fill="#4a3822"/>
+        <rect x="0"   y="140" width="70" height="70" fill="#4a3822"/>
+        <rect x="70"  y="140" width="70" height="70" fill="#2e2214"/>
+        <rect x="140" y="140" width="70" height="70" fill="#4a3822"/>
+        <rect x="210" y="140" width="70" height="70" fill="#2e2214"/>
+        <rect x="280" y="140" width="70" height="70" fill="#4a3822"/>
+        <rect x="350" y="140" width="70" height="70" fill="#2e2214"/>
+        <rect x="420" y="140" width="70" height="70" fill="#4a3822"/>
+        <rect x="490" y="140" width="70" height="70" fill="#2e2214"/>
+        <rect x="0"   y="210" width="70" height="70" fill="#2e2214"/>
+        <rect x="70"  y="210" width="70" height="70" fill="#4a3822"/>
+        <rect x="140" y="210" width="70" height="70" fill="#2e2214"/>
+        <rect x="210" y="210" width="70" height="70" fill="#4a3822"/>
+        <rect x="280" y="210" width="70" height="70" fill="#2e2214"/>
+        <rect x="350" y="210" width="70" height="70" fill="#4a3822"/>
+        <rect x="420" y="210" width="70" height="70" fill="#2e2214"/>
+        <rect x="490" y="210" width="70" height="70" fill="#4a3822"/>
+      </g>
+      <!-- spell glow -->
+      <ellipse cx="210" cy="140" rx="110" ry="110" fill="#6b46c1" opacity="0.12"/>
+      <ellipse cx="350" cy="140" rx="110" ry="110" fill="#c940c9" opacity="0.10"/>
+      <!-- white queen with aura -->
+      <circle cx="210" cy="140" r="46" fill="#1e1c3a" stroke="#9b94e8" stroke-width="1.5" opacity="0.9"/>
+      <text x="210" y="155" font-size="44" text-anchor="middle" fill="#e8e8f0">♕</text>
+      <!-- magic sparkles -->
+      <circle cx="168" cy="98"  r="3" fill="#b8b0ff" opacity="0.8"/>
+      <circle cx="255" cy="92"  r="2" fill="#b8b0ff" opacity="0.6"/>
+      <circle cx="175" cy="185" r="2.5" fill="#b8b0ff" opacity="0.7"/>
+      <circle cx="252" cy="180" r="2" fill="#c940c9" opacity="0.8"/>
+      <!-- black knight being targeted -->
+      <circle cx="350" cy="140" r="38" fill="#2a1414" stroke="#e24b4a" stroke-width="1.5" opacity="0.85"/>
+      <text x="350" y="155" font-size="38" text-anchor="middle" fill="#888">♞</text>
+      <!-- arc between them -->
+      <path d="M256 130 Q280 90 314 130" stroke="#c940c9" stroke-width="2" fill="none" opacity="0.7" stroke-dasharray="4 3"/>
+      <!-- mana gems -->
+      <circle cx="430" cy="60"  r="8" fill="#6b46c1" opacity="0.9"/>
+      <circle cx="452" cy="60"  r="8" fill="#6b46c1" opacity="0.9"/>
+      <circle cx="474" cy="60"  r="8" fill="#6b46c1" opacity="0.3"/>
+      <text x="452" y="88" font-size="10" text-anchor="middle" fill="#666" font-family="system-ui">MANA</text>
+    </svg>
+  </div>
+  <div id="introName">CHESS × MAGIC</div>
+  <div id="introTagline">"Every piece holds a secret power. Spend wisely."</div>
+  <div id="introDesc">Standard chess — but every piece carries a unique spell. Earn mana each turn and spend it to stun enemies, teleport knights, shield your rooks, or unleash the queen's total destruction. Outmanoeuvre your opponent on the board and outspell them off it.</div>
+  <div id="introMeta">
+    <span>1 Player</span><span>vs AI</span><span>Ages 12+</span><span>Mana grows each turn</span>
+  </div>
+  <div id="introAbilities">
+    <div class="iability"><div class="iability-piece">♔</div><div class="iability-name">Royal Decree</div><div class="iability-desc">Stun all adjacent enemies for 1 turn</div><div class="iability-cost">2 mana</div></div>
+    <div class="iability"><div class="iability-piece">♕</div><div class="iability-name">Arcane Surge</div><div class="iability-desc">Destroy any enemy piece on the board</div><div class="iability-cost">3 mana</div></div>
+    <div class="iability"><div class="iability-piece">♖</div><div class="iability-name">Stone Wall</div><div class="iability-desc">This Rook cannot be captured until your next turn</div><div class="iability-cost">1 mana</div></div>
+    <div class="iability"><div class="iability-piece">♗</div><div class="iability-name">Mystic Vision</div><div class="iability-desc">Freeze the first enemy on any diagonal</div><div class="iability-cost">1 mana</div></div>
+    <div class="iability"><div class="iability-piece">♘</div><div class="iability-name">Phantom Leap</div><div class="iability-desc">Teleport to any empty square on the board</div><div class="iability-cost">2 mana</div></div>
+    <div class="iability"><div class="iability-piece">♙</div><div class="iability-name">Empower</div><div class="iability-desc">Move 2 squares forward this turn from any row</div><div class="iability-cost">1 mana</div></div>
+  </div>
+  <div id="introRules">
+    <strong>Quick rules</strong><br>
+    • Standard chess movement and capture rules apply throughout<br>
+    • You play White — the AI controls Black<br>
+    • Each turn you gain +1 mana (max grows each round, up to 10)<br>
+    • Click a piece to select it, then click a square to move<br>
+    • With a piece selected, press <strong>Cast</strong> to activate its spell — if you have enough mana<br>
+    • <strong>Stunned</strong> pieces (faded) skip their turn · <strong>Shielded</strong> pieces (gold outline) cannot be captured<br>
+    • Queen's <em>Arcane Surge</em> and Knight's <em>Phantom Leap</em> require clicking a target square after casting<br>
+    • Win by capturing the enemy King — checkmate is not enforced, so hunt it down!
+  </div>
+  <button id="introPlayBtn" onclick="startGame()">▶ Play Chess × Magic</button>
+  <button id="introBack" onclick="window.location='index.html'">← Back to Chess Mashup</button>
+</div>
+
+<!-- ── Game ── -->
+<div id="gameRoot" style="display:none; width:100%; flex-direction:column; align-items:center;">
 
 <div id="topBar">
   <div>
@@ -271,16 +389,20 @@ function render(){
   if(gs.selected)renderPieceInfo(gs.selected[0],gs.selected[1]);
 }
 
-const fl=document.getElementById('file-labels');
-fl.innerHTML='<div style="width:20px"></div>';
-'abcdefgh'.split('').forEach(l=>{const d=document.createElement('div');d.className='file-label';d.textContent=l;fl.appendChild(d);});
-const rl=document.getElementById('rank-labels');
-for(let r=0;r<8;r++){const d=document.createElement('div');d.className='row-label';d.textContent=8-r;rl.appendChild(d);}
-
-addLog('Game started! You are White.');
-addLog('Click a piece to select, then click to move.');
-addLog('Use mana to cast piece abilities!');
-render();
+function startGame(){
+  document.getElementById('introScreen').style.display='none';
+  document.getElementById('gameRoot').style.display='flex';
+  const fl=document.getElementById('file-labels');
+  fl.innerHTML='<div style="width:20px"></div>';
+  'abcdefgh'.split('').forEach(l=>{const d=document.createElement('div');d.className='file-label';d.textContent=l;fl.appendChild(d);});
+  const rl=document.getElementById('rank-labels');
+  for(let r=0;r<8;r++){const d=document.createElement('div');d.className='row-label';d.textContent=8-r;rl.appendChild(d);}
+  addLog('Game started! You are White.');
+  addLog('Click a piece to select, then click to move.');
+  addLog('Use mana to cast piece abilities!');
+  render();
+}
 </script>
+</div><!-- end gameRoot -->
 </body>
 </html>

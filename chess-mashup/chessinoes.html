@@ -121,9 +121,103 @@
     #passBtn { display:none; width:100%; padding:10px 14px; font-size:13px; font-weight:500; border:1.5px solid #9b94e8; border-radius:10px; background:#1e1c3a; color:#b8b0ff; cursor:pointer; text-align:center; margin-bottom:10px; }
     #passBtn.p2 { border-color:#5DCAA5; background:#0f2820; color:#5DCAA5; }
     #passBtn:hover { opacity:.85; }
+
+    /* ── Intro screen ── */
+    #introScreen { display:flex; flex-direction:column; align-items:center; min-height:100vh; padding:48px 24px 64px; background:#0a0a10; }
+    #introArt { width:100%; max-width:560px; border-radius:16px; overflow:hidden; margin-bottom:32px; border:1px solid #2a2a3a; box-shadow:0 24px 60px rgba(0,0,0,.6); }
+    #introArt svg { display:block; width:100%; }
+    #introName { font-size:48px; font-weight:800; letter-spacing:-2px; text-align:center; margin-bottom:8px; background:linear-gradient(135deg,#b8b0ff,#5DCAA5); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    #introTagline { font-size:16px; font-style:italic; color:#666; margin-bottom:24px; text-align:center; }
+    #introDesc { font-size:14px; color:#aaa; line-height:1.8; max-width:500px; text-align:center; margin-bottom:24px; }
+    #introMeta { display:flex; gap:20px; font-size:12px; color:#555; letter-spacing:.5px; margin-bottom:32px; flex-wrap:wrap; justify-content:center; }
+    #introMeta span::before { content:'•'; margin-right:8px; color:#333; }
+    #introMeta span:first-child::before { content:none; }
+    #introPieces { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:28px; max-width:500px; }
+    .ipiece { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:8px 12px; text-align:center; min-width:62px; }
+    .ipiece-sym { font-size:20px; }
+    .ipiece-name { font-size:9px; color:#555; letter-spacing:.5px; margin-top:2px; }
+    .ipiece-val { font-size:10px; color:#9b94e8; font-weight:600; margin-top:1px; }
+    #introRules { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:16px 20px; max-width:500px; width:100%; margin-bottom:32px; font-size:12px; color:#777; line-height:2; }
+    #introRules strong { color:#bbb; }
+    #introPlayBtn { padding:14px 52px; font-size:16px; font-weight:700; border:none; border-radius:50px; background:linear-gradient(135deg,#9b94e8,#5DCAA5); color:#fff; cursor:pointer; letter-spacing:.5px; transition:transform .15s, box-shadow .15s; }
+    #introPlayBtn:hover { transform:scale(1.04); box-shadow:0 8px 30px rgba(155,148,232,0.4); }
+    #introBack { margin-top:14px; background:none; border:none; color:#444; font-size:13px; cursor:pointer; padding:6px 12px; }
+    #introBack:hover { color:#777; }
   </style>
 </head>
 <body>
+
+<!-- ── Intro / Rules screen ── -->
+<div id="introScreen">
+  <div id="introArt">
+    <svg viewBox="0 0 560 280" xmlns="http://www.w3.org/2000/svg">
+      <rect width="560" height="280" fill="#0d0d18"/>
+      <!-- board squares -->
+      <g opacity="0.18">
+        <rect x="0"   y="0"   width="93" height="93" fill="#4a3822"/>
+        <rect x="93"  y="0"   width="93" height="93" fill="#2e2214"/>
+        <rect x="186" y="0"   width="93" height="93" fill="#4a3822"/>
+        <rect x="279" y="0"   width="93" height="93" fill="#2e2214"/>
+        <rect x="372" y="0"   width="93" height="93" fill="#4a3822"/>
+        <rect x="465" y="0"   width="95" height="93" fill="#2e2214"/>
+        <rect x="0"   y="93"  width="93" height="93" fill="#2e2214"/>
+        <rect x="93"  y="93"  width="93" height="93" fill="#4a3822"/>
+        <rect x="186" y="93"  width="93" height="93" fill="#2e2214"/>
+        <rect x="279" y="93"  width="93" height="93" fill="#4a3822"/>
+        <rect x="372" y="93"  width="93" height="93" fill="#2e2214"/>
+        <rect x="465" y="93"  width="95" height="93" fill="#4a3822"/>
+        <rect x="0"   y="186" width="93" height="94" fill="#4a3822"/>
+        <rect x="93"  y="186" width="93" height="94" fill="#2e2214"/>
+        <rect x="186" y="186" width="93" height="94" fill="#4a3822"/>
+        <rect x="279" y="186" width="93" height="94" fill="#2e2214"/>
+        <rect x="372" y="186" width="93" height="94" fill="#4a3822"/>
+        <rect x="465" y="186" width="95" height="94" fill="#2e2214"/>
+      </g>
+      <!-- domino tile 1 (purple) -->
+      <rect x="110" y="60" width="140" height="68" rx="10" fill="#2c2850" stroke="#9b94e8" stroke-width="1.5"/>
+      <line x1="180" y1="60" x2="180" y2="128" stroke="#9b94e8" stroke-width="1.5" opacity="0.5"/>
+      <text x="145" y="103" font-size="36" text-anchor="middle" fill="#b8b0ff">♛</text>
+      <text x="215" y="103" font-size="36" text-anchor="middle" fill="#b8b0ff">♜</text>
+      <!-- domino tile 2 (teal) -->
+      <rect x="310" y="152" width="140" height="68" rx="10" fill="#0f2e24" stroke="#5DCAA5" stroke-width="1.5"/>
+      <line x1="380" y1="152" x2="380" y2="220" stroke="#5DCAA5" stroke-width="1.5" opacity="0.5"/>
+      <text x="345" y="195" font-size="36" text-anchor="middle" fill="#7de8c4">♞</text>
+      <text x="415" y="195" font-size="36" text-anchor="middle" fill="#7de8c4">♟</text>
+      <!-- glow -->
+      <ellipse cx="280" cy="140" rx="160" ry="80" fill="none" stroke="#9b94e8" stroke-width="0.5" opacity="0.15"/>
+    </svg>
+  </div>
+  <div id="introName">CHESSINOES</div>
+  <div id="introTagline">"Every tile a gambit. Every placement a battle."</div>
+  <div id="introDesc">Chess meets dominoes on a 6×6 battlefield. Draw tiles showing pairs of chess pieces, place them domino-style, and watch your pieces capture enemies using their real chess movement rules. Capture the King for an instant win — or outscore your opponent when the board fills.</div>
+  <div id="introMeta">
+    <span>1–2 Players</span><span>10–20 min</span><span>Ages 10+</span><span>vs AI or Local 2P</span>
+  </div>
+  <div id="introPieces">
+    <div class="ipiece"><div class="ipiece-sym">♟</div><div class="ipiece-name">PAWN</div><div class="ipiece-val">1pt</div></div>
+    <div class="ipiece"><div class="ipiece-sym">♞</div><div class="ipiece-name">KNIGHT</div><div class="ipiece-val">3pt</div></div>
+    <div class="ipiece"><div class="ipiece-sym">♝</div><div class="ipiece-name">BISHOP</div><div class="ipiece-val">3pt</div></div>
+    <div class="ipiece"><div class="ipiece-sym">♜</div><div class="ipiece-name">ROOK</div><div class="ipiece-val">5pt</div></div>
+    <div class="ipiece"><div class="ipiece-sym">♛</div><div class="ipiece-name">QUEEN</div><div class="ipiece-val">9pt</div></div>
+    <div class="ipiece"><div class="ipiece-sym">♚</div><div class="ipiece-name">KING</div><div class="ipiece-val">WIN</div></div>
+  </div>
+  <div id="introRules">
+    <strong>Quick rules</strong><br>
+    • 6×6 board · 21 domino tiles, each showing two chess pieces<br>
+    • Each player draws 4 tiles; the pool refills your hand each turn<br>
+    • Place a tile (1×2, horizontal or vertical) anywhere it fits on the board<br>
+    • On placement, each piece <strong>captures adjacent enemy pieces</strong> using its chess movement<br>
+    • <strong>Pawns</strong> capture diagonally · <strong>Knights</strong> jump in an L · <strong>Bishops</strong> slide diagonals · <strong>Rooks</strong> slide ranks/files · <strong>Queens</strong> all 8 directions<br>
+    • Capturing the <strong>King</strong> wins the game instantly<br>
+    • If the board fills without a King capture, <strong>highest score wins</strong><br>
+    • ⚠ If you hold a King tile for 3+ turns, a warning appears — place it!
+  </div>
+  <button id="introPlayBtn" onclick="startGame()">▶ Play Chessinoes</button>
+  <button id="introBack" onclick="window.location='index.html'">← Back to Chess Mashup</button>
+</div>
+
+<!-- ── Game ── -->
+<div id="gameRoot" style="display:none;width:100%;">
 
 <!-- Top bar -->
 <div id="topBar">
@@ -780,8 +874,13 @@
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
-  setupBoardEvents();
-  newGame();
+  function startGame(){
+    document.getElementById('introScreen').style.display='none';
+    document.getElementById('gameRoot').style.display='block';
+    setupBoardEvents();
+    newGame();
+  }
 </script>
+</div><!-- end gameRoot -->
 </body>
 </html>
