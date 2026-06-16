@@ -5,31 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chess Openings</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #1a1a2e;
-    font-family: 'Segoe UI', sans-serif;
+    background: #0f0f14;
+    font-family: system-ui, -apple-system, sans-serif;
     color: #e0e0e0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
   }
 
+  nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #1a1a24;
+    padding: 16px 40px;
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    border-bottom: 1px solid #2a2a3a;
+    z-index: 100;
+  }
+  nav a {
+    color: #c9a84c;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+  nav a:hover { color: #fff; }
+
+  .page-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-top: 53px;
+  }
+
   header {
     display: flex;
     align-items: center;
     padding: 12px 24px;
-    border-bottom: 1px solid #2d2d4e;
+    border-bottom: 1px solid #2a2a3a;
     gap: 16px;
+    background: #1a1a24;
   }
-  header h1 { font-size: 1.2rem; letter-spacing: 2px; color: #a0c4ff; flex: 1; }
+  header h1 {
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    font-weight: 700;
+    flex: 1;
+    background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   .opening-tag {
-    background: #2d2d4e;
-    border: 1px solid #4a4a6a;
+    background: rgba(201,168,76,0.1);
+    border: 1px solid rgba(201,168,76,0.3);
     border-radius: 20px;
     padding: 4px 14px;
     font-size: 13px;
-    color: #f0c040;
+    color: #c9a84c;
     font-style: italic;
     max-width: 320px;
     overflow: hidden;
@@ -48,45 +87,49 @@
   .sidebar {
     width: 280px;
     min-width: 220px;
-    border-right: 1px solid #2d2d4e;
+    border-right: 1px solid #2a2a3a;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: #0f0f14;
   }
   .sidebar-search {
     padding: 12px;
-    border-bottom: 1px solid #2d2d4e;
+    border-bottom: 1px solid #2a2a3a;
   }
   #openingSearch {
     width: 100%;
-    background: #2d2d4e;
+    background: #1a1a24;
     color: #e0e0e0;
-    border: 1px solid #4a4a6a;
+    border: 1px solid #2a2a3a;
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 13px;
+    font-family: inherit;
   }
-  #openingSearch:focus { outline: none; border-color: #a0c4ff; }
+  #openingSearch:focus { outline: none; border-color: #c9a84c; }
+  #openingSearch::placeholder { color: #555; }
 
   .category-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     padding: 8px 12px;
-    border-bottom: 1px solid #2d2d4e;
+    border-bottom: 1px solid #2a2a3a;
   }
   .cat-btn {
-    background: #2d2d4e;
+    background: #1a1a24;
     color: #888;
-    border: 1px solid #3a3a5e;
+    border: 1px solid #2a2a3a;
     padding: 3px 10px;
     border-radius: 12px;
     font-size: 11px;
     cursor: pointer;
+    font-weight: 600;
     transition: all 0.15s;
   }
-  .cat-btn:hover { background: #3d3d6e; color: #ccc; }
-  .cat-btn.active { background: #4a5a8e; color: #fff; border-color: #6a7aae; }
+  .cat-btn:hover { border-color: #c9a84c; color: #ccc; background: rgba(201,168,76,0.06); }
+  .cat-btn.active { background: rgba(201,168,76,0.14); color: #c9a84c; border-color: rgba(201,168,76,0.4); }
 
   .opening-list {
     flex: 1;
@@ -101,9 +144,9 @@
     border-left: 3px solid transparent;
     transition: all 0.1s;
   }
-  .opening-list-item:hover { background: #252540; border-left-color: #4a4a6a; }
-  .opening-list-item.active { background: #2a2a50; border-left-color: #a0c4ff; }
-  .opening-list-item .item-eco { font-size: 10px; color: #a0c4ff; font-family: monospace; }
+  .opening-list-item:hover { background: #1a1a24; border-left-color: #2a2a3a; }
+  .opening-list-item.active { background: rgba(201,168,76,0.08); border-left-color: #c9a84c; }
+  .opening-list-item .item-eco { font-size: 10px; color: #c9a84c; font-family: monospace; }
   .opening-list-item .item-name { font-size: 13px; color: #e0e0e0; margin-top: 1px; }
   .opening-list-item .item-moves { font-size: 10px; color: #555; font-family: monospace; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -136,18 +179,18 @@
     height: 480px;
     border-radius: 4px;
     overflow: hidden;
-    border: 1px solid #4a4a6a;
+    border: 1px solid #2a2a3a;
     position: relative;
     background: #111;
   }
   .eval-bar-black { position: absolute; top: 0; left: 0; right: 0; background: #1a1a1a; transition: height 0.4s ease; }
   .eval-bar-white { position: absolute; bottom: 0; left: 0; right: 0; background: #f0d9b5; transition: height 0.4s ease; }
-  .eval-score { font-size: 11px; font-family: monospace; color: #a0c4ff; text-align: center; min-height: 16px; white-space: nowrap; }
+  .eval-score { font-size: 11px; font-family: monospace; color: #c9a84c; text-align: center; min-height: 16px; white-space: nowrap; }
   .eval-depth { font-size: 10px; color: #555; text-align: center; }
 
   .board-col { display: flex; flex-direction: column; gap: 0; }
   .board-wrap { display: flex; align-items: center; gap: 6px; }
-  .rank-labels, .file-labels-row { display: flex; color: #888; font-size: 12px; font-weight: bold; }
+  .rank-labels, .file-labels-row { display: flex; color: #666; font-size: 12px; font-weight: 600; }
   .rank-labels { flex-direction: column; justify-content: space-around; height: 480px; width: 20px; text-align: center; }
   .file-labels-row { width: 480px; justify-content: space-around; margin-left: 26px; margin-top: 4px; }
 
@@ -155,7 +198,7 @@
     display: grid;
     grid-template-columns: repeat(8, 60px);
     grid-template-rows: repeat(8, 60px);
-    border: 3px solid #4a4a6a;
+    border: 3px solid #2a2a3a;
     border-radius: 4px;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
@@ -171,10 +214,10 @@
   .sq .bp { color: #111; -webkit-text-stroke: 1px #ccc; paint-order: stroke fill; pointer-events: none; }
   .sq.light { background: #f0d9b5; }
   .sq.dark  { background: #b58863; }
-  .sq.selected { outline: 4px solid rgba(100,200,100,0.85); outline-offset: -4px; }
-  .sq.last-move { background: rgba(200,230,100,0.55) !important; }
-  .sq.legal-move::after { content:''; position:absolute; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.2); }
-  .sq.legal-capture::after { content:''; position:absolute; inset:0; border:5px solid rgba(0,0,0,0.2); }
+  .sq.selected { outline: 4px solid rgba(80,200,120,0.9); outline-offset: -4px; }
+  .sq.last-move { background: rgba(205,210,106,0.5) !important; }
+  .sq.legal-move::after { content:''; position:absolute; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.22); }
+  .sq.legal-capture::after { content:''; position:absolute; inset:0; border:5px solid rgba(0,0,0,0.22); }
 
   /* ── Controls ── */
   .controls {
@@ -184,25 +227,28 @@
     justify-content: center;
   }
   button {
-    background: #2d2d4e;
-    color: #a0c4ff;
-    border: 1px solid #4a4a6a;
-    padding: 7px 16px;
-    border-radius: 6px;
+    background: #1a1a24;
+    color: #c9a84c;
+    border: 1px solid #2a2a3a;
+    padding: 8px 18px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 13px;
-    transition: background 0.15s;
+    font-weight: 600;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+    transition: border-color 0.18s, background 0.18s;
   }
-  button:hover { background: #3d3d6e; }
-  button:disabled { opacity: 0.4; cursor: default; }
+  button:hover { border-color: #c9a84c; background: rgba(201,168,76,0.08); }
+  button:disabled { opacity: 0.35; cursor: default; }
 
   /* ── Move list ── */
   .move-list-wrap { width: 100%; max-width: 540px; }
-  .move-list-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .move-list-label { font-size: 11px; color: #666; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
   #moveList {
-    background: #2d2d4e;
-    border: 1px solid #4a4a6a;
-    border-radius: 6px;
+    background: #1a1a24;
+    border: 1px solid #2a2a3a;
+    border-radius: 12px;
     padding: 8px;
     min-height: 36px;
     max-height: 100px;
@@ -214,23 +260,32 @@
     gap: 3px;
     align-content: flex-start;
   }
-  .move-token { padding: 2px 6px; border-radius: 4px; cursor: pointer; color: #ccc; }
-  .move-token:hover { background: #3d3d6e; }
-  .move-token.current { background: #4a5a8e; color: #fff; }
-  .move-token.opening-move { color: #f0c040; }
-  .move-token.opening-move.current { background: #6a5a10; color: #f0c040; }
-  .move-token.variation { color: #777; font-style: italic; }
+  .move-token { padding: 2px 6px; border-radius: 6px; cursor: pointer; color: #ccc; }
+  .move-token:hover { background: rgba(201,168,76,0.1); }
+  .move-token.current { background: rgba(201,168,76,0.18); color: #e8d5a3; }
+  .move-token.opening-move { color: #c9a84c; }
+  .move-token.opening-move.current { background: rgba(201,168,76,0.2); color: #e8d5a3; }
+  .move-token.variation { color: #555; font-style: italic; }
   .move-number { color: #555; padding: 2px 2px; }
   .var-bracket { color: #444; padding: 0 1px; font-size: 12px; }
 
-  .status { font-size: 13px; color: #a0c4ff; min-height: 18px; }
-  .kbd-hint { font-size: 11px; color: #444; }
+  .status { font-size: 13px; color: #c9a84c; min-height: 18px; font-weight: 600; }
+  .kbd-hint { font-size: 11px; color: #444; letter-spacing: 0.5px; }
 </style>
 </head>
 <body>
 
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="chess-games/index.html">Chess Tools</a>
+    <a href="chess-mashup/index.html">Chess Mashup</a>
+    <a href="game-fusion/index.html">Game Fusion</a>
+  </nav>
+
+<div class="page-body">
 <header>
-  <a data-back-btn href="javascript:history.back()" style="padding:6px 14px;font-size:13px;border:1px solid #a0c4ff;border-radius:6px;background:#2d2d4e;color:#a0c4ff;text-decoration:none;display:inline-flex;align-items:center;font-weight:600;letter-spacing:0.5px;">← Back</a>
+  <a data-back-btn href="javascript:history.back()" style="display:inline-flex;align-items:center;padding:6px 14px;font-size:13px;border:1px solid #c9a84c;border-radius:8px;background:rgba(201,168,76,0.12);color:#c9a84c;text-decoration:none;font-weight:600;letter-spacing:0.5px;flex-shrink:0;transition:background 0.2s;">← Back</a>
   <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
   <h1>CHESS OPENINGS</h1>
   <div class="opening-tag" id="openingTag">Select an opening →</div>
@@ -287,6 +342,7 @@
     <div class="kbd-hint">← → navigate moves &nbsp;|&nbsp; F flip board</div>
 
   </div>
+</div>
 </div>
 
 <script>
