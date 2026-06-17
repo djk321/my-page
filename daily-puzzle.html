@@ -161,17 +161,6 @@
     .info-row span:first-child { color: #888; }
     .info-row span:last-child { font-weight: 600; }
 
-    .themes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-    .theme-tag {
-      padding: 3px 9px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      background: rgba(201,168,76,0.12);
-      color: #c9a84c;
-      border: 1px solid rgba(201,168,76,0.25);
-      text-transform: capitalize;
-    }
 
     #status-box {
       background: #1a1a24;
@@ -291,10 +280,18 @@
             <span id="turn-label">—</span>
           </span>
         </div>
-        <div>
-          <div style="font-size:12px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Themes</div>
-          <div class="themes" id="info-themes"></div>
+      </div>
+
+      <div class="info-card" id="streak-card" style="padding:14px 18px;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="font-size:13px;">Streak</h2>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span id="streak-flame" style="font-size:20px;line-height:1;">🔥</span>
+            <span id="streak-count" style="font-size:20px;font-weight:700;line-height:1;">0</span>
+            <span style="font-size:12px;color:#666;">days</span>
+          </div>
         </div>
+        <div id="streak-msg" style="font-size:11px;color:#888;"></div>
       </div>
 
       <div class="btn-row">
@@ -314,6 +311,50 @@ const PIECES = {
   wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
   bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
 };
+
+// Streak helpers
+function todayStr() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+function loadStreak() {
+  try {
+    return JSON.parse(localStorage.getItem('dp_streak') || '{}');
+  } catch { return {}; }
+}
+
+function saveStreak(data) {
+  localStorage.setItem('dp_streak', JSON.stringify(data));
+}
+
+function recordSolve() {
+  const today = todayStr();
+  const s = loadStreak();
+  if (s.lastSolved === today) return; // already counted today
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  s.count = (s.lastSolved === yesterday) ? (s.count || 0) + 1 : 1;
+  s.lastSolved = today;
+  saveStreak(s);
+  renderStreak();
+}
+
+function renderStreak() {
+  const today = todayStr();
+  const s = loadStreak();
+  const count = s.count || 0;
+  document.getElementById('streak-count').textContent = count;
+  document.getElementById('streak-flame').textContent = count >= 3 ? '🔥' : '⭐';
+
+  let msg = '';
+  if (count === 0) msg = 'Solve today\'s puzzle to start your streak!';
+  else if (s.lastSolved === today) msg = 'Solved today ✓';
+  else {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    msg = s.lastSolved === yesterday ? 'Solve today to keep it going!' : 'Streak reset — solve today to restart!';
+  }
+  document.getElementById('streak-msg').textContent = msg;
+}
 
 let chess = null;
 let puzzleData = null;
@@ -469,6 +510,7 @@ function makePlayerMove(from, to) {
     renderBoard();
     setStatus('Solved! Excellent play! 🎉', 'success');
     solved = true;
+    recordSolve();
     return;
   }
 
@@ -552,34 +594,28 @@ function initPuzzle(data) {
   failed = false;
   showingAnswer = false;
 
-  // Replay PGN to initialPly
-  const tempGame = new Chess();
-  tempGame.load_pgn(data.game.pgn);
-  const history = tempGame.history({ verbose: true });
+  // Replay moves one-by-one from the raw PGN token list.
+  // Lichess puzzle PGN is plain SAN tokens (no headers, may have {comment} blocks).
+  // Using load_pgn is unreliable here; direct move replay is simpler and robust.
+  const tokens = (data.game.pgn || '')
+    .replace(/\{[^}]*\}/g, '')   // strip inline comments
+    .trim()
+    .split(/\s+/)
+    .filter(t => t && !/^\d+\./.test(t) && !['*','1-0','0-1','1/2-1/2'].includes(t));
 
-  chess.reset();
-  const initialPly = data.puzzle.initialPly;
-  for (let i = 0; i < initialPly; i++) {
-    if (history[i]) chess.move(history[i]);
+  // initialPly is 0-based index of the opponent's last move — replay through it (inclusive).
+  const initialPly = data.puzzle.initialPly + 1;
+  let plyCount = 0;
+  for (const san of tokens) {
+    if (plyCount >= initialPly) break;
+    if (chess.move(san)) plyCount++;
   }
 
-  // Determine whether solution[0] is the opponent's setup move or the solver's first move.
-  // If the piece on solution[0]'s from-square belongs to the side NOT to move, it's the
-  // opponent's setup move and needs to be auto-played first.
-  const s0from = solution[0] ? solution[0].slice(0, 2) : null;
-  const s0piece = s0from ? chess.get(s0from) : null;
-
-  if (s0piece && s0piece.color !== chess.turn()) {
-    // solution[0] is the opponent's triggering move — play it so the board shows it highlighted
-    chess.move(uciToMove(solution[0]));
-    solveIndex = 1;
-  } else {
-    // solution[0] is already the solver's first move
-    solveIndex = 0;
-  }
-
-  // Now chess.turn() is definitively the solver's color
-  playerColor = chess.turn();
+  // Derive the solver's color from the piece that makes the first solution move.
+  // This is the only reliable source — chess.turn() can be off if initialPly is ambiguous.
+  solveIndex = 0;
+  const s0piece = chess.get(solution[0].slice(0, 2));
+  playerColor = s0piece ? s0piece.color : chess.turn();
 
   // Info panel
   document.getElementById('info-rating').textContent = data.puzzle.rating;
@@ -590,20 +626,13 @@ function initPuzzle(data) {
   dot.className = 'turn-dot ' + (playerColor === 'w' ? 'white' : 'black');
   document.getElementById('turn-label').textContent = playerColor === 'w' ? 'White' : 'Black';
 
-  const themesEl = document.getElementById('info-themes');
-  themesEl.innerHTML = '';
-  (data.puzzle.themes || []).filter(t => t !== 'master' && t !== 'masterVsMaster').forEach(t => {
-    const span = document.createElement('span');
-    span.className = 'theme-tag';
-    span.textContent = t.replace(/([A-Z])/g, ' $1').trim();
-    themesEl.appendChild(span);
-  });
 
   document.getElementById('btn-lichess').onclick = () =>
     window.open('https://lichess.org/training/' + data.puzzle.id, '_blank');
 
   setStatus('Find the best move!', 'info');
   renderBoard();
+  renderStreak();
 }
 
 document.getElementById('btn-solution').addEventListener('click', showSolution);
