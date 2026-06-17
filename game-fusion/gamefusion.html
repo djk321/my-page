@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Merge</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f14; color: #fff; min-height: 100vh; }
+
+    /* ── SELECT SCREEN ── */
+    #selectScreen { display: flex; flex-direction: column; align-items: center; padding: 40px 24px 60px; min-height: 100vh; }
+    #selectTitle { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    #selectSub { font-size: 14px; color: #666; margin-bottom: 32px; letter-spacing: 1px; }
+    #selStatus { font-size: 13px; color: #888; margin-bottom: 20px; min-height: 20px; transition: color .2s; }
+    #selStatus.ready { color: #a78bfa; font-weight: 500; }
+    #gameGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 700px; margin-bottom: 28px; }
+    .gcard { background: #1a1a24; border: 1.5px solid #2a2a38; border-radius: 12px; padding: 16px 10px; text-align: center; cursor: pointer; transition: all .18s; user-select: none; }
+    .gcard:hover { border-color: #4a4a6a; background: #22223a; transform: translateY(-2px); }
+    .gcard.selA { border-color: #a78bfa; background: #1e1a3a; box-shadow: 0 0 0 2px #a78bfa40; }
+    .gcard.selA .gcard-badge { background: #a78bfa; color: #fff; }
+    .gcard.selB { border-color: #60a5fa; background: #1a2038; box-shadow: 0 0 0 2px #60a5fa40; }
+    .gcard.selB .gcard-badge { background: #60a5fa; color: #fff; }
+    .gcard-icon { font-size: 28px; margin-bottom: 6px; line-height: 1; }
+    .gcard-name { font-size: 11px; color: #ccc; font-weight: 500; letter-spacing: .3px; }
+    .gcard-badge { display: none; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; background: #2a2a38; color: #888; margin-top: 4px; letter-spacing: .5px; }
+    .gcard.selA .gcard-badge, .gcard.selB .gcard-badge { display: inline-block; }
+    #mergeBtn { display: none; padding: 14px 40px; font-size: 16px; font-weight: 700; border: none; border-radius: 14px; background: linear-gradient(135deg, #a78bfa, #60a5fa); color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
+    #mergeBtn:hover { transform: scale(1.04); box-shadow: 0 8px 30px #a78bfa55; }
+    #mergeBtn.show { display: inline-block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── REVEAL SCREEN ── */
+    #revealScreen { display: none; flex-direction: column; align-items: center; min-height: 100vh; padding: 48px 24px 64px; background: #0a0a10; }
+    #revealArt { width: 100%; max-width: 580px; border-radius: 16px; overflow: hidden; margin-bottom: 36px; border: 1px solid #2a2a3a; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+    #revealArt svg { display: block; width: 100%; }
+    #revealName { font-size: 52px; font-weight: 800; letter-spacing: -2px; text-align: center; margin-bottom: 10px; color: #f0f0f8; }
+    #revealTagline { font-size: 17px; font-style: italic; color: #888; margin-bottom: 28px; text-align: center; }
+    #revealDesc { font-size: 15px; color: #aaa; line-height: 1.8; max-width: 520px; text-align: center; margin-bottom: 28px; }
+    #revealMeta { display: flex; gap: 20px; font-size: 12px; color: #555; letter-spacing: .5px; margin-bottom: 36px; }
+    #revealMeta span::before { content: '•'; margin-right: 8px; color: #333; }
+    #revealMeta span:first-child::before { content: none; }
+    #revealPieces { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; max-width: 520px; }
+    .rpiece { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px 12px; text-align: center; min-width: 62px; }
+    .rpiece-sym { font-size: 20px; }
+    .rpiece-name { font-size: 9px; color: #666; letter-spacing: .5px; margin-top: 2px; }
+    .rpiece-val { font-size: 10px; color: #a78bfa; font-weight: 600; margin-top: 1px; }
+    #revealRules { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 16px 20px; max-width: 520px; width: 100%; margin-bottom: 36px; font-size: 12px; color: #888; line-height: 1.9; }
+    #revealRules strong { color: #ccc; }
+    #playBtn { padding: 16px 56px; font-size: 17px; font-weight: 700; border: none; border-radius: 50px; color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
+    #playBtn:hover { transform: scale(1.05); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+    #backBtn { margin-top: 18px; background: none; border: none; color: #444; font-size: 13px; cursor: pointer; padding: 6px 12px; }
+    #backBtn:hover { color: #777; }
+
+    /* ── GAME SCREEN ── */
+    #gameScreen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 48px; background: #f5f4f0; color: #111; min-height: 100vh; }
+    #topBar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 820px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .subtitle { font-size: 11px; color: #aaa; letter-spacing: 1px; }
+    #controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .seg { display: flex; border: 0.5px solid #ddd; border-radius: 8px; overflow: hidden; }
+    .seg button { padding: 6px 14px; font-size: 12px; border: none; background: #fff; cursor: pointer; color: #555; }
+    .seg button.active { background: #1a1a2e; color: #fff; }
+    .seg button:not(:last-child) { border-right: 0.5px solid #ddd; }
+    #diffRow { display: flex; gap: 8px; align-items: center; }
+    #diffLabel { font-size: 11px; color: #aaa; letter-spacing: .5px; }
+    #soundBtn { padding: 6px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #555; }
+    #soundBtn.on { background: #E1F5EE; border-color: #5DCAA5; color: #0F6E56; }
+    #pickNewBtn { padding: 6px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #555; }
+    #pickNewBtn:hover { background: #f5f4f0; }
+    #game-root { width: 100%; max-width: 820px; }
+    #histBanner { display: none; background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #633806; text-align: center; margin-bottom: 10px; }
+    #histBanner.visible { display: block; }
+    #statusBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    #msg { font-size: 13px; color: #555; flex: 1; min-width: 180px; line-height: 1.5; }
+    .score-box { text-align: center; border-radius: 10px; padding: 5px 14px; border: 0.5px solid; }
+    .score-box.p1 { background: #EEEDFE; border-color: #AFA9EC; }
+    .score-box.p2 { background: #E1F5EE; border-color: #5DCAA5; }
+    .score-label { font-size: 10px; font-weight: 500; letter-spacing: .5px; }
+    .score-box.p1 .score-label { color: #534AB7; }
+    .score-box.p2 .score-label { color: #0F6E56; }
+    .score-num { font-size: 20px; font-weight: 500; }
+    .score-box.p1 .score-num { color: #26215C; }
+    .score-box.p2 .score-num { color: #04342C; }
+    #mainArea { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+    #boardWrap { display: grid; grid-template-columns: 16px repeat(6,50px); grid-template-rows: 16px repeat(6,50px); gap: 3px; cursor: crosshair; user-select: none; }
+    #boardWrap.hist-mode { cursor: default; }
+    .col-label, .row-label { font-size: 10px; color: #bbb; display: flex; align-items: center; justify-content: center; }
+    .gc { width: 50px; height: 50px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0.5px solid #ddd; background: #fff; position: relative; pointer-events: none; }
+    .gc.pcl { background: #EEEDFE; border-color: #7F77DD; }
+    .gc.acl { background: #E1F5EE; border-color: #1D9E75; }
+    .gc.pvc { background: #FAEEDA; border-color: #EF9F27; }
+    .gc.fxc { background: #FCEBEB; border-color: #E24B4A; }
+    .gc.new-tile { box-shadow: 0 0 0 2.5px #7F77DD inset; }
+    .gc.new-tile.acl { box-shadow: 0 0 0 2.5px #1D9E75 inset; }
+    .gc .sy { font-size: 20px; line-height: 1; pointer-events: none; }
+    .gc .lb { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 500; pointer-events: none; }
+    .gc.pcl .lb { color: #534AB7; } .gc.acl .lb { color: #0F6E56; } .gc.fxc .sy { opacity: .3; }
+    #histNav { display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 10px; background: #fff; border-radius: 10px; border: 0.5px solid #ddd; flex-wrap: wrap; }
+    #histNav.visible { display: flex; }
+    #histLabel { font-size: 12px; color: #888; flex: 1; text-align: center; white-space: nowrap; }
+    .nav-btn { padding: 5px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 7px; background: #fff; cursor: pointer; color: #333; white-space: nowrap; }
+    .nav-btn:hover:not(:disabled) { background: #f5f4f0; } .nav-btn:disabled { opacity: .3; cursor: default; }
+    .nav-btn.live-btn { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+    .nav-btn.live-btn:hover { background: #2a2a3e; }
+    #boardNote { font-size: 10px; color: #bbb; margin-top: 5px; line-height: 1.6; }
+    #poolSection { margin-top: 10px; }
+    #poolToggleBtn { width: 100%; padding: 7px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #555; text-align: left; display: flex; justify-content: space-between; }
+    #poolToggleBtn:hover { background: #f5f4f0; }
+    #poolGrid { display: none; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding: 8px; background: #fff; border-radius: 8px; border: 0.5px solid #ddd; }
+    #poolGrid.open { display: flex; }
+    .pt { display: flex; align-items: center; gap: 1px; padding: 4px 6px; background: #f5f4f0; border-radius: 5px; font-size: 14px; border: 0.5px solid #ddd; }
+    .pt-div { width: 2px; height: 12px; background: #ccc; margin: 0 2px; border-radius: 1px; }
+    #sidebar { flex: 1; min-width: 195px; }
+    #turnBadge { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 8px; display: inline-block; margin-bottom: 12px; }
+    .section-label { font-size: 10px; letter-spacing: 1px; color: #aaa; margin-bottom: 5px; }
+    #handEl { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    .tc { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: #f5f4f0; border: 0.5px solid #ddd; border-radius: 9px; cursor: pointer; user-select: none; }
+    .tc:hover { border-color: #aaa; } .tc.sel { border: 2px solid #7F77DD; background: #EEEDFE; } .tc.disabled { opacity: .35; cursor: default; }
+    .th { width: 32px; height: 32px; background: #fff; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 17px; border: 0.5px solid #ddd; flex-shrink: 0; }
+    .tc-name { flex: 1; font-size: 12px; color: #555; } .tc-pts { font-size: 10px; color: #aaa; flex-shrink: 0; }
+    #oriRow { display: flex; gap: 5px; margin-bottom: 12px; }
+    .ori-btn { flex: 1; font-size: 12px; padding: 6px 4px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #333; }
+    .ori-btn:hover { background: #f5f4f0; } .ori-btn.active { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; font-weight: 500; }
+    #poolTxt { font-size: 11px; color: #aaa; margin-bottom: 6px; }
+    #kingWarn { display: none; font-size: 11px; color: #993C1D; background: #FAECE7; padding: 5px 8px; border-radius: 7px; margin-bottom: 6px; line-height: 1.5; }
+    #capLog { font-size: 11px; color: #aaa; line-height: 1.8; }
+    #goEl { display: none; margin-top: 20px; padding: 24px; background: #fff; border-radius: 14px; border: 0.5px solid #ddd; text-align: center; }
+    #goMsg { font-size: 24px; font-weight: 500; margin-bottom: 5px; } #goSub { font-size: 13px; color: #666; margin-bottom: 18px; }
+    .btn { display: inline-block; padding: 9px 22px; font-size: 13px; font-weight: 500; border: 0.5px solid #ddd; border-radius: 9px; background: #fff; cursor: pointer; color: #333; margin: 0 5px; }
+    .btn:hover { background: #f5f4f0; } .btn.primary { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+    .btn.primary:hover { background: #2a2a3e; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+    .overlay.show { display: flex; }
+    .overlay-box { background: #fff; border-radius: 18px; padding: 32px 36px; max-width: 440px; width: 92%; text-align: center; }
+    .overlay-box h2 { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
+    .overlay-box .sub { font-size: 13px; color: #666; margin-bottom: 16px; }
+    .score-big { display: flex; justify-content: center; align-items: baseline; gap: 14px; margin: 16px 0; }
+    .score-big .side { text-align: center; }
+    .score-big .side .name { font-size: 10px; letter-spacing: 1px; color: #aaa; margin-bottom: 3px; }
+    .score-big .side .val  { font-size: 50px; font-weight: 500; line-height: 1; }
+    .score-big .side.you .val { color: #3C3489; } .score-big .side.ai .val { color: #0F6E56; }
+    .tips { text-align: left; background: #f5f4f0; border-radius: 9px; padding: 12px 14px; margin-bottom: 18px; }
+    .tips .tip { font-size: 12px; color: #444; line-height: 1.7; display: flex; gap: 7px; }
+    #passOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.82); z-index: 90; align-items: center; justify-content: center; }
+    #passOverlay.show { display: flex; }
+    #passBox { background: #fff; border-radius: 18px; padding: 36px 40px; max-width: 360px; width: 90%; text-align: center; }
+    #passBox h2 { font-size: 22px; font-weight: 500; margin-bottom: 8px; }
+    #passBox p  { font-size: 14px; color: #666; margin-bottom: 24px; }
+    #passBox .badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; margin-bottom: 20px; }
+    #passBox .badge.p1 { background: #EEEDFE; color: #3C3489; }
+    #passBox .badge.p2 { background: #E1F5EE; color: #0F6E56; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     SELECT SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="selectScreen">
+  <div id="selectTitle">GAME MERGE</div>
+  <div id="selectSub">PICK 2 GAMES TO MERGE</div>
+  <a data-back-btn href="javascript:window.history.back()" class="btn" style="margin-bottom:20px;text-decoration:none;display:inline-flex;align-items:center;">← Back</a>
+  <div id="selStatus">Choose your first game</div>
+  <div id="gameGrid"></div>
+  <button id="mergeBtn" onclick="doReveal()">⚡ MERGE THEM</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     REVEAL SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="revealScreen">
+  <div id="revealArt"></div>
+  <div id="revealName"></div>
+  <div id="revealTagline"></div>
+  <div id="revealDesc"></div>
+  <div id="revealMeta"></div>
+  <div id="revealPieces"></div>
+  <div id="revealRules"></div>
+  <button id="playBtn" onclick="startGame()">▶ Begin</button>
+  <button id="backBtn" onclick="goToSelect()">← Pick different games</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     GAME SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="gameScreen">
+  <div id="topBar">
+    <div>
+      <h1 id="gameTitle">FUSION</h1>
+      <div class="subtitle" id="gameSubtitle"></div>
+    </div>
+    <div id="controls">
+      <div class="seg" id="modeSegment">
+        <button class="active" onclick="setMode('ai')">vs AI</button>
+        <button onclick="setMode('2p')">2 Player</button>
+      </div>
+      <div id="diffRow">
+        <span id="diffLabel">DIFFICULTY</span>
+        <div class="seg" id="diffSegment">
+          <button onclick="setDiff('easy')">Easy</button>
+          <button class="active" onclick="setDiff('medium')">Medium</button>
+          <button onclick="setDiff('hard')">Hard</button>
+        </div>
+      </div>
+      <button id="soundBtn" class="on" onclick="toggleSound()">♪ Sound on</button>
+      <button id="pickNewBtn" onclick="goToSelect()">↩ Pick games</button>
+      <a data-back-btn href="javascript:window.history.back()" id="arcadeBtn" style="text-decoration:none;display:inline-flex;align-items:center;">← Back</a>
+    </div>
+  </div>
+
+  <div id="game-root">
+    <div id="histBanner">Viewing history — game is paused</div>
+    <div id="statusBar">
+      <div id="msg">Setting up the board…</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div class="score-box p1"><div class="score-label" id="p1Label">YOU</div><div class="score-num" id="spS">0</div></div>
+        <span style="font-size:11px;color:#ccc;">vs</span>
+        <div class="score-box p2"><div class="score-label" id="p2Label">AI</div><div class="score-num" id="saS">0</div></div>
+      </div>
+    </div>
+    <div id="mainArea">
+      <div>
+        <div id="boardWrap"></div>
+        <div id="histNav">
+          <button class="nav-btn" id="btnPrev" onclick="prevMove()">← Back</button>
+          <span id="histLabel"></span>
+          <button class="nav-btn" id="btnNext" onclick="nextMove()">Forward →</button>
+          <button class="nav-btn live-btn" id="btnLive" onclick="goLive()">↩ Live</button>
+        </div>
+        <div id="boardNote"></div>
+        <div id="poolSection">
+          <button id="poolToggleBtn" onclick="togglePool()">
+            <span id="poolToggleLabel">Show tile pool (0 remaining)</span>
+            <span id="poolArrow">▾</span>
+          </button>
+          <div id="poolGrid"></div>
+        </div>
+      </div>
+      <div id="sidebar">
+        <div id="turnBadge">Setting up…</div>
+        <div class="section-label" id="handLabel">YOUR HAND <span id="hCnt"></span></div>
+        <div id="handEl"></div>
+        <div class="section-label">PLACE AS</div>
+        <div id="oriRow">
+          <button class="ori-btn active" id="bH" onclick="setOri('H')">⟷ Horizontal</button>
+          <button class="ori-btn"        id="bV" onclick="setOri('V')">↕ Vertical</button>
+        </div>
+        <div id="poolTxt"></div>
+        <div id="kingWarn"></div>
+        <div id="capLog"></div>
+      </div>
+    </div>
+    <div id="goEl">
+      <div id="goMsg"></div>
+      <div id="goSub"></div>
+      <button class="btn primary" onclick="showRecap()">Match recap</button>
+      <button class="btn" onclick="newGame()">Play again</button>
+      <button class="btn" onclick="goToSelect()">Pick new games</button>
+      <a data-back-btn href="javascript:window.history.back()" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;">← Back</a>
+    </div>
+  </div>
+
+  <div id="recapEl" class="overlay">
+    <div class="overlay-box">
+      <h2 id="rTitle"></h2>
+      <p class="sub" id="rReason"></p>
+      <div class="score-big">
+        <div class="side you"><div class="name" id="rP1Name">YOU</div><div class="val" id="rYou"></div></div>
+        <div class="vs">vs</div>
+        <div class="side ai"><div class="name" id="rP2Name">AI</div><div class="val" id="rAI"></div></div>
+      </div>
+      <div class="tips" id="recapTips"></div>
+      <button class="btn primary" onclick="closeRecap();newGame()">Rematch</button>
+      <button class="btn" onclick="closeRecap()">Close</button>
+    </div>
+  </div>
+
+  <div id="passOverlay">
+    <div id="passBox">
+      <h2 id="passTitle">Player 2's turn</h2>
+      <div class="badge p2" id="passBadge">PLAYER 2</div>
+      <p>Pass the screen to the next player, then tap when ready.</p>
+      <button class="btn primary" onclick="dismissPass()">I'm ready — show my hand</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();
+// ══════════════════════════════════════════════════════════════════════
+// GAME DEFINITIONS
+// Units: [role0=val1, role1=val3, role2=val3, role3=val5, role4=val9, role5=val0(instant-win)]
+// Capture rules by role: 0=diag-adj, 1=knight-L, 2=diag-ray, 3=straight-ray, 4=all-rays, 5=adj-win
+// ══════════════════════════════════════════════════════════════════════
+const GAMES = [
+  { id:'chess', name:'Chess', icon:'♟', tag:'The royal game of strategy',
+    accent:'#26215C', accentB:'#7F77DD', bg:'linear-gradient(135deg,#1a1a2e,#26215C)',
+    units:[{s:'♟',n:'Pawn'},{s:'♞',n:'Knight'},{s:'♝',n:'Bishop'},{s:'♜',n:'Rook'},{s:'♛',n:'Queen'},{s:'♚',n:'King'}]},
+  { id:'dominoes', name:'Dominoes', icon:'⊟', tag:'Match pips, place tiles',
+    accent:'#2c2c2c', accentB:'#555', bg:'linear-gradient(135deg,#111,#333)',
+    units:[{s:'①',n:'One'},{s:'③',n:'Three'},{s:'④',n:'Four'},{s:'⑤',n:'Five'},{s:'⑥',n:'Six'},{s:'○',n:'Blank'}]},
+  { id:'poker', name:'Poker', icon:'♠', tag:'High stakes, higher rewards',
+    accent:'#8B0000', accentB:'#c0392b', bg:'linear-gradient(135deg,#4a0000,#8B0000)',
+    units:[{s:'♣',n:'Deuce'},{s:'♦',n:'Jack'},{s:'♥',n:'Queen'},{s:'♠',n:'King'},{s:'★',n:'Ace'},{s:'☆',n:'Joker'}]},
+  { id:'scrabble', name:'Scrabble', icon:'S', tag:'Every letter scores',
+    accent:'#5D4037', accentB:'#8D6E63', bg:'linear-gradient(135deg,#3E2723,#795548)',
+    units:[{s:'A',n:'Vowel'},{s:'N',n:'Common'},{s:'X',n:'X-tile'},{s:'B',n:'B-tile'},{s:'Q',n:'Q-tile'},{s:'Z',n:'Z-tile'}]},
+  { id:'monopoly', name:'Monopoly', icon:'$', tag:'Buy, build, bankrupt',
+    accent:'#1B5E20', accentB:'#4CAF50', bg:'linear-gradient(135deg,#0a3012,#1B5E20)',
+    units:[{s:'$',n:'Land'},{s:'R',n:'Railroad'},{s:'U',n:'Utility'},{s:'H',n:'Hotel'},{s:'B',n:'Boardwalk'},{s:'¢',n:'Bank'}]},
+  { id:'battleship', name:'Battleship', icon:'⚓', tag:'Fire! Sink or be sunk',
+    accent:'#0D47A1', accentB:'#1976D2', bg:'linear-gradient(135deg,#051a5c,#0D47A1)',
+    units:[{s:'P',n:'Patrol'},{s:'S',n:'Sub'},{s:'D',n:'Destroyer'},{s:'C',n:'Cruiser'},{s:'B',n:'Battleship'},{s:'A',n:'Carrier'}]},
+  { id:'dnd', name:'D&D', icon:'⚔', tag:'Roll for initiative',
+    accent:'#4A148C', accentB:'#7B1FA2', bg:'linear-gradient(135deg,#1a0040,#4A148C)',
+    units:[{s:'G',n:'Goblin'},{s:'F',n:'Fighter'},{s:'W',n:'Wizard'},{s:'D',n:'Dragon'},{s:'L',n:'Lich'},{s:'✦',n:'Deity'}]},
+  { id:'risk', name:'Risk', icon:'⚑', tag:'Conquer every square',
+    accent:'#B71C1C', accentB:'#E53935', bg:'linear-gradient(135deg,#5a0000,#B71C1C)',
+    units:[{s:'I',n:'Infantry'},{s:'C',n:'Cavalry'},{s:'A',n:'Artillery'},{s:'G',n:'General'},{s:'M',n:'Marshal'},{s:'E',n:'Emperor'}]},
+  { id:'go', name:'Go', icon:'●', tag:'Ancient stones, modern mind',
+    accent:'#1B1B1B', accentB:'#666', bg:'linear-gradient(135deg,#111,#2c2c2c)',
+    units:[{s:'●',n:'Stone'},{s:'○',n:'Eye'},{s:'◎',n:'Liberty'},{s:'◉',n:'Influence'},{s:'⬤',n:'Territory'},{s:'✦',n:'Tengen'}]},
+  { id:'mahjong', name:'Mahjong', icon:'牌', tag:'Ancient tiles, fierce draws',
+    accent:'#880000', accentB:'#c62828', bg:'linear-gradient(135deg,#400000,#880000)',
+    units:[{s:'字',n:'Character'},{s:'○',n:'Circle'},{s:'竹',n:'Bamboo'},{s:'風',n:'Wind'},{s:'龍',n:'Dragon'},{s:'花',n:'Flower'}]},
+  { id:'clue', name:'Clue', icon:'?', tag:'Every move is a clue',
+    accent:'#37474F', accentB:'#607D8B', bg:'linear-gradient(135deg,#1a2530,#37474F)',
+    units:[{s:'K',n:'Knife'},{s:'L',n:'Lead Pipe'},{s:'R',n:'Revolver'},{s:'P',n:'Poison'},{s:'W',n:'Wrench'},{s:'C',n:'Candlestick'}]},
+  { id:'uno', name:'Uno', icon:'U', tag:'Draw four regrets',
+    accent:'#E65100', accentB:'#FF6D00', bg:'linear-gradient(135deg,#7a2000,#E65100)',
+    units:[{s:'S',n:'Skip'},{s:'2',n:'Draw 2'},{s:'R',n:'Reverse'},{s:'4',n:'Draw 4'},{s:'W',n:'Wild'},{s:'X',n:'Swap'}]},
+  { id:'tetris', name:'Tetris', icon:'▦', tag:'Stack, clear, capture',
+    accent:'#1A237E', accentB:'#3949AB', bg:'linear-gradient(135deg,#0a0f40,#1A237E)',
+    units:[{s:'I',n:'I-piece'},{s:'S',n:'S-piece'},{s:'Z',n:'Z-piece'},{s:'T',n:'T-piece'},{s:'L',n:'L-piece'},{s:'O',n:'O-piece'}]},
+  { id:'pacman', name:'Pac-Man', icon:'◔', tag:'Eat or be eaten',
+    accent:'#F9A825', accentB:'#FFD600', bg:'linear-gradient(135deg,#111,#3a3000)',
+    units:[{s:'·',n:'Pellet'},{s:'G',n:'Ghost'},{s:'F',n:'Fruit'},{s:'P',n:'Power'},{s:'◔',n:'Pac-Man'},{s:'★',n:'Star'}]},
+  { id:'checkers', name:'Checkers', icon:'◉', tag:'Jump to victory',
+    accent:'#BF360C', accentB:'#E64A19', bg:'linear-gradient(135deg,#5c1500,#BF360C)',
+    units:[{s:'●',n:'Man'},{s:'◎',n:'Jumper'},{s:'◉',n:'Leaper'},{s:'⬤',n:'Ranger'},{s:'✦',n:'Champion'},{s:'♛',n:'King'}]},
+  { id:'backgammon', name:'Backgammon', icon:'▲', tag:'Bear off to glory',
+    accent:'#004D40', accentB:'#00796B', bg:'linear-gradient(135deg,#001a18,#004D40)',
+    units:[{s:'△',n:'Single'},{s:'▲',n:'Pair'},{s:'◈',n:'Stack'},{s:'■',n:'Block'},{s:'◆',n:'Prime'},{s:'⌂',n:'Home'}]},
+  { id:'connect4', name:'Connect Four', icon:'○', tag:'Drop, connect, dominate',
+    accent:'#1565C0', accentB:'#1976D2', bg:'linear-gradient(135deg,#051040,#1565C0)',
+    units:[{s:'○',n:'Disc'},{s:'◎',n:'Double'},{s:'◉',n:'Triple'},{s:'⬤',n:'Block'},{s:'★',n:'Power'},{s:'✦',n:'Anchor'}]},
+  { id:'minesweeper', name:'Minesweeper', icon:'✸', tag:'Click carefully',
+    accent:'#37474F', accentB:'#78909C', bg:'linear-gradient(135deg,#1a2530,#455A64)',
+    units:[{s:'1',n:'One'},{s:'3',n:'Three'},{s:'F',n:'Flag'},{s:'5',n:'Five'},{s:'✸',n:'Mine'},{s:'S',n:'Safe'}]},
+  { id:'mtg', name:'Magic', icon:'✦', tag:'Tap, cast, dominate',
+    accent:'#1A237E', accentB:'#512DA8', bg:'linear-gradient(135deg,#0a0040,#4527A0)',
+    units:[{s:'C',n:'Creature'},{s:'S',n:'Sorcery'},{s:'E',n:'Enchant'},{s:'A',n:'Artifact'},{s:'P',n:'Planeswalker'},{s:'G',n:'God'}]},
+  { id:'minecraft', name:'Minecraft', icon:'⛏', tag:'Mine, craft, capture',
+    accent:'#1B5E20', accentB:'#388E3C', bg:'linear-gradient(135deg,#0a2010,#2E7D32)',
+    units:[{s:'D',n:'Dirt'},{s:'I',n:'Iron'},{s:'G',n:'Gold'},{s:'O',n:'Obsidian'},{s:'N',n:'Netherite'},{s:'B',n:'Bedrock'}]},
+];
+
+const VALS = [1, 3, 3, 5, 9, 0];
+const COLS = ['A','B','C','D','E','F'];
+
+// Per-game visual configs for the game screen
+const BOARD_CONFIGS = {
+  chess:       { screenBg:'#f5f0e8', screenColor:'#1a1000', cellBg:'#f0d9b5', cellBorder:'#c8a870', cellColor:'#111', checkered:true,  darkCell:'#b58863', darkBorder:'#9a7050', label:'#a09070' },
+  dominoes:    { screenBg:'#f8f5ec', screenColor:'#111',    cellBg:'#f8f5ec', cellBorder:'#d8d0bc', cellColor:'#111', label:'#b0a888' },
+  poker:       { screenBg:'#0c2218', screenColor:'#c8f0d0', cellBg:'#164d2a', cellBorder:'#0f3a1e', cellColor:'#c8f0d0', label:'#3d8a56' },
+  scrabble:    { screenBg:'#f2e8d8', screenColor:'#3e2723', cellBg:'#d4b896', cellBorder:'#b89864', cellColor:'#3e2723', label:'#8d6e63' },
+  monopoly:    { screenBg:'#e8f5e9', screenColor:'#1b5e20', cellBg:'#c8e6c9', cellBorder:'#81c784', cellColor:'#1b5e20', label:'#4caf50' },
+  battleship:  { screenBg:'#071830', screenColor:'#a8cef8', cellBg:'#0d2a55', cellBorder:'#1565c0', cellColor:'#a8cef8', label:'#42a5f5' },
+  dnd:         { screenBg:'#261510', screenColor:'#f0e0c8', cellBg:'#e8d5b0', cellBorder:'#c4a870', cellColor:'#3e2008', label:'#a08060' },
+  risk:        { screenBg:'#28200e', screenColor:'#f0ddb0', cellBg:'#c4a870', cellBorder:'#a08050', cellColor:'#28180a', label:'#8d6e40' },
+  go:          { screenBg:'#c89a40', screenColor:'#1a0800', cellBg:'#dcb060', cellBorder:'#a07830', cellColor:'#1a0800', label:'#6d4c00' },
+  mahjong:     { screenBg:'#0c2818', screenColor:'#d0f0e0', cellBg:'#184830', cellBorder:'#0f3820', cellColor:'#d0f0e0', label:'#3d8a60' },
+  clue:        { screenBg:'#18182c', screenColor:'#d8d8f0', cellBg:'#222238', cellBorder:'#38385c', cellColor:'#d8d8f0', label:'#8888c0' },
+  uno:         { screenBg:'#fff3d0', screenColor:'#c04000', cellBg:'#fff8e8', cellBorder:'#ffd060', cellColor:'#c04000', label:'#e07820' },
+  tetris:      { screenBg:'#08080f', screenColor:'#d0d0ff', cellBg:'#12122a', cellBorder:'#3040aa', cellColor:'#d0d0ff', label:'#5060cc' },
+  pacman:      { screenBg:'#06060e', screenColor:'#ffee00', cellBg:'#0a0a22', cellBorder:'#18186a', cellColor:'#ffee00', label:'#e8d800' },
+  checkers:    { screenBg:'#5a0000', screenColor:'#fff8f0', cellBg:'#f5efea', cellBorder:'#d8d0c8', cellColor:'#111', checkered:true, darkCell:'#8b1a1a', darkBorder:'#6a0e0e', label:'#d0b0b0' },
+  backgammon:  { screenBg:'#0c2418', screenColor:'#d0ecd8', cellBg:'#184030', cellBorder:'#2a6045', cellColor:'#d0ecd8', label:'#4a8060' },
+  connect4:    { screenBg:'#081848', screenColor:'#c0d8ff', cellBg:'#0f2880', cellBorder:'#1040c0', cellColor:'#c0d8ff', label:'#4080e0' },
+  minesweeper: { screenBg:'#c0c0c0', screenColor:'#000',   cellBg:'#d0d0d0', cellBorder:'#808080', cellColor:'#000',    label:'#404040' },
+  mtg:         { screenBg:'#080028', screenColor:'#c8b8ff', cellBg:'#160050', cellBorder:'#4020a0', cellColor:'#c8b8ff', label:'#8060d0' },
+  minecraft:   { screenBg:'#2a1808', screenColor:'#e0d0b8', cellBg:'#8b7355', cellBorder:'#6a5a3e', cellColor:'#e0d0b8', label:'#c0a880' },
+};
+
+// Curated hybrid names
+const HYBRID_NAMES = {
+  'chess+dominoes':'Chessinoes','dominoes+chess':'Dominochess',
+  'chess+poker':'Chespoker','poker+chess':'Pokerchess',
+  'chess+scrabble':'Chesscrabble','scrabble+chess':'Scrablechess',
+  'chess+dnd':'Chesquest','dnd+chess':'Dungeochess',
+  'chess+risk':'Chesrisk','risk+chess':'Riskchess',
+  'chess+tetris':'Chesstris','tetris+chess':'Tetrochess',
+  'chess+go':'Chesgo','go+chess':'Gochess',
+  'chess+mahjong':'Chessjong','mahjong+chess':'Mahjochess',
+  'chess+mtg':'Chestomic','mtg+chess':'Magichess',
+  'poker+dominoes':'Pokerminoes','dominoes+poker':'Dominoker',
+  'scrabble+dominoes':'Scrabblinoes','dominoes+scrabble':'Dominoscrabble',
+  'monopoly+chess':'Monochess','chess+monopoly':'Chesopoly',
+  'monopoly+risk':'Monopolisk','risk+monopoly':'Riskopoly',
+  'battleship+chess':'Battleschess','chess+battleship':'Chessship',
+  'dnd+tetris':'Dungeontetris','tetris+dnd':'Tetrodungeon',
+  'pacman+chess':'Pacchess','chess+pacman':'Chesspac',
+  'uno+chess':'Unochess','chess+uno':'Chesuno',
+  'minecraft+chess':'Minechess','chess+minecraft':'Chescraft',
+  'tetris+dominoes':'Tetrinoes','dominoes+tetris':'Dominotris',
+  'pokemon+chess':'Pokechess',
+};
+
+function hybridName(a, b) {
+  const key = a.id + '+' + b.id;
+  if (HYBRID_NAMES[key]) return HYBRID_NAMES[key];
+  const an = a.name.replace(/[^A-Za-z]/g,'');
+  const bn = b.name.replace(/[^A-Za-z]/g,'');
+  const cut = Math.ceil(an.length * 0.6);
+  const tail = bn.slice(Math.floor(bn.length * 0.45)).toLowerCase();
+  return an.slice(0, cut) + tail;
+}
+
+function hybridTagline(a, b) {
+  return `The ${a.name} capture engine meets ${b.name} tile-placement.`;
+}
+
+// ── Per-game flavor text ──────────────────────────────────────────────
+const GAME_FLAVOR = {
+  chess:       { theme:'royal strategy',       setting:'a marble battlefield',      tone:'cerebral and precise' },
+  dominoes:    { theme:'tile placement',        setting:'a candlelit tavern',        tone:'methodical and rhythmic' },
+  poker:       { theme:'bluff and risk',        setting:'a smoke-filled saloon',     tone:'daring and deceptive' },
+  scrabble:    { theme:'wordplay',              setting:'a quiet library',           tone:'linguistic and cunning' },
+  monopoly:    { theme:'economic domination',   setting:'a cutthroat city',          tone:'ruthless and opportunistic' },
+  battleship:  { theme:'naval warfare',         setting:'the open sea',              tone:'tactical and relentless' },
+  dnd:         { theme:'fantasy adventure',     setting:'a monster-filled dungeon',  tone:'epic and unpredictable' },
+  risk:        { theme:'world conquest',        setting:'a contested map',           tone:'aggressive and territorial' },
+  go:          { theme:'territorial control',   setting:'an ancient monastery',      tone:'patient and philosophical' },
+  mahjong:     { theme:'tile mastery',          setting:'an imperial palace',        tone:'traditional and disciplined' },
+  clue:        { theme:'mystery and deduction', setting:'a shadowy mansion',         tone:'cunning and suspicious' },
+  uno:         { theme:'card chaos',            setting:'a chaotic game night',      tone:'wild and unpredictable' },
+  tetris:      { theme:'spatial puzzling',      setting:'a digital void',            tone:'frantic and geometric' },
+  pacman:      { theme:'chase and survival',    setting:'a neon maze',               tone:'frenetic and relentless' },
+  checkers:    { theme:'jump tactics',          setting:'a checkerboard arena',      tone:'aggressive and forward-moving' },
+  backgammon:  { theme:'racing and blocking',   setting:'an ancient crossroads',     tone:'calculated and luck-defying' },
+  connect4:    { theme:'pattern building',      setting:'a vertical arena',          tone:'quick and spatial' },
+  minesweeper: { theme:'risk and deduction',    setting:'a minefield',               tone:'tense and methodical' },
+  mtg:         { theme:'spell casting',         setting:'a magical realm',           tone:'complex and strategic' },
+  minecraft:   { theme:'building and survival', setting:'a blocky wilderness',       tone:'creative and resourceful' },
+};
+
+// ── Curated stories for popular combos ───────────────────────────────
+const HYBRID_STORIES = {
+  'chess+dominoes': {
+    tagline: 'Ancient moves. Matched tiles.',
+    story: 'Two classics collide on a single board. Draw domino-style tiles of chess pieces and place them strategically — each piece captures enemies using its full movement rules the moment it lands. A Rook clears an entire rank. A Queen sweeps eight directions. But your King is also your liability: let the opponent capture it and the game ends instantly. Plan deep. Place smart. Own the board.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
+  'dominoes+chess': {
+    tagline: 'Ancient moves. Matched tiles.',
+    story: 'Two classics collide on a single board. Draw domino-style tiles of chess pieces and place them strategically — each piece captures enemies using its full movement rules the moment it lands. A Rook clears an entire rank. A Queen sweeps eight directions. But your King is also your liability: let the opponent capture it and the game ends instantly. Plan deep. Place smart. Own the board.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
+  'chess+poker': {
+    tagline: 'The smartest player at the table wins.',
+    story: 'Your chess pieces are your hand — and your opponent can\'t see them until you play. Place a tile face-down as a bluff, or reveal it and trigger its full capture power. Captured pieces score points like poker chips. Capture the King and you take the whole pot. Three rounds, rising stakes, one champion. Nerves of steel required.',
+    players: '2', time: '15–25 min', age: '10+',
+  },
+  'chess+battleship': {
+    tagline: 'Hunt. Place. Capture. Sink.',
+    story: 'You don\'t know where your enemy hides until your pieces find them. Each turn, place a chess tile on the grid — pieces that land adjacent to hidden enemy formations reveal and capture them. Rooks sweep rows for guaranteed hits. Bishops probe diagonals. Place the King tile and you\'ve ended the whole engagement. Strategy meets suspense on every single move.',
+    players: '2', time: '10–20 min', age: '9+',
+  },
+  'chess+dnd': {
+    tagline: 'Roll for strategy.',
+    story: 'Your army isn\'t chess pieces — it\'s a party of adventurers. Knights leap in their signature L-shape. Wizards sweep diagonals. The Dragon dominates all eight directions at once. Every tile you place triggers an encounter: land next to an enemy and the fight resolves instantly. Somewhere in your hand lurks the King — capture theirs and the campaign ends in legend.',
+    players: '2', time: '15–25 min', age: '10+',
+  },
+  'chess+risk': {
+    tagline: 'Conquer the board. Hold every square.',
+    story: 'Every square you control is territory. Every tile you place either claims new ground or contests what your opponent already holds. Powerful pieces dominate large regions; weaker ones dig in and defend. Capture the King and the whole continent surrenders. This is chess played at the scale of empires.',
+    players: '2', time: '15–20 min', age: '10+',
+  },
+  'chess+monopoly': {
+    tagline: 'Conquer the board. Own the city.',
+    story: 'Placing a chess tile doesn\'t just score points — it claims property. Each square you control earns rent from the opponent\'s future moves. The more powerful the piece, the more valuable the location. Drop a Queen on the prime real estate and watch the money flow. But let the opponent capture your King and you lose the whole portfolio.',
+    players: '2', time: '15–25 min', age: '10+',
+  },
+  'chess+tetris': {
+    tagline: 'The pieces fall. The board fights back.',
+    story: 'Pieces don\'t just drop — they attack. As each tile falls into position, the chess piece shown captures any enemy it lands near. Clear a full row and earn bonus points. Fill the board with your color. But leave gaps and your opponent will fill them with their own pieces, claiming captures you missed. Think fast. Think deep. The board doesn\'t wait.',
+    players: '2', time: '10–15 min', age: '8+',
+  },
+  'chess+go': {
+    tagline: 'Territory meets tactics.',
+    story: 'The ancient stones meet the royal army. Place chess tiles to claim territory like a Go board — each piece you land extends your influence across adjacent intersections. Bishops radiate diagonally; Rooks lock down entire lines. Unlike Go, captured pieces score points immediately. The board fills slowly. The power shifts constantly. Patience and aggression must coexist.',
+    players: '2', time: '15–20 min', age: '10+',
+  },
+  'chess+mahjong': {
+    tagline: 'Draw from the wall. Rule the board.',
+    story: 'Your tiles come from the wall, mahjong-style — drawn blind and placed with chess-piece movement power. Build sets of matching pieces to unlock bonus captures. Complete a sequence of Pawns and unleash a sweeping attack. Draw the Dragon and dominate the center. The wall runs out faster than you think.',
+    players: '2', time: '12–20 min', age: '10+',
+  },
+  'poker+monopoly': {
+    tagline: 'Buy smart. Bet smarter.',
+    story: 'Every property on the board has a poker hand attached. Land on one, reveal your cards, and the higher hand wins the deed. Bluff your way into Boardwalk. Go all-in on the railroads. Every round of betting is a property auction, and every property is worth a hand of cards. The player who reads both the board and the table wins it all.',
+    players: '2–4', time: '20–35 min', age: '12+',
+  },
+  'battleship+minesweeper': {
+    tagline: 'Every click could be your last.',
+    story: 'The grid hides both ships and mines. On your turn, place a tile that reveals a zone — hit a ship and score points, trigger a mine and lose your turn. Some tiles defuse mines; others launch torpedoes that clear whole rows. The tension never lets up. Every square is a gamble. Victory belongs to the careful — and the lucky.',
+    players: '2', time: '10–15 min', age: '9+',
+  },
+  'dnd+risk': {
+    tagline: 'Conquer the realm. Survive the dungeon.',
+    story: 'The map is your campaign setting. Each territory holds an encounter: defeat it by placing the right tile and you claim the region, recruit its units, and advance your army. A Dragon tile ends any encounter outright. A Goblin tile holds the line. Expand your empire one dungeon at a time — and guard your King with your life.',
+    players: '2–3', time: '20–30 min', age: '10+',
+  },
+  'poker+dnd': {
+    tagline: 'Cast your hand. Roll your fate.',
+    story: 'Deal a hand of adventurer cards and wager on the outcome of each dungeon encounter. High hand wins the treasure. Low hand faces the consequences. But every bet you make places a tile on the shared board — and whoever fills the most territory by the time the dungeon is cleared wins the campaign. Luck opens the door. Strategy decides who walks out.',
+    players: '2–4', time: '20–30 min', age: '12+',
+  },
+};
+
+// ── Per-game SVG scenes ───────────────────────────────────────────────
+function gameScene(g, cx, cy, pc, lc) {
+  const id = g.id;
+  const op = (n) => ` opacity="${n}"`;
+  if (id==='chess') {
+    let b=''; for(let r=0;r<4;r++) for(let c=0;c<4;c++)
+      b+=`<rect x="${cx-54+c*27}" y="${cy-54+r*27}" width="27" height="27" fill="${(r+c)%2?pc+'bb':lc+'33'}"/>`;
+    return b+`<text x="${cx-27}" y="${cy-22}" font-size="30" text-anchor="middle" fill="${lc}">♛</text>
+      <text x="${cx+27}" y="${cy+5}" font-size="22" text-anchor="middle" fill="${lc}"${op(.75)}>♜</text>
+      <text x="${cx-27}" y="${cy+52}" font-size="18" text-anchor="middle" fill="${lc}"${op(.6)}>♟</text>
+      <text x="${cx+27}" y="${cy+52}" font-size="18" text-anchor="middle" fill="${lc}"${op(.5)}>♞</text>
+      <rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="2.5"${op(.55)}/>`;
+  }
+  if (id==='dominoes') {
+    const tile=(x,y,d1,d2,rot)=>{
+      const dots=(n,bx,by)=>{const p=[[.5,.5],[.25,.25],[.75,.75],[.25,.75],[.75,.25],[.5,.25],[.5,.75],[.25,.5],[.75,.5]].slice(0,n);
+        return p.map(([dx,dy])=>`<circle cx="${bx+dx*36}" cy="${by+dy*20}" r="4" fill="${lc}"${op(.9)}/>`).join('');};
+      return `<g transform="rotate(${rot} ${x+40} ${y+52})">`+
+        `<rect x="${x}" y="${y}" width="80" height="104" rx="8" fill="${pc}"${op(.85)}/>`+
+        `<line x1="${x}" y1="${y+52}" x2="${x+80}" y2="${y+52}" stroke="${lc}" stroke-width="2"${op(.5)}/>`+
+        dots(d1,x+4,y+4)+dots(d2,x+4,y+56)+`</g>`;};
+    return tile(cx-60,cy-80,6,5,0)+tile(cx-20,cy+10,3,4,-8);
+  }
+  if (id==='poker') {
+    const card=(x,y,rot,suit,rank,suitColor)=>`<g transform="rotate(${rot} ${cx} ${cy})">
+      <rect x="${x}" y="${y}" width="52" height="76" rx="6" fill="#f8f8ef"${op(.93)}/>
+      <text x="${x+8}" y="${y+20}" font-size="15" fill="${suitColor}">${rank}</text>
+      <text x="${x+8}" y="${y+36}" font-size="15" fill="${suitColor}">${suit}</text>
+      <text x="${x+26}" y="${y+52}" font-size="28" text-anchor="middle" fill="${suitColor}"${op(.7)}>${suit}</text></g>`;
+    return card(cx-70,cy-48,-18,'♥','A','#c62828')+card(cx-32,cy-56,0,'♠','K','#111')+
+      card(cx+8,cy-48,18,'♦','Q','#c62828')+
+      [0,1,2,3,4].map(i=>`<ellipse cx="${cx-24+i*13}" cy="${cy+48}" rx="15" ry="5" fill="${['#c62828','#1565c0','#2e7d32','#f57f17','#555'][i]}"${op(.9)}/>`).join('');
+  }
+  if (id==='battleship') {
+    let grid=''; for(let r=0;r<5;r++) for(let c=0;c<5;c++)
+      grid+=`<rect x="${cx-60+c*24}" y="${cy-60+r*24}" width="22" height="22" fill="none" stroke="${lc}" stroke-width="1"${op(.35)}/>`;
+    const hits=[[0,1],[2,2],[1,3]].map(([r,c])=>`<text x="${cx-49+c*24}" y="${cy-44+r*24}" font-size="14" fill="#e53935" text-anchor="middle">✕</text>`).join('');
+    return grid+hits+
+      `<rect x="${cx-52}" y="${cy+14}" width="104" height="18" rx="4" fill="${lc}"${op(.8)}/>
+       <rect x="${cx-36}" y="${cy+6}" width="72" height="14" rx="3" fill="${lc}"${op(.6)}/>
+       <rect x="${cx-16}" y="${cy-4}" width="32" height="12" rx="2" fill="${lc}"${op(.5)}/>`;
+  }
+  if (id==='dnd') {
+    const pts=10,r1=58,r2=32,pts2=Array.from({length:pts*2},(_, i)=>{
+      const a=Math.PI/pts*i-Math.PI/2, r=i%2?r2:r1;
+      return `${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`;}).join(' ');
+    return `<polygon points="${pts2}" fill="${pc}"${op(.8)} stroke="${lc}" stroke-width="2"/>
+      <text x="${cx}" y="${cy+8}" font-size="28" text-anchor="middle" fill="${lc}" font-weight="bold">20</text>
+      <line x1="${cx}" y1="${cy-r1-16}" x2="${cx}" y2="${cy+r1+16}" stroke="${lc}" stroke-width="3"${op(.4)}/>
+      <line x1="${cx-r1-16}" y1="${cy}" x2="${cx+r1+16}" y2="${cy}" stroke="${lc}" stroke-width="2"${op(.25)}/>
+      <text x="${cx}" y="${cy-72}" font-size="26" text-anchor="middle" fill="${lc}"${op(.8)}>⚔</text>`;
+  }
+  if (id==='monopoly') {
+    const bldgs=[[cx-50,cy+20,20,72],[cx-24,cy-4,20,96],[cx+4,cy+8,20,84],[cx+28,cy-18,20,110],[cx+52,cy+14,20,78]];
+    return bldgs.map(([x,y,w,h])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${lc}"${op(.3+Math.random()*.3)} stroke="${lc}" stroke-width="1"${op(.5)}/>`
+      +`<rect x="${x+2}" y="${y+4}" width="4" height="6" fill="${pc}"${op(.8)}/>`
+      +`<rect x="${x+8}" y="${y+4}" width="4" height="6" fill="${pc}"${op(.8)}/>`).join('')
+      +`<text x="${cx}" y="${cy-40}" font-size="36" text-anchor="middle" fill="${lc}"${op(.8)}>$</text>`;
+  }
+  if (id==='risk') {
+    return `<ellipse cx="${cx-30}" cy="${cy-20}" rx="45" ry="30" fill="${pc}"${op(.7)} stroke="${lc}" stroke-width="1.5"/>
+      <ellipse cx="${cx+35}" cy="${cy+15}" rx="40" ry="25" fill="${lc}"${op(.2)} stroke="${lc}" stroke-width="1.5"/>
+      <ellipse cx="${cx-10}" cy="${cy+45}" rx="35" ry="20" fill="${pc}"${op(.5)} stroke="${lc}" stroke-width="1.5"/>
+      <text x="${cx-30}" y="${cy-16}" font-size="14" text-anchor="middle" fill="${lc}">I</text>
+      <text x="${cx+35}" y="${cy+19}" font-size="14" text-anchor="middle" fill="${pc}">III</text>
+      <text x="${cx-10}" y="${cy+49}" font-size="12" text-anchor="middle" fill="${lc}">II</text>
+      <text x="${cx}" y="${cy-68}" font-size="22" text-anchor="middle" fill="${lc}"${op(.7)}>⚑</text>`;
+  }
+  if (id==='go') {
+    let grid=''; for(let r=0;r<5;r++) for(let c=0;c<5;c++) {
+      grid+=`<line x1="${cx-48+c*24}" y1="${cy-48}" x2="${cx-48+c*24}" y2="${cy+48}" stroke="${lc}" stroke-width="1"${op(.4)}/>`;
+      grid+=`<line x1="${cx-48}" y1="${cy-48+r*24}" x2="${cx+48}" y2="${cy-48+r*24}" stroke="${lc}" stroke-width="1"${op(.4)}/>`;
+    }
+    const stones=[[0,0,'#111'],[1,2,'#eee'],[2,1,'#111'],[3,3,'#eee'],[1,4,'#111'],[4,2,'#eee'],[3,1,'#111']];
+    return grid+stones.map(([r,c,cl])=>`<circle cx="${cx-48+c*24}" cy="${cy-48+r*24}" r="10" fill="${cl}" stroke="${cl==='#111'?lc:pc}" stroke-width="1.5"/>`).join('');
+  }
+  if (id==='mahjong') {
+    const tile=(x,y,ch,rot=0)=>`<g transform="rotate(${rot} ${x+22} ${y+32})"><rect x="${x}" y="${y}" width="44" height="60" rx="4" fill="#f5e8c8"${op(.9)} stroke="#8B6914" stroke-width="2"/>
+      <text x="${x+22}" y="${y+38}" font-size="26" text-anchor="middle" fill="${pc}">${ch}</text></g>`;
+    return tile(cx-52,cy-40,'字',-5)+tile(cx-14,cy-48,'龍',0)+tile(cx+24,cy-40,'風',5)+
+      tile(cx-52,cy+28,'花',-3)+tile(cx+24,cy+28,'竹',3);
+  }
+  if (id==='clue') {
+    return `<rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="1.5"${op(.4)}/>
+      ${[[cx-56,cy-56,cx,cy-56],[cx,cy-56,cx,cy],[cx-56,cy,cx,cy],[cx-56,cy-56,cx-56,cy],[cx,cy,cx+56,cy],[cx+56,cy-56,cx+56,cy],[cx,cy-56,cx+56,cy-56]].map(([x1,y1,x2,y2])=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${lc}" stroke-width="1.5"${op(.3)}/>`).join('')}
+      <circle cx="${cx+20}" cy="${cy+20}" r="28" fill="none" stroke="${lc}" stroke-width="8"${op(.7)}/>
+      <line x1="${cx+40}" y1="${cy+40}" x2="${cx+60}" y2="${cy+60}" stroke="${lc}" stroke-width="10" stroke-linecap="round"${op(.7)}/>
+      <text x="${cx-24}" y="${cy-16}" font-size="18" text-anchor="middle" fill="${lc}"${op(.7)}>🔪</text>
+      <text x="${cx-24}" y="${cy+10}" font-size="14" text-anchor="middle" fill="${lc}"${op(.5)}>?</text>`;
+  }
+  if (id==='uno') {
+    const card=(x,y,rot,col,sym)=>`<g transform="rotate(${rot} ${cx} ${cy})">
+      <rect x="${x}" y="${y}" width="46" height="70" rx="8" fill="${col}"${op(.9)}/>
+      <ellipse cx="${x+23}" cy="${y+35}" rx="16" ry="24" fill="#0003"/>
+      <text x="${x+23}" y="${y+44}" font-size="28" text-anchor="middle" fill="#fff" font-weight="bold">${sym}</text></g>`;
+    return card(cx-60,cy-40,-20,'#e53935','7')+card(cx-26,cy-44,0,'#1565c0','↺')+card(cx+8,cy-40,20,'#2e7d32','W')+
+      `<rect x="${cx-22}" y="${cy+36}" width="44" height="8" rx="4" fill="${lc}"${op(.6)}/>`;
+  }
+  if (id==='tetris') {
+    const sq=(x,y,c)=>`<rect x="${x}" y="${y}" width="22" height="22" rx="2" fill="${c}"${op(.9)} stroke="#000" stroke-width="1"/>`;
+    return sq(cx-33,cy-55,'#e53935')+sq(cx-11,cy-55,'#e53935')+sq(cx+11,cy-55,'#e53935')+sq(cx-11,cy-33,'#e53935')+ // T
+      sq(cx-33,cy-11,'#1565c0')+sq(cx-11,cy-11,'#1565c0')+sq(cx-11,cy+11,'#1565c0')+sq(cx+11,cy+11,'#1565c0')+ // S
+      sq(cx-33,cy+33,'#2e7d32')+sq(cx-11,cy+33,'#2e7d32')+sq(cx+11,cy+33,'#2e7d32')+sq(cx+11,cy+55,'#2e7d32')+ // L
+      sq(cx-33,cy+55,'#f57f17')+sq(cx-11,cy+55,'#f57f17')+
+      `<rect x="${cx-35}" y="${cy+77}" width="110" height="4" fill="${lc}"${op(.5)}/>`;
+  }
+  if (id==='pacman') {
+    const dots=[[cx-44,cy-44],[cx-22,cy-44],[cx,cy-44],[cx+22,cy-44],[cx+44,cy-44],[cx-44,cy-22],[cx-44,cy],[cx-44,cy+22],[cx-44,cy+44],[cx-22,cy+44],[cx,cy+44],[cx+22,cy+44],[cx+44,cy+44]];
+    return dots.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="${lc}"${op(.7)}/>`).join('')+
+      `<path d="M ${cx+22} ${cy} A 44 44 0 1 0 ${cx+22} ${cy+1} Z" fill="${lc}"${op(.9)} clip-path="none"/>`+
+      `<path d="M ${cx+22} ${cy} L ${cx+66} ${cy-22} A 44 44 0 0 0 ${cx+66} ${cy+22} Z" fill="${pc}"${op(.9)}/>`+
+      `<circle cx="${cx-8}" cy="${cy-16}" r="6" fill="${pc}"/>`+
+      `<circle cx="${cx+10}" cy="${cy-60}" r="14" fill="${lc}"${op(.6)}/><rect x="${cx-4}" cy="${cy-74}" width="28" height="18" fill="${lc}"${op(.6)}/>`+
+      `<circle cx="${cx+10}" cy="${cy-74}" r="5" fill="${pc}"/><circle cx="${cx+24}" cy="${cy-74}" r="5" fill="${pc}"/>`;
+  }
+  if (id==='checkers') {
+    let b=''; for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
+      b+=`<rect x="${cx-54+c*27}" y="${cy-54+r*27}" width="27" height="27" fill="${(r+c)%2?pc+'cc':'#f0e8d8'}"/>`;
+      if((r+c)%2&&r<2) b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="10" fill="#e53935" stroke="#9a0000" stroke-width="1.5"${op(.9)}/>`;
+      if((r+c)%2&&r>=2) b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="10" fill="#f5f0e8" stroke="#888" stroke-width="1.5"${op(.9)}/>`;
+    }
+    return b+`<rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="2"${op(.5)}/>`;
+  }
+  if (id==='backgammon') {
+    const tri=(x,up,col)=>{ const tip=up?cy-64:cy+64; const by=up?cy+64:cy-64;
+      return `<polygon points="${x},${by} ${x+22},${tip} ${x+44},${by}" fill="${col}"${op(.8)}/>`; };
+    return [0,1,2,3].map(i=>tri(cx-54+i*28,true,i%2?lc:pc)).join('')+
+      [0,1,2,3].map(i=>tri(cx-54+i*28,false,i%2?pc:lc)).join('')+
+      `<rect x="${cx-56}" y="${cy-4}" width="112" height="8" fill="${pc}"${op(.4)}/>
+       <circle cx="${cx-30}" cy="${cy+44}" r="11" fill="#f5f0e8" stroke="#888" stroke-width="2"/>
+       <circle cx="${cx-6}" cy="${cy+44}" r="11" fill="#f5f0e8" stroke="#888" stroke-width="2"/>
+       <circle cx="${cx+18}" cy="${cy+44}" r="11" fill="#111" stroke="#444" stroke-width="2"/>`;
+  }
+  if (id==='connect4') {
+    let g=''; for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
+      const filled=Math.random()>.45, col=filled?(Math.random()>.5?'#e53935':'#f9a825'):'transparent';
+      g+=`<circle cx="${cx-42+c*28}" cy="${cy-42+r*28}" r="11" fill="${col}" stroke="${lc}" stroke-width="2"${op(filled?.9:.3)}/>`;
+    }
+    return `<rect x="${cx-56}" y="${cy-56}" width="112" height="112" rx="6" fill="${pc}"${op(.7)}/>`+g;
+  }
+  if (id==='minesweeper') {
+    const nums=['1','3','','2','🚩','1','','3','2'];
+    let g=''; for(let r=0;r<3;r++) for(let c=0;c<3;c++) {
+      const n=nums[r*3+c];
+      g+=`<rect x="${cx-42+c*28}" y="${cy-42+r*28}" width="26" height="26" fill="${n?'#c0c0c0':'#d8d8d8'}" stroke="#888" stroke-width="1"/>`;
+      if(n) g+=`<text x="${cx-29+c*28}" y="${cy-24+r*28}" font-size="13" text-anchor="middle" fill="${n==='🚩'?'#e53935':n==='1'?'#1565c0':n==='2'?'#2e7d32':'#c62828'}">${n}</text>`;
+    }
+    return g+`<text x="${cx}" y="${cy+52}" font-size="36" text-anchor="middle"${op(.7)}>💥</text>`;
+  }
+  if (id==='mtg') {
+    return `<rect x="${cx-52}" y="${cy-72}" width="104" height="144" rx="8" fill="${pc}"${op(.85)} stroke="${lc}" stroke-width="3"/>
+      <rect x="${cx-44}" y="${cy-64}" width="88" height="60" rx="4" fill="${lc}"${op(.15)} stroke="${lc}" stroke-width="1"/>
+      <text x="${cx}" y="${cy-28}" font-size="32" text-anchor="middle" fill="${lc}"${op(.8)}>✦</text>
+      <rect x="${cx-44}" y="${cy+4}" width="88" height="48" rx="4" fill="${lc}"${op(.12)} stroke="${lc}" stroke-width="1"/>
+      <text x="${cx}" y="${cy+26}" font-size="11" text-anchor="middle" fill="${lc}"${op(.7)}>Legendary Creature</text>
+      <text x="${cx}" y="${cy+40}" font-size="10" text-anchor="middle" fill="${lc}"${op(.5)}>Dragon — 8/8 Flying</text>
+      <text x="${cx-38}" y="${cy+66}" font-size="12" fill="${lc}"${op(.6)}>5/${lc.slice(1,3)==='26'?'9':'7'}</text>`;
+  }
+  if (id==='minecraft') {
+    const cube=(x,y,s,cf,ct,cr)=>`
+      <polygon points="${x},${y} ${x+s},${y-s*.5} ${x+s*2},${y} ${x+s},${y+s*.5}" fill="${ct}"/>
+      <polygon points="${x},${y} ${x},${y+s} ${x+s},${y+s*1.5} ${x+s},${y+s*.5}" fill="${cf}"/>
+      <polygon points="${x+s},${y+s*.5} ${x+s},${y+s*1.5} ${x+s*2},${y+s} ${x+s*2},${y}" fill="${cr}"/>`;
+    return cube(cx-44,cy-20,30,'#8B6914','#c8a832','#6B4A00')+cube(cx-14,cy-36,30,'#5a8a3c','#7ab850','#3a6a1c')+cube(cx+16,cy-20,30,'#5a6a7a','#7a8a9a','#3a4a5a')+
+      cube(cx-44,cy+10,30,'#5a4a3a','#7a6a5a','#3a2a1a');
+  }
+  if (id==='scrabble') {
+    const tiles=[['Q',10],['U',1],['E',1],['S',1],['T',1]]; let g='';
+    tiles.forEach(([lt,pts],i)=>{
+      g+=`<rect x="${cx-56+i*28}" y="${cy-14}" width="26" height="26" rx="3" fill="#d4a96e" stroke="#8B6914" stroke-width="1.5"/>
+          <text x="${cx-43+i*28}" y="${cy+5}" font-size="17" text-anchor="middle" fill="#2c1a00" font-weight="bold">${lt}</text>
+          <text x="${cx-34+i*28}" y="${cy+11}" font-size="7" fill="#2c1a00"${op(.7)}>${pts}</text>`;
+    });
+    const tiles2=[['Z',10],['O',1],['N',1],['E',1]]; let g2='';
+    tiles2.forEach(([lt,pts],i)=>{
+      g2+=`<rect x="${cx-42+i*28}" y="${cy+20}" width="26" height="26" rx="3" fill="#d4a96e" stroke="#8B6914" stroke-width="1.5"/>
+           <text x="${cx-29+i*28}" y="${cy+39}" font-size="17" text-anchor="middle" fill="#2c1a00" font-weight="bold">${lt}</text>
+           <text x="${cx-20+i*28}" y="${cy+45}" font-size="7" fill="#2c1a00"${op(.7)}>${pts}</text>`;
+    });
+    return g+g2+`<rect x="${cx-58}" y="${cy-56}" width="116" height="116" fill="none" stroke="${lc}" stroke-width="1"${op(.3)}/>`;
+  }
+  // Default fallback
+  return `<text x="${cx}" y="${cy+16}" font-size="96" text-anchor="middle" fill="${lc}"${op(.85)}>${g.icon}</text>`;
+}
+
+// ── Compose SVG box art ───────────────────────────────────────────────
+function buildBoxArtSVG(a, b) {
+  const W=560, H=400;
+  const ca=a.accent, cal=a.accentB, cb=b.accent, cbl=b.accentB;
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="${ca}" stop-opacity=".95"/>
+      <stop offset="50%"  stop-color="#090912" stop-opacity="1"/>
+      <stop offset="100%" stop-color="${cb}" stop-opacity=".95"/>
+    </linearGradient>
+    <radialGradient id="glA" cx="27%" cy="46%" r="34%">
+      <stop offset="0%" stop-color="${cal}" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <radialGradient id="glB" cx="73%" cy="46%" r="34%">
+      <stop offset="0%" stop-color="${cbl}" stop-opacity=".28"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+    <linearGradient id="fadeBot" x1="0%" y1="55%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="#090912" stop-opacity=".9"/>
+    </linearGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bgG)"/>
+  <rect width="${W}" height="${H}" fill="url(#glA)"/>
+  <rect width="${W}" height="${H}" fill="url(#glB)"/>
+  <rect width="${W}" height="${H}" fill="url(#fadeBot)"/>
+  <!-- Game A scene -->
+  <g>${gameScene(a, 145, 195, ca, cal)}</g>
+  <!-- Game B scene -->
+  <g>${gameScene(b, W-145, 195, cb, cbl)}</g>
+  <!-- Divider -->
+  <line x1="${W/2}" y1="28" x2="${W/2}" y2="${H-52}" stroke="#c9a84c" stroke-width="1" opacity=".18"/>
+  <!-- Center emblem -->
+  <circle cx="${W/2}" cy="190" r="32" fill="#090912" stroke="#c9a84c" stroke-width="2" opacity=".96"/>
+  <text x="${W/2}" y="202" font-size="28" fill="#c9a84c" text-anchor="middle">⚡</text>
+  <!-- Frame -->
+  <rect x="9" y="9" width="${W-18}" height="${H-18}" fill="none" stroke="#c9a84c" stroke-width="2.5" rx="7" opacity=".7"/>
+  <rect x="15" y="15" width="${W-30}" height="${H-30}" fill="none" stroke="#c9a84c" stroke-width=".8" rx="5" opacity=".35"/>
+  <text x="28" y="42" font-size="17" fill="#c9a84c" opacity=".75">✦</text>
+  <text x="${W-28}" y="42" font-size="17" fill="#c9a84c" opacity=".75" text-anchor="end">✦</text>
+  <text x="28" y="${H-14}" font-size="17" fill="#c9a84c" opacity=".75">✦</text>
+  <text x="${W-28}" y="${H-14}" font-size="17" fill="#c9a84c" opacity=".75" text-anchor="end">✦</text>
+  <!-- Bottom band -->
+  <rect x="0" y="${H-48}" width="${W}" height="48" fill="#090912" opacity=".75"/>
+  <line x1="44" y1="${H-30}" x2="${W/2-64}" y2="${H-30}" stroke="#c9a84c" stroke-width=".75" opacity=".45"/>
+  <line x1="${W/2+64}" y1="${H-30}" x2="${W-44}" y2="${H-30}" stroke="#c9a84c" stroke-width=".75" opacity=".45"/>
+  <text x="${W/2}" y="${H-22}" font-size="11" fill="#c9a84c" text-anchor="middle" letter-spacing="4"
+        font-family="system-ui,sans-serif">${a.name.toUpperCase()} × ${b.name.toUpperCase()}</text>
+</svg>`;
+}
+
+function loadRevealArt(a, b) {
+  document.getElementById('revealArt').innerHTML = buildBoxArtSVG(a, b);
+}
+
+// ── Story builder ─────────────────────────────────────────────────────
+function buildStory(a, b) {
+  const key = a.id + '+' + b.id;
+  const keyAlt = b.id + '+' + a.id;
+  if (HYBRID_STORIES[key]) return HYBRID_STORIES[key];
+  if (HYBRID_STORIES[keyAlt]) return HYBRID_STORIES[keyAlt];
+
+  const fa = GAME_FLAVOR[a.id] || { theme: a.tag, setting: 'an unknown arena', tone: 'strategic' };
+  const fb = GAME_FLAVOR[b.id] || { theme: b.tag, setting: 'another realm',    tone: 'unpredictable' };
+  const king  = a.units[5].n;
+  const queen = a.units[4].n;
+
+  return {
+    tagline: `${fa.tone.split(' ')[0].charAt(0).toUpperCase() + fa.tone.split(' ')[0].slice(1)} meets ${fb.tone}.`,
+    story: `Set in ${fa.setting}, the ${fa.theme} of ${a.name} collides with the ${fb.theme} of ${b.name}. Players draw dual-unit tiles and place them on a shared 6×6 board — each half bearing a ${a.name} piece that captures enemies using its full movement rules on placement. The ${queen} sweeps in all eight directions. The ${king} is the ultimate prize: capture it and the game ends instantly in your favor. Place wisely. Every tile matters.`,
+    players: '2', time: '10–20 min', age: '8+',
+  };
+}
+
+function applyGameTheme(a, b) {
+  const cfg = BOARD_CONFIGS[a.id] || {};
+
+  // Consistent dark theme
+  const screenBg  = '#0f0f14';
+  const cellBg    = '#1a1a24';
+  const cellBorder = '#2a2a3a';
+
+  // P1 = game A accent, P2 = game B accent
+  const p1bg  = a.accentB + '28';
+  const p1brd = a.accentB;
+  const p2bg  = b.accentB + '28';
+  const p2brd = b.accentB;
+
+  let el = document.getElementById('game-theme');
+  if (!el) { el = document.createElement('style'); el.id = 'game-theme'; document.head.appendChild(el); }
+
+  el.textContent = `
+    #gameScreen { background: ${screenBg} !important; color: #e8e8f0 !important; }
+    #gameScreen h1 { color: #e8e8f0; }
+    #gameScreen .subtitle { color: ${p1brd}; }
+    #gameScreen .col-label, #gameScreen .row-label { color: #444; }
+    #gameScreen .gc { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .gc.pcl { background: ${p1bg}; border-color: ${p1brd}; }
+    #gameScreen .gc.acl { background: ${p2bg}; border-color: ${p2brd}; }
+    #gameScreen .gc.pcl .lb { color: ${p1brd}; }
+    #gameScreen .gc.acl .lb { color: ${p2brd}; }
+    #gameScreen .gc.pvc { background: ${p1bg}; border-color: ${p1brd}; }
+    #gameScreen .score-box.p1 { background: ${p1bg}; border-color: ${p1brd}; }
+    #gameScreen .score-box.p1 .score-label, #gameScreen .score-box.p1 .score-num { color: ${p1brd}; }
+    #gameScreen .score-box.p2 { background: ${p2bg}; border-color: ${p2brd}; }
+    #gameScreen .score-box.p2 .score-label, #gameScreen .score-box.p2 .score-num { color: ${p2brd}; }
+    #gameScreen .tc { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .tc:hover { border-color: ${p1brd}88; }
+    #gameScreen .tc.sel { border-color: ${p1brd}; background: ${p1bg}; }
+    #gameScreen .tc-name { color: #888; }
+    #gameScreen .tc-pts { color: #555; }
+    #gameScreen .ori-btn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .ori-btn.active { background: ${p1bg}; border-color: ${p1brd}; color: ${p1brd}; }
+    #gameScreen .seg button { background: ${cellBg}; color: #e8e8f0; border-color: ${cellBorder}; }
+    #gameScreen .seg button.active { background: ${p1brd}; color: #fff; }
+    #gameScreen .section-label, #gameScreen #msg, #gameScreen #poolTxt,
+    #gameScreen #capLog, #gameScreen #boardNote, #gameScreen #histLabel { color: #666; }
+    #gameScreen #poolToggleBtn, #gameScreen #poolGrid { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .pt { background: ${cellBg}; border-color: ${cellBorder}; }
+    #gameScreen .pt-div { background: ${cellBorder}; }
+    #gameScreen .nav-btn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen .nav-btn.live-btn { background: ${p1brd}; border-color: ${p1brd}; color: #fff; }
+    #gameScreen #histBanner { background: ${p1bg}; border-color: ${p1brd}; color: ${p1brd}; }
+    #gameScreen #goEl { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #gameScreen #goMsg { color: #e8e8f0; }
+    #gameScreen #goSub { color: #888; }
+    #gameScreen .btn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; text-decoration: none; }
+    #gameScreen .btn.primary { background: ${p1brd}; border-color: ${p1brd}; color: #fff; }
+    #gameScreen .score-big .side.you .val { color: ${p1brd}; }
+    #gameScreen .score-big .side.ai .val { color: ${p2brd}; }
+    #pickNewBtn, #arcadeBtn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; text-decoration: none; }
+    #soundBtn { background: ${cellBg}; border-color: ${cellBorder}; color: #e8e8f0; }
+    #soundBtn.on { background: ${p1bg}; border-color: ${p1brd}; color: ${p1brd}; }
+    #diffLabel { color: #555; }
+  `;
+
+  // Store for per-cell JS rendering (chess/checkers checkered board)
+  window._chTheme = {
+    checkered:  cfg.checkered || false,
+    darkCell:   '#141420',
+    darkBorder: '#222233',
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SELECTION SCREEN
+// ══════════════════════════════════════════════════════════════════════
+let selA = null, selB = null;
+let activeGameA = null, activeGameB = null;
+
+function buildSelectScreen() {
+  const grid = document.getElementById('gameGrid');
+  grid.innerHTML = '';
+  GAMES.forEach((g, i) => {
+    const card = document.createElement('div');
+    card.className = 'gcard';
+    card.id = 'gc_' + g.id;
+    card.innerHTML = `<div class="gcard-icon">${g.icon}</div><div class="gcard-name">${g.name}</div><div class="gcard-badge" id="badge_${g.id}"></div>`;
+    card.addEventListener('click', () => selectGame(g));
+    grid.appendChild(card);
+  });
+}
+
+function selectGame(g) {
+  if (selA === g.id) { deselectA(); return; }
+  if (selB === g.id) { deselectB(); return; }
+  if (selA === null) {
+    selA = g.id;
+    document.getElementById('gc_' + g.id).classList.add('selA');
+    document.getElementById('badge_' + g.id).textContent = 'GAME A';
+    document.getElementById('selStatus').textContent = 'Now choose your second game';
+  } else if (selB === null && g.id !== selA) {
+    selB = g.id;
+    document.getElementById('gc_' + g.id).classList.add('selB');
+    document.getElementById('badge_' + g.id).textContent = 'GAME B';
+    document.getElementById('selStatus').textContent = '⚡ Ready to merge!';
+    document.getElementById('selStatus').classList.add('ready');
+    document.getElementById('mergeBtn').classList.add('show');
+  }
+}
+
+function deselectA() {
+  if (selB) deselectB();
+  document.getElementById('gc_' + selA).classList.remove('selA');
+  document.getElementById('badge_' + selA).textContent = '';
+  selA = null;
+  document.getElementById('selStatus').textContent = 'Choose your first game';
+  document.getElementById('selStatus').classList.remove('ready');
+}
+
+function deselectB() {
+  document.getElementById('gc_' + selB).classList.remove('selB');
+  document.getElementById('badge_' + selB).textContent = '';
+  selB = null;
+  document.getElementById('selStatus').textContent = 'Now choose your second game';
+  document.getElementById('selStatus').classList.remove('ready');
+  document.getElementById('mergeBtn').classList.remove('show');
+}
+
+function goToSelect() {
+  document.getElementById('selectScreen').style.display = 'flex';
+  document.getElementById('revealScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'none';
+  // Reset selections
+  if (selA) { document.getElementById('gc_' + selA)?.classList.remove('selA'); document.getElementById('badge_' + selA && 'badge_'+selA)?.remove; }
+  if (selB) { document.getElementById('gc_' + selB)?.classList.remove('selB'); }
+  selA = null; selB = null;
+  document.getElementById('selStatus').textContent = 'Choose your first game';
+  document.getElementById('selStatus').classList.remove('ready');
+  document.getElementById('mergeBtn').classList.remove('show');
+  // Re-build to clear badges
+  buildSelectScreen();
+}
+
+function doReveal() {
+  if (!selA || !selB) return;
+  activeGameA = GAMES.find(g => g.id === selA);
+  activeGameB = GAMES.find(g => g.id === selB);
+  buildRevealScreen(activeGameA, activeGameB);
+  document.getElementById('selectScreen').style.display = 'none';
+  document.getElementById('revealScreen').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// REVEAL SCREEN
+// ══════════════════════════════════════════════════════════════════════
+function buildRevealScreen(a, b) {
+  const name = hybridName(a, b);
+  const story = buildStory(a, b);
+  const kingUnit  = a.units[5];
+  const queenUnit = a.units[4];
+
+  // Box art — AI generated image
+  loadRevealArt(a, b);
+
+  // Title & text
+  document.getElementById('revealName').textContent = name;
+  document.getElementById('revealTagline').textContent = story.tagline;
+  document.getElementById('revealDesc').textContent = story.story;
+
+  // Meta row
+  document.getElementById('revealMeta').innerHTML =
+    `<span>${story.players} players</span><span>${story.time}</span><span>Ages ${story.age}</span>`;
+
+  // Pieces
+  document.getElementById('revealPieces').innerHTML = a.units.map((u, i) => {
+    const v = VALS[i]; const vt = v === 0 ? 'WIN' : v + 'pt';
+    return `<div class="rpiece"><div class="rpiece-sym">${u.s}</div><div class="rpiece-name">${u.n}</div><div class="rpiece-val">${vt}</div></div>`;
+  }).join('');
+
+  // Rules
+  document.getElementById('revealRules').innerHTML = `
+    <strong>Quick rules:</strong><br>
+    • 6×6 board · 21 domino-style tiles, each showing two ${a.name} pieces<br>
+    • On your turn: pick a tile from your hand and place it (1×2) anywhere it fits<br>
+    • Each piece captures nearby enemies using its movement rule on placement<br>
+    • <strong>${queenUnit.n}</strong> (${queenUnit.s}) — captures in all 8 directions<br>
+    • <strong>${kingUnit.n}</strong> (${kingUnit.s}) — capturing one wins the game instantly<br>
+    • No instant win? Highest score when the board fills wins
+  `;
+
+  // Play button styled with game A gradient
+  const btn = document.getElementById('playBtn');
+  btn.style.background = a.bg;
+  btn.style.boxShadow = `0 8px 28px ${a.accent}66`;
+}
+
+function startGame() {
+  document.getElementById('revealScreen').style.display = 'none';
+  document.getElementById('gameScreen').style.display = 'flex';
+  // Set title
+  const name = hybridName(activeGameA, activeGameB);
+  document.getElementById('gameTitle').textContent = name.toUpperCase();
+  document.getElementById('gameSubtitle').textContent = activeGameA.name.toUpperCase() + ' × ' + activeGameB.name.toUpperCase();
+  // Build board note
+  const u = activeGameA.units;
+  document.getElementById('boardNote').innerHTML =
+    u.map((uu,i) => `${uu.s} ${uu.n[0].toUpperCase()}=${VALS[i]===0?'WIN':VALS[i]}`).join(' &nbsp;');
+  // Set king warn text
+  document.getElementById('kingWarn').textContent = `⚠ Place your ${u[5].n} tile within 3 turns!`;
+  applyGameTheme(activeGameA, activeGameB);
+  newGame();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GAME LOGIC (adapted Chessinoes, role-indexed)
+// ══════════════════════════════════════════════════════════════════════
+let gameMode = 'ai';
+let aiDiff = 'medium';
+let soundOn = true;
+let audioCtx = null;
+let poolOpen = false;
+let board, pH, aH, pool, sc, turn, sel, ori, over, pTurns, aTurns, hovR, hovC, flash, logLines;
+let history = [];
+let histIdx = null;
+
+function getUnits() { return activeGameA ? activeGameA.units : GAMES[0].units; }
+function sym(role) { return getUnits()[role].s; }
+function nm(role)  { return getUnits()[role].n; }
+function val(role) { return VALS[role]; }
+
+// ── Sound ───────────────────────────────────────────────────────────
+function getCtx(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function playPlace(){
+  if(!soundOn) return;
+  try{
+    const ctx=getCtx();
+    const buf=ctx.createBuffer(1,ctx.sampleRate*.06,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3)*.6;
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const g=ctx.createGain(); g.gain.value=.5;
+    const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900; f.Q.value=1;
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start();
+  }catch(e){}
+}
+function playCapture(){
+  if(!soundOn) return;
+  try{
+    const ctx=getCtx(); const t=ctx.currentTime;
+    const osc=ctx.createOscillator(); const g=ctx.createGain();
+    osc.type='triangle';
+    osc.frequency.setValueAtTime(220,t); osc.frequency.exponentialRampToValueAtTime(55,t+.28);
+    g.gain.setValueAtTime(.55,t); g.gain.exponentialRampToValueAtTime(.001,t+.32);
+    osc.connect(g); g.connect(ctx.destination); osc.start(); osc.stop(t+.32);
+  }catch(e){}
+}
+function playWin(){
+  if(!soundOn) return;
+  try{
+    const ctx=getCtx();
+    [523,659,784,1047].forEach((freq,i)=>{
+      const osc=ctx.createOscillator(); const g=ctx.createGain();
+      osc.frequency.value=freq;
+      const st=ctx.currentTime+i*.12;
+      g.gain.setValueAtTime(.25,st); g.gain.exponentialRampToValueAtTime(.001,st+.35);
+      osc.connect(g); g.connect(ctx.destination); osc.start(st); osc.stop(st+.35);
+    });
+  }catch(e){}
+}
+function toggleSound(){
+  soundOn=!soundOn;
+  const b=document.getElementById('soundBtn');
+  b.textContent=soundOn?'♪ Sound on':'♪ Sound off';
+  b.className=soundOn?'on':'';
+  if(soundOn) playPlace();
+}
+
+// ── Mode / difficulty ────────────────────────────────────────────────
+function setMode(m){
+  gameMode=m;
+  document.querySelectorAll('#modeSegment button').forEach((b,i)=>b.className=(i===0&&m==='ai'||i===1&&m==='2p')?'active':'');
+  document.getElementById('diffRow').style.display=m==='ai'?'flex':'none';
+  document.getElementById('p2Label').textContent=m==='2p'?'PLAYER 2':'AI';
+  document.getElementById('rP2Name').textContent=m==='2p'?'PLAYER 2':'AI';
+  newGame();
+}
+function setDiff(d){
+  aiDiff=d;
+  document.querySelectorAll('#diffSegment button').forEach((b,i)=>b.className=(['easy','medium','hard'][i]===d)?'active':'');
+}
+
+// ── History ──────────────────────────────────────────────────────────
+function saveSnapshot(who,msg,placed,captured){
+  history.push({
+    board: board.map(r=>r.map(c=>c?{...c}:null)),
+    sc: {...sc}, flash: captured.map(([r,c])=>({r,c})),
+    placed: placed.map(([r,c,p])=>({r,c,p})), msg, who,
+    logLines: [...logLines]
+  });
+  updateHistNav();
+}
+function prevMove(){
+  if(!history.length) return;
+  histIdx=(histIdx===null)?history.length-1:Math.max(0,histIdx-1);
+  renderSnapshot();
+}
+function nextMove(){
+  if(histIdx===null) return;
+  if(histIdx<history.length-1){histIdx++;renderSnapshot();}
+  else goLive();
+}
+function goLive(){
+  histIdx=null;
+  document.getElementById('histBanner').classList.remove('visible');
+  document.getElementById('boardWrap').classList.remove('hist-mode');
+  render();
+}
+function renderSnapshot(){
+  const snap=history[histIdx];
+  document.getElementById('histBanner').classList.add('visible');
+  document.getElementById('boardWrap').classList.add('hist-mode');
+  renderBoardFromSnap(snap);
+  document.getElementById('spS').textContent=snap.sc.p;
+  document.getElementById('saS').textContent=snap.sc.a;
+  setMsg(snap.msg);
+  document.getElementById('capLog').innerHTML=snap.logLines.map(l=>`<div>${l}</div>`).join('');
+  updateHistNav();
+}
+function renderBoardFromSnap(snap){
+  const wrap=document.getElementById('boardWrap'); wrap.innerHTML='';
+  wrap.appendChild(document.createElement('div'));
+  COLS.forEach(l=>{const d=document.createElement('div');d.className='col-label';d.textContent=l;wrap.appendChild(d);});
+  for(let r=0;r<6;r++){
+    const rl=document.createElement('div');rl.className='row-label';rl.textContent=r+1;wrap.appendChild(rl);
+    for(let c=0;c<6;c++){
+      const cell=document.createElement('div'); cell.className='gc';
+      const d=snap.board[r][c];
+      const isFlash=snap.flash.some(f=>f.r===r&&f.c===c);
+      const isNew=snap.placed.some(p=>p.r===r&&p.c===c);
+      if(d){
+        cell.classList.add(d.color==='p'?'pcl':'acl');
+        if(isNew) cell.classList.add('new-tile');
+        cell.innerHTML=`<span class="sy">${sym(d.role)}</span><span class="lb">${nm(d.role)[0]}</span>`;
+      } else if(isFlash){
+        cell.classList.add('fxc'); cell.innerHTML=`<span class="sy">✕</span>`;
+      } else {
+        if(window._chTheme?.checkered && (r+c)%2===1){
+          cell.style.background=window._chTheme.darkCell;
+          cell.style.borderColor=window._chTheme.darkBorder;
+        }
+      }
+      wrap.appendChild(cell);
+    }
+  }
+}
+function updateHistNav(){
+  const nav=document.getElementById('histNav');
+  if(!history.length){nav.classList.remove('visible');return;}
+  nav.classList.add('visible');
+  const isLive=histIdx===null, idx=isLive?history.length-1:histIdx;
+  document.getElementById('histLabel').textContent=`Move ${idx+1} of ${history.length}${isLive?' · live':''}`;
+  document.getElementById('btnPrev').disabled=(idx===0);
+  document.getElementById('btnNext').disabled=isLive;
+  document.getElementById('btnLive').disabled=isLive;
+}
+
+// ── Pool display ─────────────────────────────────────────────────────
+function togglePool(){
+  poolOpen=!poolOpen;
+  document.getElementById('poolGrid').className=poolOpen?'open':'';
+  document.getElementById('poolArrow').textContent=poolOpen?'▴':'▾';
+  if(poolOpen) renderPool();
+}
+function renderPool(){
+  const grid=document.getElementById('poolGrid'); grid.innerHTML='';
+  if(!pool||!pool.length){grid.innerHTML='<span style="font-size:12px;color:#aaa;">Pool is empty</span>';return;}
+  pool.forEach(tile=>{
+    const div=document.createElement('div'); div.className='pt';
+    div.innerHTML=`${sym(tile[0])}<div class="pt-div"></div>${sym(tile[1])}`;
+    div.title=`${nm(tile[0])} · ${nm(tile[1])}`;
+    grid.appendChild(div);
+  });
+}
+function updatePoolBtn(){
+  const n=pool?pool.length:0;
+  document.getElementById('poolToggleLabel').textContent=`${poolOpen?'Hide':'Show'} tile pool (${n} remaining)`;
+  document.getElementById('poolTxt').textContent=`Pool: ${n} tiles remaining`;
+  if(poolOpen) renderPool();
+}
+
+// ── 2p pass overlay ──────────────────────────────────────────────────
+function showPass(nextTurn){
+  const isP1=nextTurn==='p';
+  const name=isP1?'Player 1':'Player 2';
+  document.getElementById('passTitle').textContent=`${name}'s turn`;
+  document.getElementById('passBadge').textContent=name.toUpperCase();
+  document.getElementById('passBadge').className='badge '+(isP1?'p1':'p2');
+  document.getElementById('passOverlay').classList.add('show');
+  sel=null;
+}
+function dismissPass(){
+  document.getElementById('passOverlay').classList.remove('show');
+  render();
+}
+
+// ── Game setup ────────────────────────────────────────────────────────
+function newGame(){
+  document.getElementById('goEl').style.display='none';
+  document.getElementById('passOverlay').classList.remove('show');
+  closeRecap();
+  histIdx=null;
+  document.getElementById('histBanner').classList.remove('visible');
+  document.getElementById('boardWrap').classList.remove('hist-mode');
+  history=[];
+  const all=[];
+  for(let i=0;i<6;i++) for(let j=i;j<6;j++) all.push([i,j]);
+  shuf(all);
+  pH=all.splice(0,4); aH=all.splice(0,4); pool=all;
+  board=Array(6).fill(0).map(()=>Array(6).fill(null));
+  sc={p:0,a:0}; turn='a'; sel=null; ori='H'; over=false;
+  pTurns=0; aTurns=0; hovR=-1; hovC=-1; flash=[]; logLines=[];
+  poolOpen=false;
+  document.getElementById('poolGrid').className='';
+  document.getElementById('poolArrow').textContent='▾';
+  document.getElementById('p1Label').textContent=gameMode==='2p'?'PLAYER 1':'YOU';
+  document.getElementById('p2Label').textContent=gameMode==='2p'?'PLAYER 2':'AI';
+  updateHistNav(); updatePoolBtn();
+  setMsg(gameMode==='2p'?'Player 2 places the first tile…':'AI is placing the first tile…');
+  render();
+  setTimeout(gameMode==='2p'?()=>handleP2Start():aiTurn, 800);
+}
+function handleP2Start(){ showPass('a'); }
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=0|Math.random()*(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function setMsg(t){document.getElementById('msg').textContent=t;}
+function addLog(t){logLines.unshift(t);if(logLines.length>5)logLines.pop();}
+
+// ── Board events ──────────────────────────────────────────────────────
+function setupBoardEvents(){
+  const wrap=document.getElementById('boardWrap');
+  wrap.addEventListener('click',e=>{
+    if(histIdx!==null||over) return;
+    const{r,c}=cellFromEvent(wrap,e); if(r<0||c<0) return;
+    handleCellClick(r,c);
+  });
+  wrap.addEventListener('mousemove',e=>{
+    if(histIdx!==null) return;
+    const{r,c}=cellFromEvent(wrap,e);
+    if(r!==hovR||c!==hovC){hovR=r;hovC=c;renderBoard();}
+  });
+  wrap.addEventListener('mouseleave',()=>{
+    if(histIdx!==null) return;
+    if(hovR!==-1||hovC!==-1){hovR=-1;hovC=-1;renderBoard();}
+  });
+}
+function cellFromEvent(wrap,e){
+  const rect=wrap.getBoundingClientRect();
+  const x=e.clientX-rect.left, y=e.clientY-rect.top;
+  const c=Math.floor((x-19)/53), r=Math.floor((y-19)/53);
+  if(r>=0&&r<6&&c>=0&&c<6) return{r,c};
+  return{r:-1,c:-1};
+}
+
+// ── Cell click ────────────────────────────────────────────────────────
+function handleCellClick(r,c){
+  if(over||histIdx!==null) return;
+  if(turn==='a'&&gameMode==='ai'){setMsg('Wait — AI is still thinking.');return;}
+  const color=turn;
+  const activeHand=(color==='p'?pH:aH);
+  if(sel===null){setMsg('Select a tile from your hand first.');return;}
+  if(board[r][c]){setMsg('That cell is occupied.');return;}
+  if(!fits(r,c,ori)){setMsg("Tile won't fit — try another cell or flip orientation.");return;}
+  const tile=activeHand[sel];
+  const{pts,kc,placedCells,capturedCells}=doPlace(r,c,tile,ori,color);
+  const loc=COLS[c]+(r+1);
+  activeHand.splice(sel,1);
+  if(pool.length>0) activeHand.push(pool.shift());
+  if(color==='p') pTurns++; else aTurns++;
+  sel=null;
+  playPlace(); if(pts>0) playCapture();
+  const who=color==='p'?(gameMode==='2p'?'P1':'You'):'P2';
+  if(kc){
+    addLog(`${who}: ${nm(tile[0])}-${nm(tile[1])} @ ${loc} → ${nm(5).toUpperCase()}!`);
+    saveSnapshot(color,`${who} captured the ${nm(5)} with ${nm(tile[0])}-${nm(tile[1])} at ${loc}!`,placedCells,capturedCells);
+    playWin(); endGame(color,`${nm(5)} captured!`); return;
+  }
+  const moveMsg=pts>0?`${who} placed ${nm(tile[0])}-${nm(tile[1])} at ${loc} and captured ${pts}pt.`:`${who} placed ${nm(tile[0])}-${nm(tile[1])} at ${loc}. No captures.`;
+  if(pts>0){addLog(`${who}: ${nm(tile[0])}-${nm(tile[1])} @ ${loc} → +${pts}pt`);setMsg(`${pts} point${pts>1?'s':''} captured!`);}
+  else{addLog(`${who}: ${nm(tile[0])}-${nm(tile[1])} @ ${loc} → no capture`);setMsg('Placed! No captures this turn.');}
+  saveSnapshot(color,moveMsg,placedCells,capturedCells);
+  checkOver(); if(over) return;
+  const hadCaptures=flash.length>0;
+  const nextTurn=(color==='p'?'a':'p');
+  turn=nextTurn; render();
+  setTimeout(()=>{
+    flash=[]; renderBoard();
+    if(gameMode==='2p') setTimeout(()=>showPass(nextTurn), hadCaptures?100:400);
+    else setTimeout(aiTurn, hadCaptures?300:800);
+  }, hadCaptures?1200:100);
+}
+
+// ── Game logic ────────────────────────────────────────────────────────
+function fits(r,c,o){
+  if(o==='H') return c+1<6&&!board[r][c]&&!board[r][c+1];
+  return r+1<6&&!board[r][c]&&!board[r+1][c];
+}
+
+function getCaps(r,c,role,mine){
+  const en=mine==='p'?'a':'p', res=[];
+  const chk=(nr,nc)=>{if(nr>=0&&nr<6&&nc>=0&&nc<6&&board[nr][nc]?.color===en)res.push([nr,nc]);};
+  const ray=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(nr>=0&&nr<6&&nc>=0&&nc<6){if(board[nr][nc]){chk(nr,nc);break;}nr+=dr;nc+=dc;}};
+  const D8=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+  const DG=[[-1,-1],[-1,1],[1,-1],[1,1]], ST=[[-1,0],[1,0],[0,-1],[0,1]];
+  if(role===0) DG.forEach(([dr,dc])=>chk(r+dr,c+dc));
+  else if(role===1)[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>chk(r+dr,c+dc));
+  else if(role===2) DG.forEach(d=>ray(...d));
+  else if(role===3) ST.forEach(d=>ray(...d));
+  else if(role===4) D8.forEach(d=>ray(...d));
+  else if(role===5) D8.forEach(([dr,dc])=>chk(r+dr,c+dc));
+  return[...new Map(res.map(v=>[v.join(),v])).values()];
+}
+
+function doPlace(r,c,tile,o,color){
+  const cells=o==='H'?[[r,c,tile[0]],[r,c+1,tile[1]]]:[[r,c,tile[0]],[r+1,c,tile[1]]];
+  cells.forEach(([pr,pc,role])=>{board[pr][pc]={role,color};});
+  let pts=0,kc=false,cf=[];
+  cells.forEach(([pr,pc,role])=>{
+    getCaps(pr,pc,role,color).forEach(([cr,cc])=>{
+      if(!cf.some(([r2,c2])=>r2===cr&&c2===cc)){cf.push([cr,cc]);const cp=board[cr][cc]?.role;if(cp!==undefined){if(cp===5)kc=true;pts+=val(cp);}}
+    });
+  });
+  flash=cf.map(([cr,cc])=>({r:cr,c:cc}));
+  cf.forEach(([cr,cc])=>{board[cr][cc]=null;});
+  sc[color]+=pts;
+  return{pts,kc,placedCells:cells,capturedCells:cf};
+}
+
+function simPlace(r,c,tile,o,color){
+  const cells=o==='H'?[[r,c,tile[0]],[r,c+1,tile[1]]]:[[r,c,tile[0]],[r+1,c,tile[1]]];
+  const sv=cells.map(([pr,pc])=>({pr,pc,v:board[pr][pc]}));
+  cells.forEach(([pr,pc,role])=>{board[pr][pc]={role,color};});
+  let pts=0,kc=false,seen=new Set();
+  cells.forEach(([pr,pc,role])=>{getCaps(pr,pc,role,color).forEach(([cr,cc])=>{const k=cr+','+cc;if(!seen.has(k)){seen.add(k);const cp=board[cr][cc]?.role;if(cp!==undefined){if(cp===5)kc=true;pts+=val(cp);}}});});
+  sv.forEach(({pr,pc,v})=>{board[pr][pc]=v;});
+  return{pts,kc};
+}
+
+// ── AI ────────────────────────────────────────────────────────────────
+function aiTurn(){
+  if(over) return;
+  try {
+    if(aiDiff==='easy') aiTurnEasy();
+    else if(aiDiff==='medium') aiTurnScored(false);
+    else aiTurnHard();
+  } catch(e) {
+    console.error('AI error:', e);
+    turn='p'; setMsg('Your turn — select a tile.'); render();
+  }
+}
+function allAiMoves(){
+  const moves=[];
+  aH.forEach((tile,ti)=>{
+    const vars=[{t:tile,o:'H'},{t:tile,o:'V'}];
+    if(tile[0]!==tile[1]) vars.push({t:[tile[1],tile[0]],o:'H'},{t:[tile[1],tile[0]],o:'V'});
+    vars.forEach(({t,o})=>{for(let r=0;r<6;r++) for(let c=0;c<6;c++) if(fits(r,c,o)) moves.push({ti,t,o,r,c});});
+  });
+  return moves;
+}
+function aiTurnEasy(){
+  const moves=allAiMoves();
+  if(!moves.length){turn='p';setMsg('AI has no moves — your turn!');render();return;}
+  executeAiMove(moves[0|Math.random()*moves.length]);
+}
+function aiTurnScored(lookahead){
+  const moves=allAiMoves(); if(!moves.length){turn='p';setMsg('AI has no moves!');render();return;}
+  let best=-Infinity,bm=null;
+  moves.forEach(mv=>{
+    const{pts,kc}=simPlace(mv.r,mv.c,mv.t,mv.o,'a');
+    let scr=kc?9999:pts;
+    if(lookahead&&!kc) scr-=bestPlayerResponse(mv)*0.75;
+    scr+=Math.random()*0.3;
+    if(scr>best){best=scr;bm=mv;}
+  });
+  executeAiMove(bm);
+}
+function aiTurnHard(){ aiTurnScored(true); }
+
+function bestPlayerResponse(aiMove){
+  const cells=aiMove.o==='H'?[[aiMove.r,aiMove.c,aiMove.t[0]],[aiMove.r,aiMove.c+1,aiMove.t[1]]]:[[aiMove.r,aiMove.c,aiMove.t[0]],[aiMove.r+1,aiMove.c,aiMove.t[1]]];
+  const sv=cells.map(([r,c])=>({r,c,v:board[r][c]}));
+  const capd=[];
+  cells.forEach(([r,c,role])=>{board[r][c]={role,color:'a'};});
+  cells.forEach(([r,c,role])=>{getCaps(r,c,role,'a').forEach(([cr,cc])=>{if(!capd.some(([r2,c2])=>r2===cr&&c2===cc)){capd.push([cr,cc,board[cr][cc]]);board[cr][cc]=null;}});});
+  let best=0;
+  pH.forEach(tile=>{
+    const pv=[{t:tile,o:'H'},{t:tile,o:'V'}];
+    if(tile[0]!==tile[1]) pv.push({t:[tile[1],tile[0]],o:'H'},{t:[tile[1],tile[0]],o:'V'});
+    pv.forEach(({t,o})=>{
+      for(let r=0;r<6;r++) for(let c=0;c<6;c++){
+        if(!fits(r,c,o)) continue;
+        const{pts,kc}=simPlace(r,c,t,o,'p');
+        const s=kc?9999:pts; if(s>best) best=s;
+      }
+    });
+  });
+  capd.forEach(([r,c,v])=>{board[r][c]=v;});
+  sv.forEach(({r,c,v})=>{board[r][c]=v;});
+  return best;
+}
+
+function executeAiMove(bm){
+  if(!bm){turn='p';setMsg('AI has no moves — your turn!');render();return;}
+  try {
+    const{ti,t,o,r,c}=bm;
+    const{pts,kc,placedCells,capturedCells}=doPlace(r,c,t,o,'a');
+    const loc=COLS[c]+(r+1);
+    aH.splice(ti,1); if(pool.length>0) aH.push(pool.shift()); aTurns++;
+    playPlace(); if(pts>0) playCapture();
+    if(kc){addLog(`AI: ${nm(t[0])}-${nm(t[1])} @ ${loc} → ${nm(5).toUpperCase()}!`);saveSnapshot('a',`AI captured your ${nm(5)} with ${nm(t[0])}-${nm(t[1])} at ${loc}!`,placedCells,capturedCells);playWin();endGame('a',`AI captured your ${nm(5)}!`);return;}
+    const moveMsg=pts>0?`AI placed ${nm(t[0])}-${nm(t[1])} at ${loc}, captured ${pts}pt.`:`AI placed ${nm(t[0])}-${nm(t[1])} at ${loc}. No captures.`;
+    if(pts>0){addLog(`AI: ${nm(t[0])}-${nm(t[1])} @ ${loc} → +${pts}pt`);setMsg(pts>4?`AI scored ${pts} points! Your turn.`:`AI scored ${pts}pt. Your turn.`);}
+    else{addLog(`AI: ${nm(t[0])}-${nm(t[1])} @ ${loc} → no capture`);setMsg('AI placed. Your turn — select a tile.');}
+    saveSnapshot('a',moveMsg,placedCells,capturedCells);
+    checkOver(); if(over) return;
+    const hadCaptures=flash.length>0;
+    turn='p'; render();
+    setTimeout(()=>{flash=[];renderBoard();}, hadCaptures?1200:100);
+  } catch(e) {
+    console.error('executeAiMove error:', e);
+    turn='p'; setMsg('Your turn — select a tile.'); render();
+  }
+}
+
+function checkOver(){
+  if(board.every(row=>row.every(c=>c!==null))){endGame(null,'Board is full');return;}
+  if(pH.length===0&&aH.length===0&&pool.length===0) endGame(null,'All tiles played');
+}
+
+function endGame(winner,reason){
+  over=true; flash=[];
+  const w=winner||(sc.p>sc.a?'p':sc.p<sc.a?'a':'tie');
+  render();
+  document.getElementById('goEl').style.display='block';
+  const winLabel=w==='p'?(gameMode==='2p'?'Player 1 wins! 🏆':'You win! 🏆'):w==='a'?(gameMode==='2p'?'Player 2 wins! 🏆':'AI wins!'):"It's a tie!";
+  document.getElementById('goMsg').textContent=winLabel;
+  document.getElementById('goSub').textContent=`${reason} · P1: ${sc.p}pts · ${gameMode==='2p'?'P2':'AI'}: ${sc.a}pts`;
+}
+
+function showRecap(){
+  const w=sc.p>sc.a?'p':sc.p<sc.a?'a':'tie';
+  const winLabel=w==='p'?(gameMode==='2p'?'Player 1 wins! 🏆':'You win! 🏆'):w==='a'?(gameMode==='2p'?'Player 2 wins! 🏆':'AI wins!'):"It's a tie!";
+  document.getElementById('rTitle').textContent=winLabel;
+  document.getElementById('rReason').textContent=`Final score after ${pTurns+aTurns} total moves`;
+  document.getElementById('rYou').textContent=sc.p;
+  document.getElementById('rAI').textContent=sc.a;
+  const u=getUnits();
+  document.getElementById('recapTips').innerHTML=`
+    <div class="tip"><span>${u[4].s}</span><span>Drop your ${u[4].n} centrally early — it captures in all 8 directions.</span></div>
+    <div class="tip"><span>${u[5].s}</span><span>Tuck your ${u[5].n} into a corner in turns 1–2 to minimise attack angles.</span></div>
+    <div class="tip"><span>${u[3].s}</span><span>Hold ${u[2].n}s & ${u[3].n}s until enemy tiles line up in their lanes for multi-captures.</span></div>
+  `;
+  document.getElementById('recapEl').classList.add('show');
+}
+function closeRecap(){ document.getElementById('recapEl').classList.remove('show'); }
+
+function setOri(o){
+  ori=o;
+  document.getElementById('bH').className='ori-btn'+(o==='H'?' active':'');
+  document.getElementById('bV').className='ori-btn'+(o==='V'?' active':'');
+  renderBoard();
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────
+function render(){ renderBoard(); renderHand(); syncUI(); }
+function syncUI(){
+  document.getElementById('spS').textContent=sc.p;
+  document.getElementById('saS').textContent=sc.a;
+  updatePoolBtn();
+  const activeHand=(turn==='p'?pH:aH);
+  const handLbl=gameMode==='2p'?(turn==='p'?'PLAYER 1 HAND':'PLAYER 2 HAND'):'YOUR HAND';
+  document.getElementById('handLabel').innerHTML=`${handLbl} <span id="hCnt">(${activeHand.length})</span>`;
+  const tb=document.getElementById('turnBadge');
+  const thA=activeGameA, thB=activeGameB;
+  if(!over){
+    if(turn==='p'){
+      tb.textContent=gameMode==='2p'?'Player 1\'s turn':'Your turn';
+      tb.style.background=thA?thA.accentB+'28':'#EEEDFE';
+      tb.style.color=thA?thA.accent:'#3C3489';
+    } else if(gameMode==='2p'){
+      tb.textContent='Player 2\'s turn';
+      tb.style.background=thB?thB.accentB+'28':'#E1F5EE';
+      tb.style.color=thB?thB.accent:'#085041';
+    } else {
+      tb.textContent='AI thinking…';
+      tb.style.background=thB?thB.accentB+'28':'#E1F5EE';
+      tb.style.color=thB?thB.accent:'#085041';
+    }
+  }else{tb.textContent='Game over';tb.style.background='transparent';tb.style.color='#888';}
+  const activeT=turn==='p'?pTurns:aTurns;
+  const kw=document.getElementById('kingWarn');
+  kw.style.display=(activeHand.some(t=>t.includes(5))&&activeT>=2)?'block':'none';
+  document.getElementById('capLog').innerHTML=logLines.map(l=>`<div>${l}</div>`).join('');
+  updateHistNav();
+}
+function renderBoard(){
+  const wrap=document.getElementById('boardWrap'); wrap.innerHTML='';
+  wrap.appendChild(document.createElement('div'));
+  COLS.forEach(l=>{const d=document.createElement('div');d.className='col-label';d.textContent=l;wrap.appendChild(d);});
+  for(let r=0;r<6;r++){
+    const rl=document.createElement('div');rl.className='row-label';rl.textContent=r+1;wrap.appendChild(rl);
+    for(let c=0;c<6;c++){
+      const cell=document.createElement('div'); cell.className='gc';
+      const d=board[r][c];
+      const isFlash=flash.some(f=>f.r===r&&f.c===c);
+      if(d){
+        cell.classList.add(d.color==='p'?'pcl':'acl');
+        if(isFlash) cell.classList.add('fxc');
+        cell.innerHTML=`<span class="sy">${sym(d.role)}</span><span class="lb">${nm(d.role)[0]}</span>`;
+      } else if(isFlash){
+        cell.classList.add('fxc'); cell.innerHTML=`<span class="sy">✕</span>`;
+      } else {
+        cell.classList.add('emp');
+        if(window._chTheme?.checkered && (r+c)%2===1){
+          cell.style.background=window._chTheme.darkCell;
+          cell.style.borderColor=window._chTheme.darkBorder;
+        }
+        const canPlace=(gameMode==='ai'&&turn==='p')||(gameMode==='2p');
+        if(canPlace&&sel!==null&&hovR>=0&&hovC>=0){
+          const ah=turn==='p'?pH:aH;
+          const tile=ah[sel];
+          const pv=ori==='H'?[[hovR,hovC,tile[0]],[hovR,hovC+1,tile[1]]]:[[hovR,hovC,tile[0]],[hovR+1,hovC,tile[1]]];
+          const match=pv.find(([pr,pc])=>pr===r&&pc===c);
+          if(match&&fits(hovR,hovC,ori)){cell.classList.add('pvc');cell.innerHTML=`<span class="sy" style="opacity:.45">${sym(match[2])}</span>`;}
+        }
+      }
+      wrap.appendChild(cell);
+    }
+  }
+}
+function renderHand(){
+  const el=document.getElementById('handEl'); el.innerHTML='';
+  const inHistMode=histIdx!==null;
+  const ah=turn==='p'?pH:aH;
+  if(!ah||!ah.length){el.innerHTML='<div style="font-size:12px;color:#aaa;">No tiles in hand</div>';return;}
+  ah.forEach((tile,i)=>{
+    const disabled=inHistMode||(gameMode==='ai'&&turn==='a');
+    const div=document.createElement('div');
+    div.className='tc'+(sel===i?' sel':'')+(disabled?' disabled':'');
+    div.innerHTML=`<div class="th">${sym(tile[0])}</div><div style="width:3px;height:1.5px;background:#ccc;flex-shrink:0;"></div><div class="th">${sym(tile[1])}</div><div class="tc-name">${nm(tile[0])} · ${nm(tile[1])}</div><div class="tc-pts">${val(tile[0])+val(tile[1])}pt</div>`;
+    if(!disabled){
+      div.addEventListener('click',()=>{
+        if(over) return;
+        sel=sel===i?null:i;
+        if(sel!==null) setMsg(`${nm(tile[0])}–${nm(tile[1])} selected. Click the board to place (${ori}).`);
+        else setMsg('Tile deselected.');
+        renderHand(); renderBoard(); syncUI();
+      });
+    }
+    el.appendChild(div);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+buildSelectScreen();
+setupBoardEvents();
+</script>
+</body>
+</html>
