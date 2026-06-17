@@ -41,6 +41,7 @@
     }
 
     nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
 
     .container {
       max-width: 900px;
@@ -222,11 +223,11 @@
 
   <nav>
     <a href="index.html">Home</a>
-    <a href="about.html">About</a>
+    <a href="about.html" class="active">About</a>
     <a href="chess-games/index.html">Chess Tools</a>
     <a href="chess-mashup/index.html">Chess Mashup</a>
     <a href="game-fusion/index.html">Game Fusion</a>
-    <a href="pickleball_trainer.html">Pickleball Trainer</a>
+    <a href="pickleball/index.html">Pickleball</a>
   </nav>
 
   <div class="container">
@@ -279,6 +280,15 @@
               <div class="project-info">
                 <div class="project-name">Game Fusion</div>
                 <div class="project-desc">Genre-bending game experiments that don't fit anywhere else. Pure chaos, pure fun.</div>
+              </div>
+              <div class="project-arrow">→</div>
+            </a>
+
+            <a class="project-card" href="pickleball/index.html">
+              <div class="project-icon">🏓</div>
+              <div class="project-info">
+                <div class="project-name">Pickleball</div>
+                <div class="project-desc">A shot decision trainer and 10 animated drills — dinking, drops, resets, footwork, and more. Built for players who want to practice smarter.</div>
               </div>
               <div class="project-arrow">→</div>
             </a>

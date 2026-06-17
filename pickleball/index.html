@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Home</title>
+  <title>Pickleball</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -29,6 +29,7 @@
       gap: 32px;
       justify-content: center;
       border-bottom: 1px solid #2a2a3a;
+      flex-wrap: wrap;
     }
 
     nav a {
@@ -41,17 +42,16 @@
     }
 
     nav a:hover { color: #ffffff; }
-    nav a.active { color: #ffffff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
 
     header {
       text-align: center;
-      margin-bottom: 56px;
+      margin-bottom: 48px;
     }
 
     header h1 {
-      font-size: 42px;
+      font-size: 38px;
       font-weight: 700;
-      letter-spacing: -1px;
       background: linear-gradient(135deg, #e8d5a3, #c9a84c);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -68,18 +68,10 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 24px;
       width: 100%;
-      max-width: 1020px;
-    }
-
-    @media (max-width: 800px) {
-      .grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @media (max-width: 480px) {
-      .grid { grid-template-columns: 1fr; }
+      max-width: 680px;
     }
 
     .card {
@@ -101,8 +93,8 @@
       box-shadow: 0 12px 40px rgba(201, 168, 76, 0.15);
     }
 
-    .card-icon { font-size: 48px; line-height: 1; }
-    .card-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+    .card-icon { font-size: 44px; line-height: 1; }
+    .card-title { font-size: 22px; font-weight: 600; }
     .card-desc { font-size: 14px; color: #888; line-height: 1.6; }
 
     .card-tag {
@@ -120,61 +112,44 @@
       align-self: flex-start;
     }
 
-    footer {
-      margin-top: 56px;
-      font-size: 12px;
-      color: #333;
-      letter-spacing: 1px;
-    }
+    footer { margin-top: 56px; font-size: 12px; color: #333; letter-spacing: 1px; }
   </style>
 </head>
 <body>
 
   <nav>
-    <a href="index.html" class="active">Home</a>
-    <a href="about.html">About</a>
-    <a href="chess-games/index.html">Chess Tools</a>
-    <a href="chess-mashup/index.html">Chess Mashup</a>
-    <a href="game-fusion/index.html">Game Fusion</a>
-    <a href="pickleball/index.html">Pickleball</a>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="index.html" class="active">Pickleball</a>
+    <a href="trainer.html">Training</a>
+    <a href="drills.html">Drills</a>
   </nav>
 
   <header>
-    <h1>Game Arcade</h1>
-    <p>Choose a project</p>
+    <h1>🏓 Pickleball</h1>
+    <p>Train &amp; Drill</p>
   </header>
 
   <div class="grid">
-    <a class="card" href="chess-games/index.html">
-      <div class="card-icon">♟</div>
-      <div class="card-title">Chess Tools</div>
-      <div class="card-desc">A collection of chess apps — play, study openings, review games, and more.</div>
-      <span class="card-tag">Chess</span>
+    <a class="card" href="trainer.html">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">Shot Trainer</div>
+      <div class="card-desc">Read the court, pick the best shot, and get instant feedback with animated ball trajectories.</div>
+      <span class="card-tag">Interactive</span>
     </a>
 
-    <a class="card" href="chess-mashup/index.html">
-      <div class="card-icon">🔮</div>
-      <div class="card-title">Chess Mashup</div>
-      <div class="card-desc">Chess collides with other games — dominoes, magic spells, and more.</div>
-      <span class="card-tag">Hybrid</span>
-    </a>
-
-    <a class="card" href="game-fusion/index.html">
-      <div class="card-icon">🎮</div>
-      <div class="card-title">Game Fusion</div>
-      <div class="card-desc">Creative game mashups and experimental hybrids.</div>
-      <span class="card-tag">Games</span>
-    </a>
-
-    <a class="card" href="pickleball/index.html">
-      <div class="card-icon">🏓</div>
-      <div class="card-title">Pickleball</div>
-      <div class="card-desc">Shot decision trainer and 10 animated drills — dinking, drops, resets, footwork, and more.</div>
-      <span class="card-tag">Sports</span>
+    <a class="card" href="drills.html">
+      <div class="card-icon">📋</div>
+      <div class="card-title">Drills</div>
+      <div class="card-desc">10 drills covering dinking, drops, resets, and footwork — with animated court diagrams and full instructions.</div>
+      <span class="card-tag">Practice</span>
     </a>
   </div>
 
-  <footer>Game Arcade &mdash; Pick &amp; Play</footer>
+  <footer>Pickleball &mdash; Train &amp; Play</footer>
 
 </body>
 </html>
