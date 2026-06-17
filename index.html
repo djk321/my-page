@@ -67,10 +67,18 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 24px;
       width: 100%;
-      max-width: 820px;
+      max-width: 1020px;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: 1fr; }
     }
 
     .card {
@@ -127,6 +135,7 @@
     <a href="chess-games/index.html">Chess Tools</a>
     <a href="chess-mashup/index.html">Chess Mashup</a>
     <a href="game-fusion/index.html">Game Fusion</a>
+    <a href="pickleball_trainer.html">Pickleball Trainer</a>
   </nav>
 
   <header>
@@ -154,6 +163,13 @@
       <div class="card-title">Game Fusion</div>
       <div class="card-desc">Creative game mashups and experimental hybrids.</div>
       <span class="card-tag">Games</span>
+    </a>
+
+    <a class="card" href="pickleball_trainer.html">
+      <div class="card-icon">🏓</div>
+      <div class="card-title">Pickleball Trainer</div>
+      <div class="card-desc">Shot decision quiz — read the court, pick the best shot, and get instant feedback with animated ball trajectories.</div>
+      <span class="card-tag">Sports</span>
     </a>
   </div>
 
