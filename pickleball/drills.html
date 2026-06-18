@@ -385,7 +385,7 @@
     <span class="tag tag-dinking">Dinking</span>
     <span class="tag tag-game">Game Format</span>
   </div>
-  <div class="drill-summary">4-player game with 2 live balls — miss a dink and a "dingle" is called, putting a bonus point on the line.</div>
+  <div class="drill-summary">4-player game with 2 live crosscourt dink rallies — miss a dink and a "dingle" is called, putting a bonus point on the line.</div>
   <div class="drill-expanded">
     <div class="court-panel">
       <canvas class="drill-canvas" data-drill="6" width="460" height="252"></canvas>
@@ -403,7 +403,7 @@
       <div class="detail-section">
         <div class="detail-label">How to Run</div>
         <div class="detail-text"><ol>
-          <li>Both balls put into play at the start of each point (one from each side).</li>
+          <li>Both balls put into play at the start of each point (one from each side) — both rallies are played crosscourt.</li>
           <li>When a player misses a dink, call out <strong>"Dingle!"</strong></li>
           <li>Team that wins both contested points earns <strong>2 points</strong>.</li>
           <li>If split, no points — restart.</li>
@@ -866,15 +866,15 @@ const DRILLS = {
     labels:  { you:'YOU', partner:'PTR', opp1:'OPP', opp2:'OPP' },
     resetPlayers: false,
     sequence: [
-      { from:[0.32,0.67], to:[0.32,0.37], arcH:16, dur:580, pause:140,
-        b2:{ from:[0.68,0.67], to:[0.68,0.37], arcH:16 } },
-      { from:[0.32,0.33], to:[0.32,0.67], arcH:15, dur:560, pause:140,
-        b2:{ from:[0.68,0.33], to:[0.68,0.67], arcH:15 } },
-      { from:[0.32,0.67], to:[0.32,0.37], arcH:16, dur:580, pause:140,
+      { from:[0.32,0.67], to:[0.68,0.37], arcH:16, dur:580, pause:140, label:'CROSSCOURT DINK',
+        b2:{ from:[0.68,0.67], to:[0.32,0.37], arcH:16 } },
+      { from:[0.68,0.33], to:[0.32,0.67], arcH:15, dur:560, pause:140,
+        b2:{ from:[0.32,0.33], to:[0.68,0.67], arcH:15 } },
+      { from:[0.32,0.67], to:[0.68,0.37], arcH:16, dur:580, pause:140,
         b2:{ from:[0.68,0.67], to:[0.80,0.50], arcH:5 } }, // second ball "missed"
-      { from:[0.32,0.33], to:[0.32,0.67], arcH:15, dur:560, pause:200, label:'DINGLE!' },
-      { from:[0.32,0.67], to:[0.32,0.37], arcH:14, dur:560, pause:200 },
-      { from:[0.32,0.33], to:[0.55,0.67], arcH:12, dur:500, pause:800, label:'POINT!' },
+      { from:[0.68,0.33], to:[0.32,0.67], arcH:15, dur:560, pause:200, label:'DINGLE!' },
+      { from:[0.32,0.67], to:[0.68,0.37], arcH:14, dur:560, pause:200 },
+      { from:[0.68,0.33], to:[0.55,0.67], arcH:12, dur:500, pause:800, label:'POINT!' },
     ]
   },
   7: {
