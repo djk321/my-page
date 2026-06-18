@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickleball - Helpful Terms</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c9a84c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+
+    header { text-align: center; margin: 24px 0 32px; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #e8d5a3, #c9a84c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .terms-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 48px;
+      width: 100%;
+      max-width: 860px;
+    }
+    .term { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #1e2a3a; padding-bottom: 16px; }
+    .term-name { font-size: 0.95rem; font-weight: 700; color: #fbbf24; font-style: italic; text-decoration: underline; text-underline-offset: 3px; }
+    .term-def { font-size: 0.875rem; color: #94a3b8; line-height: 1.5; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; }
+
+    @media (max-width: 600px) {
+      .terms-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="index.html">Pickleball</a>
+    <a href="trainer.html">Training</a>
+    <a href="drills.html">Drills</a>
+    <a href="helpful-terms.html" class="active">Helpful Terms</a>
+  </nav>
+
+  <header>
+    <h1>📖 Helpful Terms</h1>
+    <p>Pickleball vocabulary you need to know</p>
+  </header>
+
+  <div class="terms-grid">
+    <div class="term"><span class="term-name">Volley</span><span class="term-def">Hitting the ball before it bounces on your side of the court</span></div>
+    <div class="term"><span class="term-name">Drop</span><span class="term-def">Soft shot from backcourt that lands in the opponent's kitchen</span></div>
+    <div class="term"><span class="term-name">Kitchen</span><span class="term-def">Non-volley zone near the net where, if you step in, you can't volley</span></div>
+    <div class="term"><span class="term-name">Drive</span><span class="term-def">Fast, flat shot hit with power toward opponent</span></div>
+    <div class="term"><span class="term-name">Kitchen Line</span><span class="term-def">Line marking the edge of the non-volley zone (the kitchen)</span></div>
+    <div class="term"><span class="term-name">Split-Step</span><span class="term-def">Small hop for balance before reacting to opponent's shot</span></div>
+    <div class="term"><span class="term-name">Dink</span><span class="term-def">Soft shot that lands in the opponent's kitchen (non-volley zone)</span></div>
+    <div class="term"><span class="term-name">Chicken Wing</span><span class="term-def">An awkward bent-elbow defensive shot, usually forced by a body attack</span></div>
+    <div class="term"><span class="term-name">ATP</span><span class="term-def">Around-the-Post — a shot that travels around the net post instead of over it; legal and highly effective when pulled wide</span></div>
+    <div class="term"><span class="term-name">Erne</span><span class="term-def">A volley hit while jumping to the side of the post, outside the kitchen; surprise attack that's hard to defend</span></div>
+    <div class="term"><span class="term-name">Speed-Up</span><span class="term-def">Suddenly accelerating a dink into a fast drive to catch opponents off guard</span></div>
+    <div class="term"><span class="term-name">Reset</span><span class="term-def">A soft, controlled shot used to slow down a fast rally and return to a neutral dinking exchange</span></div>
+    <div class="term"><span class="term-name">Stacking</span><span class="term-def">A doubles positioning strategy where both players line up on the same side after a serve or return to keep dominant sides in play</span></div>
+    <div class="term"><span class="term-name">Third Shot Drop</span><span class="term-def">The serving team's 3rd shot — a soft arc into the kitchen that gives them time to advance to the NVZ</span></div>
+    <div class="term"><span class="term-name">NVZ</span><span class="term-def">Non-Volley Zone — official name for the kitchen; a 7-foot zone on each side of the net where volleys are illegal</span></div>
+    <div class="term"><span class="term-name">Lob</span><span class="term-def">A high arcing shot intended to sail over opponents at the net and land deep in their backcourt</span></div>
+  </div>
+
+  <footer>Game Arcade &mdash; Pickleball</footer>
+</body>
+</html>
