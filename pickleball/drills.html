@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Drills</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+
+  nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+  nav a { color: #c9a84c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+  nav a:hover { color: #ffffff; }
+  nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+
+  header { text-align: center; margin: 24px 0 8px; }
+  h1 { font-size: 1.6rem; color: #7dd3fc; letter-spacing: 3px; text-transform: uppercase; }
+  .subtitle { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+
+  .filter-row { display: flex; gap: 8px; margin: 18px 0 22px; flex-wrap: wrap; justify-content: center; }
+  .filter-btn { padding: 5px 14px; border-radius: 20px; border: 1.5px solid #334155; background: transparent; color: #94a3b8; font-size: 0.77rem; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: #7dd3fc; color: #7dd3fc; }
+  .filter-btn.active    { background: #1e3a5f; border-color: #7dd3fc; color: #7dd3fc; }
+  .filter-btn.active-partner { background: #1e1b4b; border-color: #a78bfa; color: #c4b5fd; }
+  .filter-btn.active-group   { background: #422006; border-color: #f59e0b; color: #fcd34d; }
+  .filter-btn.active-solo    { background: #042f1e; border-color: #10b981; color: #6ee7b7; }
+
+  .drills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; width: 100%; max-width: 1100px; }
+
+  .drill-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; transition: border-color 0.2s; }
+  .drill-card:hover { border-color: #7dd3fc; }
+  .drill-card.hidden { display: none; }
+  .drill-card.expanded { grid-column: 1 / -1; border-color: #7dd3fc; cursor: default; }
+
+  .drill-header { display: flex; align-items: flex-start; gap: 12px; }
+  .drill-num { font-size: 1.4rem; font-weight: 800; color: #334155; line-height: 1; min-width: 32px; }
+  .drill-card.expanded .drill-num { color: #7dd3fc; }
+  .drill-title { font-size: 1rem; font-weight: 700; color: #e2e8f0; line-height: 1.3; }
+
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .tag-solo     { background:#042f1e; color:#6ee7b7; border:1px solid #065f46; }
+  .tag-partner  { background:#1e1b4b; color:#c4b5fd; border:1px solid #4338ca; }
+  .tag-group    { background:#422006; color:#fcd34d; border:1px solid #92400e; }
+  .tag-dinking  { background:#0c1a2e; color:#7dd3fc; border:1px solid #1e3a5f; }
+  .tag-drop     { background:#1a0a2e; color:#d8b4fe; border:1px solid #4c1d95; }
+  .tag-reset    { background:#1a1a0a; color:#fde68a; border:1px solid #78350f; }
+  .tag-serving  { background:#0a1a1a; color:#67e8f9; border:1px solid #155e75; }
+  .tag-volleys  { background:#1a0a0a; color:#fca5a5; border:1px solid #7f1d1d; }
+  .tag-movement { background:#0a1a0a; color:#86efac; border:1px solid #14532d; }
+  .tag-game     { background:#1a100a; color:#fdba74; border:1px solid #7c2d12; }
+
+  .drill-summary { font-size: 0.84rem; color: #94a3b8; line-height: 1.6; }
+  .expand-hint { font-size: 0.68rem; color: #475569; text-align: right; }
+  .drill-card.expanded .expand-hint { display: none; }
+
+  /* Expanded layout */
+  .drill-expanded { display: none; border-top: 1px solid #334155; padding-top: 14px; }
+  .drill-card.expanded .drill-expanded { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+
+  .court-panel { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; }
+  canvas.drill-canvas { border-radius: 8px; display: block; background: #1e293b; }
+  .court-legend { display: flex; gap: 12px; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #94a3b8; }
+  .leg-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  .drill-detail { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 12px; }
+  .detail-section { }
+  .detail-label { font-size: 0.64rem; color: #7dd3fc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .detail-text { font-size: 0.82rem; color: #cbd5e1; line-height: 1.65; }
+  .detail-text li { margin-left: 16px; margin-bottom: 3px; }
+  .detail-text ol { margin-left: 4px; }
+  .detail-text ol li { margin-left: 12px; }
+
+  .players-badge { font-size: 0.73rem; color: #64748b; display: flex; align-items: center; gap: 4px; }
+
+  .collapse-btn { align-self: flex-start; margin-top: 4px; background: transparent; border: 1.5px solid #334155; border-radius: 6px; color: #64748b; font-size: 0.75rem; padding: 4px 10px; cursor: pointer; transition: all 0.15s; }
+  .collapse-btn:hover { border-color: #7dd3fc; color: #7dd3fc; }
+
+  @media (max-width: 600px) {
+    .drill-card.expanded .drill-expanded { flex-direction: column; }
+    canvas.drill-canvas { width: 100% !important; height: auto !important; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">Home</a>
+  <a href="../about.html">About</a>
+  <a href="../chess-games/index.html">Chess Tools</a>
+  <a href="../chess-mashup/index.html">Chess Mashup</a>
+  <a href="../game-fusion/index.html">Game Fusion</a>
+  <a href="index.html">Pickleball</a>
+  <a href="trainer.html">Training</a>
+  <a href="drills.html" class="active">Drills</a>
+  <a href="etiquette.html">Etiquette</a>
+</nav>
+
+<header>
+  <h1>Pickleball Drills</h1>
+  <div class="subtitle">Click a drill to see the court animation and full instructions</div>
+</header>
+
+<div class="filter-row">
+  <button class="filter-btn active" data-filter="all">All Drills</button>
+  <button class="filter-btn" data-filter="partner">With Partner</button>
+  <button class="filter-btn" data-filter="group">Group (4+)</button>
+  <button class="filter-btn" data-filter="dinking">Dinking</button>
+  <button class="filter-btn" data-filter="drop">Drops</button>
+  <button class="filter-btn" data-filter="reset">Resets</button>
+  <button class="filter-btn" data-filter="movement">Movement</button>
+</div>
+
+<div class="drills-grid" id="drillsGrid">
+
+<!-- ── DRILL 1 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="1" data-tags="partner dinking reset">
+  <div class="drill-header">
+    <div class="drill-num">01</div>
+    <div>
+      <div class="drill-title">Dink → Speedup → Reset</div>
+      <div class="players-badge">👥 2 players · Kitchen line</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-dinking">Dinking</span>
+    <span class="tag tag-reset">Reset</span>
+  </div>
+  <div class="drill-summary">Build a dinking rally, introduce a speedup, then practice absorbing pace and resetting softly into the kitchen.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="1" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Both players at the kitchen line, one ball in play.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Start a cross-court dinking rally — keep it soft and controlled.</li>
+          <li>Either player fires a speedup at any time, aiming at the opponent's body or shoulder.</li>
+          <li>Receiver absorbs the pace and resets softly back into the kitchen — no counter-attack.</li>
+          <li>Once reset, return to dinking and repeat.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Soft hands on the reset — open face, absorb pace.</li>
+          <li>Don't flinch or pop up the reset.</li>
+          <li>Vary speedup targets (backhand hip, forehand shoulder).</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 2 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="2" data-tags="partner volleys">
+  <div class="drill-header">
+    <div class="drill-num">02</div>
+    <div>
+      <div class="drill-title">Fast Hands</div>
+      <div class="players-badge">👥 2 players · Kitchen &amp; one step in</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-volleys">Volleys</span>
+  </div>
+  <div class="drill-summary">Rapid-fire volley exchanges at close range to train hand speed and reflex volleys.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="2" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Both at the kitchen line (or one step inside the NVZ). One ball, rapid fire.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Start a volley exchange — keep the paddle up and in front.</li>
+          <li>Both players volley continuously without letting the ball bounce.</li>
+          <li>Vary pace: slow and controlled bursts, then sudden speed.</li>
+          <li>Try stepping one foot inside the NVZ to shrink reaction time.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Compact swing — no big backswing.</li>
+          <li>Paddle stays up between shots.</li>
+          <li>Eyes on the ball, not the opponent.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 3 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="3" data-tags="partner drop reset movement">
+  <div class="drill-header">
+    <div class="drill-num">03</div>
+    <div>
+      <div class="drill-title">The Slinky</div>
+      <div class="players-badge">👥 2 players · Full court</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-drop">Drop</span>
+    <span class="tag tag-reset">Reset</span>
+    <span class="tag tag-movement">Movement</span>
+  </div>
+  <div class="drill-summary">Start at the kitchen, earn your way back to baseline then back forward — practicing drops and resets from every position.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="3" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Feeder</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Both players start at the kitchen line. One feeds, one works.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Start dinking from the kitchen.</li>
+          <li>After 3 quality shots, take one step back.</li>
+          <li>Each set of 3 good shots earns another step back — reach the baseline.</li>
+          <li>Reverse: 3 good shots earns a step forward. Goal: reach the kitchen again cleanly.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Adjust shot selection as you move back — more drops, less dinking.</li>
+          <li>"Good shot" = lands in kitchen or forces a neutral response.</li>
+          <li>Communicate with your partner what counts.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 4 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="4" data-tags="partner drop reset movement">
+  <div class="drill-header">
+    <div class="drill-num">04</div>
+    <div>
+      <div class="drill-title">The Work-Up</div>
+      <div class="players-badge">👥 2 players · Full court</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-drop">Drop</span>
+    <span class="tag tag-movement">Movement</span>
+  </div>
+  <div class="drill-summary">Start at the baseline and fight your way up to the kitchen while your partner tries to keep you pinned back.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="4" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner (keeping you back)</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Working player starts at the baseline. Partner starts at the kitchen line.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Worker drives, drops, or resets — anything to neutralize and advance.</li>
+          <li>Kitchen partner hits aggressively to keep the worker back.</li>
+          <li>Worker wins if they reach the kitchen without popping the ball up.</li>
+          <li>Rotate roles every few points.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Variations</div>
+        <div class="detail-text"><ul>
+          <li>Worker can only use drops (no drives) for extra difficulty.</li>
+          <li>Kitchen player must keep one foot in the NVZ at all times.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 5 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="5" data-tags="partner dinking movement">
+  <div class="drill-header">
+    <div class="drill-num">05</div>
+    <div>
+      <div class="drill-title">Skinny Singles</div>
+      <div class="players-badge">👤👤 2 players · Half court</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-dinking">Dinking</span>
+    <span class="tag tag-movement">Movement</span>
+  </div>
+  <div class="drill-summary">Play 1v1 on a half-width court to isolate cross-court or straight-on patterns and sharpen shot placement.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="5" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Opponent</div>
+        <div class="leg-item" style="font-size:0.65rem;color:#64748b;margin-left:4px">Right half shown (cross-court)</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Court Setup</div>
+        <div class="detail-text"><ul>
+          <li><strong>Even/Right:</strong> both use right service box — play cross-court.</li>
+          <li><strong>Odd/Left:</strong> both use left service box — play cross-court.</li>
+          <li><strong>Mixed:</strong> one on each side — play straight on (down the line).</li>
+        </ul></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Serve and play a full point within the designated half of the court.</li>
+          <li>All shots must land in that half — out loses the point.</li>
+          <li>Play to 11, win by 2.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Forces precise placement — less room to hide errors.</li>
+          <li>Excellent for drilling cross-court dinks and drops.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 6 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="6" data-tags="group dinking game">
+  <div class="drill-header">
+    <div class="drill-num">06</div>
+    <div>
+      <div class="drill-title">Dingles</div>
+      <div class="players-badge">👥👥 4 players · 2 balls</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-group">Group</span>
+    <span class="tag tag-dinking">Dinking</span>
+    <span class="tag tag-game">Game Format</span>
+  </div>
+  <div class="drill-summary">4-player game with 2 live balls — miss a dink and a "dingle" is called, putting a bonus point on the line.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="6" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Opponents</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Standard doubles, 4 players, 2 balls in play simultaneously.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Both balls put into play at the start of each point (one from each side).</li>
+          <li>When a player misses a dink, call out <strong>"Dingle!"</strong></li>
+          <li>Team that wins both contested points earns <strong>2 points</strong>.</li>
+          <li>If split, no points — restart.</li>
+          <li>Play to 7.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Why It Works</div>
+        <div class="detail-text">Creates pressure on dinking consistency. The dingle call adds accountability without stopping play.</div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 7 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="7" data-tags="partner serving movement drop">
+  <div class="drill-header">
+    <div class="drill-num">07</div>
+    <div>
+      <div class="drill-title">Serve &amp; Return</div>
+      <div class="players-badge">👥 2 players · Full court</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-serving">Serving</span>
+    <span class="tag tag-movement">Movement</span>
+  </div>
+  <div class="drill-summary">Focus on deep serves and deep returns, then practice the transition up to the kitchen after each shot.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="7" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You (server)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Opponent (returner)</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Standard positions — server at baseline, returner at baseline.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Server focuses on a deep serve — aim for the back 2 feet of the service box.</li>
+          <li>Returner hits a deep return and immediately moves to the kitchen line.</li>
+          <li>Server hits a third shot (drop or drive) and begins their advance.</li>
+          <li>Continue with emphasis on the transition phase.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Variations</div>
+        <div class="detail-text"><ul>
+          <li>Serve/return only — track depth without playing the point.</li>
+          <li>Mark targets in back court with cones.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 8 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="8" data-tags="partner drop">
+  <div class="drill-header">
+    <div class="drill-num">08</div>
+    <div>
+      <div class="drill-title">Third Shot Drop</div>
+      <div class="players-badge">👥 2 players · Full court</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-drop">Drop</span>
+  </div>
+  <div class="drill-summary">Isolate the third shot drop from multiple positions — the most important shot in pickleball to master.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="8" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Feeder (kitchen)</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Feeder at kitchen line. Worker starts at baseline. Move worker around for variety.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Feeder tosses or hits to the worker at various depths and angles.</li>
+          <li>Worker drops the ball softly into the kitchen — should peak before the net.</li>
+          <li>Feeder gives feedback: in kitchen, attackable, or long.</li>
+          <li>Move worker to mid-court, angled spots, no-man's land.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Apex of drop should be on your side of the net.</li>
+          <li>Relaxed arm swing — not a punch or flick.</li>
+          <li>Aim cross-court (longer diagonal = more margin).</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 9 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="9" data-tags="partner reset">
+  <div class="drill-header">
+    <div class="drill-num">09</div>
+    <div>
+      <div class="drill-title">Resets</div>
+      <div class="players-badge">👥 2 players · No-man's land</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-reset">Reset</span>
+  </div>
+  <div class="drill-summary">Practice absorbing fast volleys from no-man's land and resetting the ball softly into the kitchen.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="9" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You (no-man's land)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner (kitchen)</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Partner at the kitchen line. Worker positioned in no-man's land (mid-court transition zone).</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Partner feeds or drives balls at the worker — mix speeds and heights.</li>
+          <li>Worker's only job: reset every ball softly into the kitchen.</li>
+          <li>No counter-attacks — pure reset practice.</li>
+          <li>Aim to make the reset unattackable (low over the net, in the kitchen).</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Soft grip — loose hands absorb pace better.</li>
+          <li>Open paddle face slightly to lift the ball over the net.</li>
+          <li>Take the ball in front of your body.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+<!-- ── DRILL 10 ─────────────────────────────────────────────────── -->
+<div class="drill-card" data-drill="10" data-tags="partner dinking movement">
+  <div class="drill-header">
+    <div class="drill-num">10</div>
+    <div>
+      <div class="drill-title">Dink Around the Clock</div>
+      <div class="players-badge">👥 2 players · Kitchen line</div>
+    </div>
+  </div>
+  <div class="tags">
+    <span class="tag tag-partner">Partner</span>
+    <span class="tag tag-dinking">Dinking</span>
+    <span class="tag tag-movement">Movement</span>
+  </div>
+  <div class="drill-summary">Dink while sliding left and right along the kitchen line — building footwork habits to stay balanced across the full court width.</div>
+  <div class="drill-expanded">
+    <div class="court-panel">
+      <canvas class="drill-canvas" data-drill="10" width="460" height="252"></canvas>
+      <div class="court-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner</div>
+      </div>
+    </div>
+    <div class="drill-detail">
+      <div class="detail-section">
+        <div class="detail-label">Setup</div>
+        <div class="detail-text">Both players at the kitchen line, cross-court or straight-on dinking rally.</div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">How to Run</div>
+        <div class="detail-text"><ol>
+          <li>Start a normal dinking rally.</li>
+          <li>After each shot, shuffle one step left or right (moving around the clock face).</li>
+          <li>Both players move together — cover the full width of the court.</li>
+          <li>Keep the rally going as you reposition, adjusting angle as you slide.</li>
+        </ol></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Focus Points</div>
+        <div class="detail-text"><ul>
+          <li>Shuffle — don't cross your feet.</li>
+          <li>Adjust dink angle based on court position.</li>
+          <li>Maintain a split-step between shots for readiness.</li>
+        </ul></div>
+      </div>
+      <button class="collapse-btn">▲ Collapse</button>
+    </div>
+  </div>
+  <div class="expand-hint">tap to expand ▾</div>
+</div>
+
+</div><!-- /drills-grid -->
+
+<script>
+// ─── COURT PERSPECTIVE ─────────────────────────────────────────
+// Canvas: 460 x 252
+// cy=0 → opponent baseline (far/top)
+// cy=0.5 → net
+// cy=1 → your baseline (near/bottom)
+
+const PERSP = {
+  NL: {x: 22,  y: 236},
+  NR: {x: 334, y: 236},
+  FL: {x: 118, y: 14},
+  FR: {x: 430, y: 14},
+};
+
+function c2s(cx, cy) {
+  const t = 1 - cy;
+  const {NL, NR, FL, FR} = PERSP;
+  const lx = NL.x + t * (FL.x - NL.x);
+  const rx = NR.x + t * (FR.x - NR.x);
+  const sy = NL.y + t * (FL.y - NL.y);
+  return { x: lx + cx * (rx - lx), y: sy };
+}
+
+function fillQuad(ctx, cy0, cy1, cx0, cx1, color) {
+  const tl = c2s(cx0, cy0), tr = c2s(cx1, cy0);
+  const bl = c2s(cx0, cy1), br = c2s(cx1, cy1);
+  ctx.beginPath();
+  ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y);
+  ctx.lineTo(br.x, br.y); ctx.lineTo(bl.x, bl.y);
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+}
+
+function hline(ctx, cy, cx0=0, cx1=1) {
+  const L = c2s(cx0, cy), R = c2s(cx1, cy);
+  ctx.beginPath(); ctx.moveTo(L.x, L.y); ctx.lineTo(R.x, R.y); ctx.stroke();
+}
+
+function vline(ctx, cx, cy0, cy1) {
+  const A = c2s(cx, cy0), B = c2s(cx, cy1);
+  ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+}
+
+const NET  = 0.5;
+const ONVZ = NET - 7/44;  // ~0.341
+const YNVZ = NET + 7/44;  // ~0.659
+
+function drawCourtBase(ctx) {
+  fillQuad(ctx, 0, 1, 0, 1, '#4a7a35');
+  fillQuad(ctx, ONVZ, NET,  0, 1, '#3d6b2c');
+  fillQuad(ctx, NET,  YNVZ, 0, 1, '#3d6b2c');
+  fillQuad(ctx, 0, 0.22, 0, 1, 'rgba(0,0,0,0.1)');
+
+  // Boundary
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2;
+  const corners = [c2s(0,0), c2s(1,0), c2s(1,1), c2s(0,1)];
+  ctx.beginPath(); ctx.moveTo(corners[0].x, corners[0].y);
+  corners.forEach(p => ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
+  hline(ctx, ONVZ); hline(ctx, YNVZ);
+  ctx.lineWidth = 1.2;
+  vline(ctx, 0.5, 0, ONVZ); vline(ctx, 0.5, YNVZ, 1);
+
+  // Net
+  const netL = c2s(0, NET), netR = c2s(1, NET);
+  const NH = 22;
+  ctx.beginPath();
+  ctx.moveTo(netL.x, netL.y - NH); ctx.lineTo(netR.x, netR.y - NH);
+  ctx.lineTo(netR.x, netR.y); ctx.lineTo(netL.x, netL.y);
+  ctx.closePath(); ctx.fillStyle = 'rgba(90,100,90,0.8)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 0.7;
+  for (let i = 1; i <= 4; i++) {
+    const f = i/5;
+    ctx.beginPath();
+    ctx.moveTo(netL.x, netL.y - NH*f); ctx.lineTo(netR.x, netR.y - NH*f); ctx.stroke();
+  }
+  for (let i = 1; i <= 8; i++) {
+    const fx = i/9, p = c2s(fx, NET);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y - NH); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(netL.x, netL.y - NH); ctx.lineTo(netR.x, netR.y - NH); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(netL.x, netL.y + 1); ctx.lineTo(netR.x, netR.y + 1); ctx.stroke();
+  [[netL],[netR]].forEach(([p]) => {
+    ctx.fillStyle = '#bbb'; ctx.fillRect(p.x - 2.5, p.y - NH - 4, 4, NH + 5);
+  });
+
+  // Court labels
+  ctx.font = 'bold 9px Segoe UI'; ctx.textAlign = 'center';
+  const netMid = c2s(0.5, NET);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('NET', netMid.x + 18, netMid.y - NH - 4);
+  const kitMid = c2s(0.5, (NET + YNVZ) / 2);
+  ctx.fillText('KITCHEN', kitMid.x, kitMid.y + 4);
+  const okitMid = c2s(0.5, (NET + ONVZ) / 2);
+  ctx.fillText('KITCHEN', okitMid.x, okitMid.y + 4);
+}
+
+function drawDot(ctx, cx, cy, color, label) {
+  const s = c2s(cx, cy);
+  const r  = 6 + cy * 5;
+  const fs = 6 + cy * 2.5;
+  ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.4; ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.round(fs)}px Segoe UI`;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, s.x, s.y + fs * 0.38);
+}
+
+function drawBall(ctx, cx, cy, arcOff) {
+  const s = c2s(cx, cy);
+  const r = 4.5 + cy * 3;
+  if (arcOff > 3) {
+    ctx.beginPath();
+    ctx.ellipse(s.x, s.y, r * 0.9, r * 0.35, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(s.x, s.y - arcOff, r, 0, Math.PI*2);
+  ctx.fillStyle = '#facc15'; ctx.fill();
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.beginPath(); ctx.arc(s.x - r*0.28, s.y - arcOff - r*0.28, r*0.3, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.fill();
+}
+
+function drawShotLabel(ctx, label) {
+  if (!label) return;
+  ctx.save();
+  ctx.font = 'bold 11px Segoe UI';
+  const w = ctx.measureText(label).width + 14;
+  ctx.fillStyle = 'rgba(30,41,59,0.85)';
+  ctx.beginPath();
+  ctx.roundRect(230, 6, w, 20, 4);
+  ctx.fill();
+  ctx.fillStyle = '#facc15';
+  ctx.textAlign = 'left';
+  ctx.fillText(label, 237, 20);
+  ctx.restore();
+}
+
+function drawHalfCourtShade(ctx, side) {
+  // shade the unused half for skinny singles
+  const half = side === 'left' ? [0, 0.5] : [0.5, 1];
+  fillQuad(ctx, 0, 1, half[0], half[1], 'rgba(0,0,0,0.35)');
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+}
+
+// ─── DRILL ANIMATION DATA ──────────────────────────────────────
+const DRILLS = {
+  1: {
+    players: { you:[0.42,0.67], opp1:[0.58,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'PTR' },
+    resetPlayers: false,
+    sequence: [
+      { from:[0.42,0.67], to:[0.58,0.38], arcH:18, dur:580, pause:160 },
+      { from:[0.58,0.33], to:[0.42,0.39], arcH:15, dur:580, pause:160 },
+      { from:[0.42,0.67], to:[0.56,0.37], arcH:16, dur:560, pause:160 },
+      { from:[0.56,0.33], to:[0.42,0.67], arcH:4,  dur:260, pause:420, label:'SPEEDUP!' },
+      { from:[0.42,0.67], to:[0.55,0.38], arcH:22, dur:680, pause:600, label:'RESET' },
+      { from:[0.55,0.33], to:[0.42,0.39], arcH:14, dur:560, pause:300 },
+    ]
+  },
+  2: {
+    players: { you:[0.5,0.67], opp1:[0.5,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'PTR' },
+    resetPlayers: false,
+    sequence: [
+      { from:[0.5,0.67], to:[0.5,0.37], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.67], to:[0.5,0.37], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.67], to:[0.5,0.37], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.67], to:[0.5,0.37], arcH:4, dur:220, pause:60 },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:4, dur:220, pause:700 },
+    ]
+  },
+  3: {
+    players: { you:[0.5,0.67], opp1:[0.5,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'FEED' },
+    resetPlayers: true,
+    sequence: [
+      { from:[0.5,0.67], to:[0.5,0.37], arcH:15, dur:600, pause:160, label:'KITCHEN' },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:14, dur:580, pause:160 },
+      { from:[0.5,0.67], to:[0.5,0.38], arcH:30, dur:640, pause:200, label:'STEP BACK ▶ DROP',
+        playersAfter:{ you:[0.5,0.78] } },
+      { from:[0.5,0.33], to:[0.5,0.78], arcH:18, dur:560, pause:180 },
+      { from:[0.5,0.78], to:[0.5,0.38], arcH:44, dur:680, pause:200, label:'STEP BACK ▶ DROP',
+        playersAfter:{ you:[0.5,0.92] } },
+      { from:[0.5,0.33], to:[0.5,0.89], arcH:32, dur:600, pause:400, label:'BASELINE' },
+      { from:[0.5,0.92], to:[0.5,0.38], arcH:50, dur:700, pause:200, label:'STEP FWD ▶ DROP',
+        playersAfter:{ you:[0.5,0.78] } },
+      { from:[0.5,0.33], to:[0.5,0.78], arcH:22, dur:560, pause:180 },
+      { from:[0.5,0.78], to:[0.5,0.38], arcH:32, dur:650, pause:200, label:'STEP FWD ▶ DROP',
+        playersAfter:{ you:[0.5,0.67] } },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:14, dur:580, pause:700, label:'BACK AT KITCHEN!' },
+    ]
+  },
+  4: {
+    players: { you:[0.5,0.92], opp1:[0.5,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'PTR' },
+    resetPlayers: true,
+    sequence: [
+      { from:[0.5,0.92], to:[0.5,0.38], arcH:55, dur:740, pause:220, label:'DROP' },
+      { from:[0.5,0.33], to:[0.5,0.87], arcH:12, dur:380, pause:200, label:'PARTNER DRIVES' },
+      { from:[0.5,0.87], to:[0.5,0.38], arcH:50, dur:720, pause:280, label:'DROP + ADVANCE',
+        playersAfter:{ you:[0.5,0.80] } },
+      { from:[0.5,0.33], to:[0.5,0.79], arcH:11, dur:360, pause:200, label:'PARTNER DRIVES' },
+      { from:[0.5,0.80], to:[0.5,0.38], arcH:36, dur:660, pause:280, label:'RESET + ADVANCE',
+        playersAfter:{ you:[0.5,0.67] } },
+      { from:[0.5,0.33], to:[0.5,0.67], arcH:14, dur:580, pause:800, label:'AT THE KITCHEN!' },
+    ]
+  },
+  5: {
+    players: { you:[0.75,0.92], opp1:[0.25,0.08] },
+    colors:  { you:'#2563eb', opp1:'#dc2626' },
+    labels:  { you:'YOU', opp1:'OPP' },
+    resetPlayers: false,
+    halfCourt: 'left', // shade left half
+    sequence: [
+      { from:[0.75,0.92], to:[0.25,0.10], arcH:60, dur:720, pause:280, label:'SERVE (right half)' },
+      { from:[0.25,0.08], to:[0.75,0.86], arcH:48, dur:680, pause:220, label:'RETURN DEEP' },
+      { from:[0.75,0.86], to:[0.25,0.38], arcH:50, dur:710, pause:280, label:'3RD SHOT DROP' },
+      { from:[0.25,0.33], to:[0.75,0.39], arcH:18, dur:580, pause:180, label:'DINK' },
+      { from:[0.75,0.67], to:[0.25,0.38], arcH:16, dur:570, pause:180 },
+      { from:[0.25,0.33], to:[0.75,0.39], arcH:17, dur:575, pause:400 },
+    ]
+  },
+  6: {
+    players: { you:[0.32,0.67], partner:[0.68,0.67], opp1:[0.32,0.33], opp2:[0.68,0.33] },
+    colors:  { you:'#2563eb', partner:'#f97316', opp1:'#dc2626', opp2:'#dc2626' },
+    labels:  { you:'YOU', partner:'PTR', opp1:'OPP', opp2:'OPP' },
+    resetPlayers: false,
+    sequence: [
+      { from:[0.32,0.67], to:[0.32,0.37], arcH:16, dur:580, pause:140,
+        b2:{ from:[0.68,0.67], to:[0.68,0.37], arcH:16 } },
+      { from:[0.32,0.33], to:[0.32,0.67], arcH:15, dur:560, pause:140,
+        b2:{ from:[0.68,0.33], to:[0.68,0.67], arcH:15 } },
+      { from:[0.32,0.67], to:[0.32,0.37], arcH:16, dur:580, pause:140,
+        b2:{ from:[0.68,0.67], to:[0.80,0.50], arcH:5 } }, // second ball "missed"
+      { from:[0.32,0.33], to:[0.32,0.67], arcH:15, dur:560, pause:200, label:'DINGLE!' },
+      { from:[0.32,0.67], to:[0.32,0.37], arcH:14, dur:560, pause:200 },
+      { from:[0.32,0.33], to:[0.55,0.67], arcH:12, dur:500, pause:800, label:'POINT!' },
+    ]
+  },
+  7: {
+    players: { you:[0.40,0.92], opp1:[0.60,0.08] },
+    colors:  { you:'#2563eb', opp1:'#dc2626' },
+    labels:  { you:'YOU', opp1:'OPP' },
+    resetPlayers: true,
+    sequence: [
+      { from:[0.40,0.92], to:[0.60,0.10], arcH:65, dur:760, pause:240, label:'SERVE DEEP' },
+      { from:[0.60,0.08], to:[0.40,0.87], arcH:55, dur:720, pause:240, label:'RETURN DEEP' },
+      { from:[0.40,0.87], to:[0.60,0.38], arcH:52, dur:730, pause:320, label:'3RD SHOT DROP',
+        playersAfter:{ you:[0.40,0.78] } },
+      { from:[0.60,0.33], to:[0.40,0.76], arcH:18, dur:480, pause:260,
+        playersAfter:{ you:[0.40,0.72] } },
+      { from:[0.40,0.76], to:[0.60,0.38], arcH:36, dur:660, pause:280, label:'DROP + ADVANCE',
+        playersAfter:{ you:[0.40,0.67] } },
+      { from:[0.60,0.33], to:[0.40,0.39], arcH:16, dur:580, pause:800, label:'AT THE KITCHEN!' },
+    ]
+  },
+  8: {
+    players: { you:[0.5,0.92], opp1:[0.5,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'FEED' },
+    resetPlayers: true,
+    sequence: [
+      { from:[0.5,0.92],  to:[0.42,0.38], arcH:55, dur:750, pause:300, label:'DROP (baseline)' },
+      { from:[0.5,0.33],  to:[0.5,0.88],  arcH:16, dur:440, pause:180, label:'FEEDER DRIVES' },
+      { from:[0.5,0.88],  to:[0.38,0.38], arcH:42, dur:700, pause:300, label:'DROP (mid-court)',
+        playersAfter:{ you:[0.5,0.85] } },
+      { from:[0.5,0.33],  to:[0.72,0.87], arcH:18, dur:480, pause:180, label:'WIDE FEED',
+        playersAfter:{ you:[0.72,0.88] } },
+      { from:[0.72,0.88], to:[0.40,0.38], arcH:50, dur:730, pause:500, label:'DROP (angled)' },
+      { from:[0.5,0.33],  to:[0.5,0.91],  arcH:14, dur:440, pause:500,
+        playersAfter:{ you:[0.5,0.92] } },
+    ]
+  },
+  9: {
+    players: { you:[0.5,0.78], opp1:[0.5,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'PTR' },
+    resetPlayers: false,
+    sequence: [
+      { from:[0.5,0.33],  to:[0.5,0.78],  arcH:8,  dur:340, pause:180, label:'PARTNER DRIVES' },
+      { from:[0.5,0.78],  to:[0.5,0.38],  arcH:22, dur:640, pause:300, label:'RESET' },
+      { from:[0.5,0.33],  to:[0.42,0.78], arcH:7,  dur:320, pause:180, label:'PARTNER DRIVES' },
+      { from:[0.42,0.78], to:[0.55,0.38], arcH:20, dur:630, pause:300, label:'RESET' },
+      { from:[0.5,0.33],  to:[0.5,0.78],  arcH:5,  dur:290, pause:180, label:'BODY SHOT!' },
+      { from:[0.5,0.78],  to:[0.42,0.38], arcH:24, dur:650, pause:500, label:'BACKHAND RESET' },
+    ]
+  },
+  10: {
+    players: { you:[0.5,0.67], opp1:[0.5,0.33] },
+    colors:  { you:'#2563eb', opp1:'#f97316' },
+    labels:  { you:'YOU', opp1:'PTR' },
+    resetPlayers: true,
+    sequence: [
+      { from:[0.5,0.67],  to:[0.5,0.37],  arcH:15, dur:580, pause:140 },
+      { from:[0.5,0.33],  to:[0.38,0.39], arcH:16, dur:580, pause:140,
+        playersAfter:{ you:[0.38,0.67], opp1:[0.62,0.33] } },
+      { from:[0.38,0.67], to:[0.62,0.37], arcH:18, dur:600, pause:140 },
+      { from:[0.62,0.33], to:[0.28,0.39], arcH:21, dur:620, pause:140,
+        playersAfter:{ you:[0.28,0.67], opp1:[0.72,0.33] } },
+      { from:[0.28,0.67], to:[0.72,0.37], arcH:24, dur:640, pause:200, label:'WIDE!' },
+      { from:[0.72,0.33], to:[0.42,0.39], arcH:20, dur:620, pause:140,
+        playersAfter:{ you:[0.42,0.67], opp1:[0.58,0.33] } },
+      { from:[0.42,0.67], to:[0.58,0.37], arcH:17, dur:590, pause:140 },
+      { from:[0.58,0.33], to:[0.5,0.39],  arcH:15, dur:580, pause:140,
+        playersAfter:{ you:[0.5,0.67], opp1:[0.5,0.33] } },
+      { from:[0.5,0.67],  to:[0.5,0.37],  arcH:15, dur:580, pause:140 },
+      { from:[0.5,0.33],  to:[0.62,0.39], arcH:16, dur:580, pause:140,
+        playersAfter:{ you:[0.62,0.67], opp1:[0.38,0.33] } },
+      { from:[0.62,0.67], to:[0.38,0.37], arcH:18, dur:600, pause:140 },
+      { from:[0.38,0.33], to:[0.5,0.39],  arcH:15, dur:580, pause:140,
+        playersAfter:{ you:[0.5,0.67], opp1:[0.5,0.33] } },
+      { from:[0.5,0.67],  to:[0.5,0.37],  arcH:15, dur:580, pause:400 },
+    ]
+  },
+};
+
+// ─── ANIMATION ENGINE ─────────────────────────────────────────
+let activeAnim = null; // { raf, drillNum }
+
+function stopAnim() {
+  if (activeAnim) { cancelAnimationFrame(activeAnim.raf); activeAnim = null; }
+}
+
+function startDrillAnim(canvas, drillNum) {
+  stopAnim();
+  const drill = DRILLS[drillNum];
+  if (!drill) return;
+
+  let players = JSON.parse(JSON.stringify(drill.players));
+  let shotIdx = 0;
+  let phase = 'anim'; // 'anim' | 'pause'
+  let phaseStart = null;
+
+  function renderFrame(now) {
+    if (!phaseStart) phaseStart = now;
+    const shot = drill.sequence[shotIdx];
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (phase === 'anim') {
+      const raw = Math.min((now - phaseStart) / shot.dur, 1);
+      const e = easeInOut(raw);
+      const bx = shot.from[0] + e * (shot.to[0] - shot.from[0]);
+      const by = shot.from[1] + e * (shot.to[1] - shot.from[1]);
+      const arc = (shot.arcH || 0) * 4 * raw * (1 - raw);
+
+      let b2 = null;
+      if (shot.b2) {
+        const s2 = shot.b2;
+        b2 = {
+          cx: s2.from[0] + e * (s2.to[0] - s2.from[0]),
+          cy: s2.from[1] + e * (s2.to[1] - s2.from[1]),
+          arc: (s2.arcH || 0) * 4 * raw * (1 - raw)
+        };
+      }
+
+      drawCourtBase(ctx);
+      if (drill.halfCourt) drawHalfCourtShade(ctx, drill.halfCourt);
+
+      // Draw players (far first)
+      const playerKeys = Object.keys(players).sort((a,b) => players[a][1] - players[b][1]);
+      playerKeys.forEach(k => {
+        drawDot(ctx, players[k][0], players[k][1], drill.colors[k], drill.labels[k]);
+      });
+
+      if (b2) drawBall(ctx, b2.cx, b2.cy, b2.arc);
+      drawBall(ctx, bx, by, arc);
+      drawShotLabel(ctx, shot.label);
+
+      if (raw >= 1) {
+        if (shot.playersAfter) Object.assign(players, JSON.parse(JSON.stringify(shot.playersAfter)));
+        phase = 'pause'; phaseStart = now;
+      }
+    } else {
+      // Pause phase — draw static
+      drawCourtBase(ctx);
+      if (drill.halfCourt) drawHalfCourtShade(ctx, drill.halfCourt);
+      const playerKeys = Object.keys(players).sort((a,b) => players[a][1] - players[b][1]);
+      playerKeys.forEach(k => {
+        drawDot(ctx, players[k][0], players[k][1], drill.colors[k], drill.labels[k]);
+      });
+      const shot = drill.sequence[shotIdx];
+      drawBall(ctx, shot.to[0], shot.to[1], 0);
+      drawShotLabel(ctx, shot.label);
+
+      if (now - phaseStart >= (shot.pause || 0)) {
+        shotIdx = (shotIdx + 1) % drill.sequence.length;
+        if (shotIdx === 0 && drill.resetPlayers) {
+          players = JSON.parse(JSON.stringify(drill.players));
+        }
+        phase = 'anim'; phaseStart = now;
+      }
+    }
+
+    activeAnim = { raf: requestAnimationFrame(renderFrame), drillNum };
+  }
+
+  activeAnim = { raf: requestAnimationFrame(renderFrame), drillNum };
+}
+
+// ─── CARD INTERACTION ─────────────────────────────────────────
+document.querySelectorAll('.drill-card').forEach(card => {
+  card.addEventListener('click', e => {
+    // Collapse button
+    if (e.target.classList.contains('collapse-btn')) {
+      card.classList.remove('expanded');
+      stopAnim();
+      return;
+    }
+    // Already expanded — do nothing (let collapse btn handle it)
+    if (card.classList.contains('expanded')) return;
+
+    // Collapse any other open card
+    document.querySelectorAll('.drill-card.expanded').forEach(c => c.classList.remove('expanded'));
+    stopAnim();
+
+    card.classList.add('expanded');
+    const drillNum = parseInt(card.dataset.drill);
+    const canvas = card.querySelector('.drill-canvas');
+    if (canvas) startDrillAnim(canvas, drillNum);
+
+    // Scroll card into view
+    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  });
+});
+
+// ─── FILTER ───────────────────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => { b.className = 'filter-btn'; });
+    const f = btn.dataset.filter;
+    btn.className = 'filter-btn active' + (f !== 'all' ? '-' + f : '');
+    if (f === 'all') btn.className = 'filter-btn active';
+
+    document.querySelectorAll('.drill-card').forEach(card => {
+      const tags = card.dataset.tags || '';
+      const show = f === 'all' || tags.includes(f);
+      card.classList.toggle('hidden', !show);
+      if (!show && card.classList.contains('expanded')) {
+        card.classList.remove('expanded');
+        stopAnim();
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px 40px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+    }
+
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    header h1 {
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      width: 100%;
+      max-width: 1020px;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 20px;
+      padding: 36px 32px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #c9a84c;
+      box-shadow: 0 12px 40px rgba(201, 168, 76, 0.15);
+    }
+
+    .card-icon { font-size: 48px; line-height: 1; }
+    .card-title { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+    .card-desc { font-size: 14px; color: #888; line-height: 1.6; }
+
+    .card-tag {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: rgba(201, 168, 76, 0.12);
+      color: #c9a84c;
+      border: 1px solid rgba(201, 168, 76, 0.25);
+      align-self: flex-start;
+    }
+
+    footer {
+      margin-top: 56px;
+      font-size: 12px;
+      color: #333;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html" class="active">Home</a>
+    <a href="about.html">About</a>
+    <a href="chess-games/index.html">Chess Tools</a>
+    <a href="chess-mashup/index.html">Chess Mashup</a>
+    <a href="game-fusion/index.html">Game Fusion</a>
+    <a href="pickleball/index.html">Pickleball</a>
+  </nav>
+
+  <header>
+    <h1>Game Arcade</h1>
+    <p>Choose a project</p>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="chess-games/index.html">
+      <div class="card-icon">♟</div>
+      <div class="card-title">Chess Tools</div>
+      <div class="card-desc">A collection of chess apps — play, study openings, review games, and more.</div>
+      <span class="card-tag">Chess</span>
+    </a>
+
+    <a class="card" href="chess-mashup/index.html">
+      <div class="card-icon">🔮</div>
+      <div class="card-title">Chess Mashup</div>
+      <div class="card-desc">Chess collides with other games — dominoes, magic spells, and more.</div>
+      <span class="card-tag">Hybrid</span>
+    </a>
+
+    <a class="card" href="game-fusion/index.html">
+      <div class="card-icon">🎮</div>
+      <div class="card-title">Game Fusion</div>
+      <div class="card-desc">Creative game mashups and experimental hybrids.</div>
+      <span class="card-tag">Games</span>
+    </a>
+
+    <a class="card" href="pickleball/index.html">
+      <div class="card-icon">🏓</div>
+      <div class="card-title">Pickleball</div>
+      <div class="card-desc">Shot decision trainer and 10 animated drills — dinking, drops, resets, footwork, and more.</div>
+      <span class="card-tag">Sports</span>
+    </a>
+  </div>
+
+  <footer>Game Arcade &mdash; Pick &amp; Play</footer>
+
+</body>
+</html>

@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Puzzle — Chess Tools</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 20px 48px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      z-index: 100;
+    }
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: #fff; }
+    nav a.active { color: #fff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    #puzzle-wrap {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 880px;
+    }
+
+    /* Board */
+    .board-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+    .board-outer { display: flex; align-items: center; gap: 6px; }
+
+    .rank-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      height: 480px;
+      width: 18px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      font-weight: 600;
+      user-select: none;
+    }
+    .file-labels {
+      display: flex;
+      justify-content: space-around;
+      width: 480px;
+      color: #666;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 24px;
+      user-select: none;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      border: 3px solid #2a2a3a;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .sq {
+      width: 60px; height: 60px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; line-height: 1;
+      cursor: pointer; user-select: none; position: relative;
+      transition: background 0.1s;
+    }
+    .sq.light { background: #f0d9b5; }
+    .sq.dark  { background: #b58863; }
+    .sq.selected { outline: 4px solid rgba(80,200,120,0.9); outline-offset: -4px; z-index: 1; }
+    .sq.last-move { background: rgba(205,210,106,0.5) !important; }
+    .sq.hint-good { background: rgba(80,200,80,0.55) !important; }
+    .sq.hint-bad  { background: rgba(220,80,80,0.55) !important; }
+    .sq.legal-dot::after {
+      content: '';
+      position: absolute;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.22);
+      pointer-events: none;
+    }
+    .sq.legal-cap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 6px solid rgba(0,0,0,0.22);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .piece-w { color: #fff; -webkit-text-stroke: 1.5px #333; paint-order: stroke fill; pointer-events: none; }
+    .piece-b { color: #1a1a1a; -webkit-text-stroke: 1px #bbb; paint-order: stroke fill; pointer-events: none; }
+
+    /* Side panel */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 240px;
+      max-width: 280px;
+      flex: 1;
+    }
+
+    .info-card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-card h2 { font-size: 15px; font-weight: 700; color: #c9a84c; text-transform: uppercase; letter-spacing: 1px; }
+
+    .info-row { display: flex; justify-content: space-between; font-size: 14px; }
+    .info-row span:first-child { color: #888; }
+    .info-row span:last-child { font-weight: 600; }
+
+
+    #status-box {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 18px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #status-box.success {
+      border-color: rgba(80,200,80,0.5);
+      background: rgba(80,200,80,0.08);
+      color: #6edf8a;
+    }
+    #status-box.error {
+      border-color: rgba(220,80,80,0.5);
+      background: rgba(220,80,80,0.08);
+      color: #f07070;
+    }
+    #status-box.info { color: #c9a84c; }
+
+    .btn-row { display: flex; flex-direction: column; gap: 10px; }
+    button {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      color: #c9a84c;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s;
+      letter-spacing: 0.3px;
+    }
+    button:hover { border-color: #c9a84c; background: rgba(201,168,76,0.08); }
+    button:disabled { opacity: 0.35; cursor: default; }
+
+    #loader {
+      font-size: 15px;
+      color: #666;
+      margin-top: 40px;
+      letter-spacing: 1px;
+    }
+
+    .turn-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #888;
+      font-weight: 600;
+    }
+    .turn-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid #555;
+    }
+    .turn-dot.white { background: #fff; border-color: #aaa; }
+    .turn-dot.black { background: #222; border-color: #777; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; }
+
+    @media (max-width: 600px) {
+      #board { grid-template-columns: repeat(8, 44px); grid-template-rows: repeat(8, 44px); }
+      .sq { width: 44px; height: 44px; font-size: 30px; }
+      .rank-labels { height: 352px; }
+      .file-labels { width: 352px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="index.html" class="active">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="../pickleball/index.html">Pickleball</a>
+  </nav>
+
+  <header>
+    <a data-back-btn href="javascript:history.back()" style="display:inline-flex;align-items:center;padding:6px 14px;font-size:13px;border:1px solid #c9a84c;border-radius:8px;background:rgba(201,168,76,0.12);color:#c9a84c;text-decoration:none;font-weight:600;letter-spacing:0.5px;margin-bottom:16px;transition:background 0.2s;">← Back</a>
+    <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
+    <h1>🧩 Daily Puzzle</h1>
+    <p>Lichess puzzle of the day</p>
+  </header>
+
+  <div id="loader">Loading today's puzzle…</div>
+
+  <div id="puzzle-wrap" style="display:none">
+    <div class="board-col">
+      <div class="board-outer">
+        <div class="rank-labels" id="rank-labels"></div>
+        <div id="board"></div>
+      </div>
+      <div class="file-labels" id="file-labels"></div>
+    </div>
+
+    <div class="side-panel">
+      <div id="status-box" class="info">Find the best move!</div>
+
+      <div class="info-card">
+        <h2>Puzzle Info</h2>
+        <div class="info-row"><span>Rating</span><span id="info-rating">—</span></div>
+        <div class="info-row"><span>Plays</span><span id="info-plays">—</span></div>
+        <div class="info-row"><span>Puzzle ID</span><span id="info-id">—</span></div>
+        <div class="info-row"><span>You play</span>
+          <span class="turn-indicator">
+            <span class="turn-dot" id="turn-dot"></span>
+            <span id="turn-label">—</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="info-card" id="streak-card" style="padding:14px 18px;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h2 style="font-size:13px;">Streak</h2>
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span id="streak-flame" style="font-size:20px;line-height:1;">🔥</span>
+            <span id="streak-count" style="font-size:20px;font-weight:700;line-height:1;">0</span>
+            <span style="font-size:12px;color:#666;">days</span>
+          </div>
+        </div>
+        <div id="streak-msg" style="font-size:11px;color:#888;"></div>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-solution">Show Solution</button>
+        <button id="btn-reset">Reset Puzzle</button>
+        <button id="btn-lichess">Open on Lichess ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loader-error" style="display:none;color:#f07070;margin-top:40px;text-align:center;font-size:15px;"></div>
+
+  <footer>Chess Tools &mdash; Daily Puzzle via Lichess</footer>
+
+<script>
+const PIECES = {
+  wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
+  bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
+};
+
+// Streak helpers
+function todayStr() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+function loadStreak() {
+  try {
+    return JSON.parse(localStorage.getItem('dp_streak') || '{}');
+  } catch { return {}; }
+}
+
+function saveStreak(data) {
+  localStorage.setItem('dp_streak', JSON.stringify(data));
+}
+
+function recordSolve() {
+  const today = todayStr();
+  const s = loadStreak();
+  if (s.lastSolved === today) return; // already counted today
+
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  s.count = (s.lastSolved === yesterday) ? (s.count || 0) + 1 : 1;
+  s.lastSolved = today;
+  saveStreak(s);
+  renderStreak();
+}
+
+function renderStreak() {
+  const today = todayStr();
+  const s = loadStreak();
+  const count = s.count || 0;
+  document.getElementById('streak-count').textContent = count;
+  document.getElementById('streak-flame').textContent = count >= 3 ? '🔥' : '⭐';
+
+  let msg = '';
+  if (count === 0) msg = 'Solve today\'s puzzle to start your streak!';
+  else if (s.lastSolved === today) msg = 'Solved today ✓';
+  else {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    msg = s.lastSolved === yesterday ? 'Solve today to keep it going!' : 'Streak reset — solve today to restart!';
+  }
+  document.getElementById('streak-msg').textContent = msg;
+}
+
+let chess = null;
+let puzzleData = null;
+let solution = [];
+let solveIndex = 0;
+let playerColor = 'w';
+let selectedSq = null;
+let legalTargets = [];
+let solved = false;
+let failed = false;
+let showingAnswer = false;
+
+function squareName(col, row) {
+  return 'abcdefgh'[col] + (row + 1);
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  const flipped = playerColor === 'b';
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const row = flipped ? r : 7 - r;
+      const col = flipped ? 7 - c : c;
+      const sq = squareName(col, row);
+      const piece = chess.get(sq);
+      const isLight = (col + row) % 2 === 1;
+
+      const div = document.createElement('div');
+      div.className = 'sq ' + (isLight ? 'light' : 'dark');
+      div.dataset.sq = sq;
+
+      if (piece) {
+        const span = document.createElement('span');
+        span.className = piece.color === 'w' ? 'piece-w' : 'piece-b';
+        span.textContent = PIECES[piece.color + piece.type.toUpperCase()];
+        div.appendChild(span);
+      }
+
+      // Highlights
+      const lastHistory = chess.history({ verbose: true });
+      const lastMove = lastHistory[lastHistory.length - 1];
+      if (lastMove && (sq === lastMove.from || sq === lastMove.to)) {
+        div.classList.add('last-move');
+      }
+      if (selectedSq === sq) {
+        div.classList.add('selected');
+      }
+      if (legalTargets.includes(sq)) {
+        div.classList.add(piece ? 'legal-cap' : 'legal-dot');
+      }
+
+      div.addEventListener('click', () => handleClick(sq));
+      board.appendChild(div);
+    }
+  }
+
+  // Rank labels
+  const rankLabels = document.getElementById('rank-labels');
+  rankLabels.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    const rank = flipped ? r + 1 : 8 - r;
+    const span = document.createElement('div');
+    span.textContent = rank;
+    rankLabels.appendChild(span);
+  }
+
+  // File labels
+  const fileLabels = document.getElementById('file-labels');
+  fileLabels.innerHTML = '';
+  const files = flipped ? 'hgfedcba' : 'abcdefgh';
+  for (const f of files) {
+    const span = document.createElement('div');
+    span.textContent = f;
+    fileLabels.appendChild(span);
+  }
+}
+
+function setStatus(msg, type = '') {
+  const box = document.getElementById('status-box');
+  box.textContent = msg;
+  box.className = 'info ' + type;
+}
+
+function handleClick(sq) {
+  if (solved || showingAnswer) return;
+  if (chess.turn() !== playerColor) return;
+
+  const piece = chess.get(sq);
+
+  if (selectedSq) {
+    if (legalTargets.includes(sq)) {
+      makePlayerMove(selectedSq, sq);
+    } else if (piece && piece.color === playerColor) {
+      selectedSq = sq;
+      legalTargets = chess.moves({ square: sq, verbose: true }).map(m => m.to);
+      renderBoard();
+    } else {
+      selectedSq = null;
+      legalTargets = [];
+      renderBoard();
+    }
+    return;
+  }
+
+  if (piece && piece.color === playerColor) {
+    selectedSq = sq;
+    legalTargets = chess.moves({ square: sq, verbose: true }).map(m => m.to);
+    renderBoard();
+  }
+}
+
+function uciToMove(uci) {
+  return { from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || undefined };
+}
+
+function makePlayerMove(from, to) {
+  const expectedUci = solution[solveIndex];
+  const expected = uciToMove(expectedUci);
+
+  const isCorrect = from === expected.from && to === expected.to;
+
+  let promotion = expected.promotion;
+  if (!isCorrect) {
+    // Wrong move
+    const move = chess.move({ from, to, promotion: 'q' });
+    if (move) {
+      renderBoard();
+      flashSquare(to, 'hint-bad');
+      setTimeout(() => {
+        chess.undo();
+        selectedSq = null;
+        legalTargets = [];
+        renderBoard();
+        setStatus('Not quite — try again!', 'error');
+      }, 600);
+    } else {
+      selectedSq = null;
+      legalTargets = [];
+      renderBoard();
+    }
+    return;
+  }
+
+  const move = chess.move({ from, to, promotion });
+  selectedSq = null;
+  legalTargets = [];
+  solveIndex++;
+
+  if (solveIndex >= solution.length) {
+    renderBoard();
+    setStatus('Solved! Excellent play! 🎉', 'success');
+    solved = true;
+    recordSolve();
+    return;
+  }
+
+  renderBoard();
+  setStatus('Correct! Keep going…', 'success');
+
+  // Auto-play opponent's response
+  setTimeout(() => {
+    const oppUci = solution[solveIndex];
+    const oppMove = uciToMove(oppUci);
+    chess.move(oppMove);
+    solveIndex++;
+    renderBoard();
+    if (solveIndex >= solution.length) {
+      setStatus('Solved! Excellent play! 🎉', 'success');
+      solved = true;
+    } else {
+      setStatus('Find the best move!', 'info');
+    }
+  }, 500);
+}
+
+function flashSquare(sq, cls) {
+  const el = document.querySelector(`[data-sq="${sq}"]`);
+  if (!el) return;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), 600);
+}
+
+function showSolution() {
+  if (showingAnswer) return;
+  showingAnswer = true;
+  solved = true;
+  setStatus('Solution: ' + solution.join(' → '), 'info');
+
+  let i = solveIndex;
+  function playNext() {
+    if (i >= solution.length) return;
+    const m = uciToMove(solution[i]);
+    chess.move(m);
+    i++;
+    renderBoard();
+    setTimeout(playNext, 700);
+  }
+  playNext();
+}
+
+function resetPuzzle() {
+  if (!puzzleData) return;
+  initPuzzle(puzzleData);
+}
+
+async function loadPuzzle() {
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('puzzle-wrap').style.display = 'none';
+  document.getElementById('loader-error').style.display = 'none';
+
+  try {
+    const res = await fetch('https://lichess.org/api/puzzle/daily');
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const data = await res.json();
+    puzzleData = data;
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('puzzle-wrap').style.display = 'flex';
+    initPuzzle(data);
+  } catch (err) {
+    document.getElementById('loader').style.display = 'none';
+    const errEl = document.getElementById('loader-error');
+    errEl.style.display = 'block';
+    errEl.innerHTML = `Failed to load puzzle.<br><small>${err.message}</small><br><br><a href="https://lichess.org/training/daily" target="_blank" style="color:#c9a84c">Open on Lichess ↗</a>`;
+  }
+}
+
+function initPuzzle(data) {
+  chess = new Chess();
+  solution = data.puzzle.solution;
+  solveIndex = 0;
+  selectedSq = null;
+  legalTargets = [];
+  solved = false;
+  failed = false;
+  showingAnswer = false;
+
+  // Replay moves one-by-one from the raw PGN token list.
+  // Lichess puzzle PGN is plain SAN tokens (no headers, may have {comment} blocks).
+  // Using load_pgn is unreliable here; direct move replay is simpler and robust.
+  const tokens = (data.game.pgn || '')
+    .replace(/\{[^}]*\}/g, '')   // strip inline comments
+    .trim()
+    .split(/\s+/)
+    .filter(t => t && !/^\d+\./.test(t) && !['*','1-0','0-1','1/2-1/2'].includes(t));
+
+  // initialPly is 0-based index of the opponent's last move — replay through it (inclusive).
+  const initialPly = data.puzzle.initialPly + 1;
+  let plyCount = 0;
+  for (const san of tokens) {
+    if (plyCount >= initialPly) break;
+    if (chess.move(san)) plyCount++;
+  }
+
+  // Derive the solver's color from the piece that makes the first solution move.
+  // This is the only reliable source — chess.turn() can be off if initialPly is ambiguous.
+  solveIndex = 0;
+  const s0piece = chess.get(solution[0].slice(0, 2));
+  playerColor = s0piece ? s0piece.color : chess.turn();
+
+  // Info panel
+  document.getElementById('info-rating').textContent = data.puzzle.rating;
+  document.getElementById('info-plays').textContent = data.puzzle.plays.toLocaleString();
+  document.getElementById('info-id').textContent = data.puzzle.id;
+
+  const dot = document.getElementById('turn-dot');
+  dot.className = 'turn-dot ' + (playerColor === 'w' ? 'white' : 'black');
+  document.getElementById('turn-label').textContent = playerColor === 'w' ? 'White' : 'Black';
+
+
+  document.getElementById('btn-lichess').onclick = () =>
+    window.open('https://lichess.org/training/' + data.puzzle.id, '_blank');
+
+  setStatus('Find the best move!', 'info');
+  renderBoard();
+  renderStreak();
+}
+
+document.getElementById('btn-solution').addEventListener('click', showSolution);
+document.getElementById('btn-reset').addEventListener('click', resetPuzzle);
+
+loadPuzzle();
+</script>
+</body>
+</html>

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickleball Shot Trainer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 20px; }
+
+  nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 32px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; }
+  nav a { color: #c9a84c; text-decoration: none; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+  nav a:hover { color: #ffffff; }
+  nav a.active { color: #ffffff; }
+  h1 { font-size: 1.5rem; color: #7dd3fc; margin-bottom: 2px; letter-spacing: 2px; text-transform: uppercase; }
+  .subtitle { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; }
+
+  .stats { display: flex; gap: 24px; margin-bottom: 14px; }
+  .stat { text-align: center; }
+  .stat-val { font-size: 1.6rem; font-weight: bold; color: #7dd3fc; line-height: 1; }
+  .stat-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: center; }
+  .filter-btn { padding: 5px 14px; border-radius: 20px; border: 1.5px solid #334155; background: transparent; color: #94a3b8; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+  .filter-btn:hover { border-color: #7dd3fc; color: #7dd3fc; }
+  .filter-btn.active-all { background: #1e3a5f; border-color: #7dd3fc; color: #7dd3fc; }
+  .filter-btn.active-Beginner { background: #064e3b; border-color: #10b981; color: #6ee7b7; }
+  .filter-btn.active-Intermediate { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  .filter-btn.active-Advanced { background: #450a0a; border-color: #ef4444; color: #fca5a5; }
+
+  .game-area { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  canvas { border-radius: 10px; display: block; }
+
+  .right-panel { width: 300px; display: flex; flex-direction: column; gap: 10px; }
+  .scenario-box { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 14px; }
+  .scenario-title { font-size: 0.65rem; color: #7dd3fc; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .scenario-text { font-size: 0.87rem; color: #e2e8f0; line-height: 1.55; }
+  .difficulty-badge { font-size: 0.68rem; padding: 2px 9px; border-radius: 10px; display: inline-block; margin-bottom: 8px; font-weight: 600; }
+  .d-Beginner { background: #064e3b; color: #6ee7b7; }
+  .d-Intermediate { background: #1e3a5f; color: #93c5fd; }
+  .d-Advanced { background: #450a0a; color: #fca5a5; }
+
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .shot-btn { background: #1e293b; border: 1.5px solid #334155; border-radius: 7px; padding: 11px 8px; cursor: pointer; font-size: 0.81rem; color: #cbd5e1; transition: all 0.15s; text-align: center; line-height: 1.3; }
+  .shot-btn:hover:not(:disabled) { background: #273654; border-color: #7dd3fc; color: #fff; transform: translateY(-1px); }
+  .shot-btn.correct { background: #064e3b; border-color: #10b981; color: #6ee7b7; }
+  .shot-btn.wrong { background: #450a0a; border-color: #ef4444; color: #fca5a5; }
+  .shot-btn.reveal { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  .shot-btn:disabled { cursor: default; opacity: 0.85; }
+
+  .feedback-box { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; font-size: 0.83rem; line-height: 1.55; min-height: 70px; color: #64748b; transition: all 0.2s; }
+  .feedback-box.correct { border-color: #10b981; color: #6ee7b7; background: #042f1e; }
+  .feedback-box.wrong { border-color: #ef4444; color: #fca5a5; background: #2d0808; }
+
+  .next-btn { background: #7dd3fc; color: #0f172a; border: none; border-radius: 7px; padding: 11px; font-size: 0.92rem; font-weight: bold; cursor: pointer; transition: background 0.15s; letter-spacing: 0.5px; }
+  .next-btn:hover { background: #38bdf8; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; justify-content: center; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: #64748b; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .sound-toggle { position: fixed; top: 14px; right: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 0.78rem; color: #94a3b8; transition: all 0.15s; z-index: 101; }
+  .sound-toggle:hover { border-color: #7dd3fc; color: #7dd3fc; }
+
+  .terms-btn { position: fixed; top: 14px; left: 16px; background: #d97706; color: #fff; border: none; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px; transition: background 0.15s; z-index: 101; }
+  .terms-btn:hover { background: #b45309; }
+
+  /* ── Terms page ── */
+  #terms-page { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 820px; }
+  .terms-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px; }
+  .terms-header h2 { font-size: 1.1rem; color: #fbbf24; letter-spacing: 2px; text-transform: uppercase; }
+  .terms-header .deck-label { font-size: 0.9rem; color: #fbbf24; letter-spacing: 1px; text-transform: uppercase; }
+  .terms-divider { width: 100%; border: none; border-top: 1.5px solid #64748b; margin-bottom: 24px; }
+  .terms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 40px; width: 100%; }
+  .term { display: flex; flex-direction: column; gap: 4px; }
+  .term-name { font-size: 0.92rem; font-weight: 700; color: #fbbf24; font-style: italic; text-decoration: underline; text-underline-offset: 2px; }
+  .term-def { font-size: 0.87rem; color: #e2e8f0; line-height: 1.5; }
+  .back-btn { margin-top: 32px; background: #1e293b; color: #7dd3fc; border: 1.5px solid #334155; border-radius: 7px; padding: 10px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .back-btn:hover { background: #273654; border-color: #7dd3fc; }
+
+  @media (max-width: 640px) {
+    .right-panel { width: 100%; max-width: 340px; }
+    .stats { gap: 16px; }
+    .terms-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">Home</a>
+  <a href="../about.html">About</a>
+  <a href="../chess-games/index.html">Chess Tools</a>
+  <a href="../chess-mashup/index.html">Chess Mashup</a>
+  <a href="../game-fusion/index.html">Game Fusion</a>
+  <a href="index.html">Pickleball</a>
+  <a href="trainer.html" class="active">Training</a>
+  <a href="drills.html">Drills</a>
+  <a href="etiquette.html">Etiquette</a>
+</nav>
+
+<button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊 Sound ON</button>
+<button class="terms-btn" onclick="showTerms()">📖 Helpful Terms</button>
+
+<h2 style="position:absolute;left:-9999px">Pickleball Shot Decision Trainer</h2>
+<h1>🏓 Pickleball Shot Trainer</h1>
+<p class="subtitle">Read the scenario · Study the court · Pick the best shot</p>
+
+<!-- ── TERMS PAGE ───────────────────────────────────────────── -->
+<div id="terms-page">
+  <div class="terms-header">
+    <h2>Helpful Terms</h2>
+    <span class="deck-label">The Pickleball Deck</span>
+  </div>
+  <hr class="terms-divider">
+  <div class="terms-grid">
+    <div class="term"><span class="term-name">Volley</span><span class="term-def">Hitting the ball before it bounces on your side of the court</span></div>
+    <div class="term"><span class="term-name">Drop</span><span class="term-def">Soft shot from backcourt that lands in the opponent's kitchen</span></div>
+    <div class="term"><span class="term-name">Kitchen</span><span class="term-def">Non-volley zone near the net where, if you step in, you can't volley</span></div>
+    <div class="term"><span class="term-name">Drive</span><span class="term-def">Fast, flat shot hit with power toward opponent</span></div>
+    <div class="term"><span class="term-name">Kitchen Line</span><span class="term-def">Line marking the edge of the non-volley zone (the kitchen)</span></div>
+    <div class="term"><span class="term-name">Split-Step</span><span class="term-def">Small hop for balance before reacting to opponent's shot</span></div>
+    <div class="term"><span class="term-name">Dink</span><span class="term-def">Soft shot that lands in the opponent's kitchen (non-volley zone)</span></div>
+    <div class="term"><span class="term-name">Chicken Wing</span><span class="term-def">An awkward bent-elbow defensive shot, usually forced by a body attack</span></div>
+    <div class="term"><span class="term-name">ATP</span><span class="term-def">Around-the-Post — a shot that travels around the net post instead of over it; legal and highly effective when pulled wide</span></div>
+    <div class="term"><span class="term-name">Erne</span><span class="term-def">A volley hit while jumping to the side of the post, outside the kitchen; surprise attack that's hard to defend</span></div>
+    <div class="term"><span class="term-name">Speed-Up</span><span class="term-def">Suddenly accelerating a dink into a fast drive to catch opponents off guard</span></div>
+    <div class="term"><span class="term-name">Reset</span><span class="term-def">A soft, controlled shot used to slow down a fast rally and return to a neutral dinking exchange</span></div>
+    <div class="term"><span class="term-name">Stacking</span><span class="term-def">A doubles positioning strategy where both players line up on the same side after a serve or return to keep dominant sides in play</span></div>
+    <div class="term"><span class="term-name">Third Shot Drop</span><span class="term-def">The serving team's 3rd shot — a soft arc into the kitchen that gives them time to advance to the NVZ</span></div>
+    <div class="term"><span class="term-name">NVZ</span><span class="term-def">Non-Volley Zone — official name for the kitchen; a 7-foot zone on each side of the net where volleys are illegal</span></div>
+    <div class="term"><span class="term-name">Lob</span><span class="term-def">A high arcing shot intended to sail over opponents at the net and land deep in their backcourt</span></div>
+  </div>
+  <button class="back-btn" onclick="hideTerms()">← Back to Trainer</button>
+</div>
+
+<!-- ── GAME PAGE ───────────────────────────────────────────── -->
+<div id="game-page">
+
+<div class="stats">
+  <div class="stat"><div class="stat-val" id="score">0</div><div class="stat-label">Correct</div></div>
+  <div class="stat"><div class="stat-val" id="total">0</div><div class="stat-label">Played</div></div>
+  <div class="stat"><div class="stat-val" id="streak">0</div><div class="stat-label">Streak 🔥</div></div>
+  <div class="stat"><div class="stat-val" id="pct">—</div><div class="stat-label">Accuracy</div></div>
+</div>
+
+<div class="filter-row">
+  <button class="filter-btn active-all" id="filter-all" onclick="setFilter('all')">All Levels</button>
+  <button class="filter-btn" id="filter-Beginner" onclick="setFilter('Beginner')">🟢 Beginner</button>
+  <button class="filter-btn" id="filter-Intermediate" onclick="setFilter('Intermediate')">🔵 Intermediate</button>
+  <button class="filter-btn" id="filter-Advanced" onclick="setFilter('Advanced')">🔴 Advanced</button>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>You</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Partner</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Opponents</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#facc15"></div>Ball</div>
+</div>
+
+<div class="game-area">
+  <div><canvas id="court" width="710" height="370"></canvas></div>
+  <div class="right-panel">
+    <div class="scenario-box">
+      <div class="scenario-title">Scenario</div>
+      <div id="diff-badge" class="difficulty-badge d-Beginner">Beginner</div>
+      <div class="scenario-text" id="scenario-text">Loading...</div>
+    </div>
+    <div class="options-grid" id="options"></div>
+    <div class="feedback-box" id="feedback">Choose the best shot above.</div>
+    <button class="next-btn" id="next-btn" onclick="nextScenario()" style="display:none">Next Scenario →</button>
+  </div>
+</div>
+</div> <!-- /game-page -->
+
+<script>
+// ─── SOUND ENGINE ───────────────────────────────────────────────
+let soundOn = true;
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx;
+function getAudioCtx() { if (!actx) actx = new AudioCtx(); return actx; }
+
+function playCorrect() {
+  if (!soundOn) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime;
+
+  // Sharp noise burst — paddle thwack transient
+  const dur = 0.07;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = 3500; bp.Q.value = 0.8;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(1.1, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+  noise.start(t); noise.stop(t + dur);
+
+  // Body resonance — low thud under the pop
+  const body = ctx.createOscillator(), bg = ctx.createGain();
+  body.type = 'sine'; body.frequency.setValueAtTime(220, t);
+  body.frequency.exponentialRampToValueAtTime(80, t + 0.12);
+  bg.gain.setValueAtTime(0.35, t);
+  bg.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  body.connect(bg); bg.connect(ctx.destination);
+  body.start(t); body.stop(t + 0.13);
+}
+
+function playWrong() {
+  if (!soundOn) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime;
+
+  // Descending groan — human "ohhhh" feel with falling harmonics
+  [130, 195, 260].forEach((freq, i) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = i === 0 ? 'sine' : 'triangle';
+    o.frequency.setValueAtTime(freq, t + 0.02);
+    o.frequency.exponentialRampToValueAtTime(freq * 0.58, t + 0.75);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.14 - i * 0.03, t + 0.06);
+    g.gain.setValueAtTime(0.14 - i * 0.03, t + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.78);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t); o.stop(t + 0.8);
+  });
+
+  // Slight vibrato for groan character
+  const vib = ctx.createOscillator(), vibg = ctx.createGain();
+  vib.frequency.value = 5.5; vibg.gain.value = 6;
+  vib.connect(vibg);
+  // (vibrato modulates the fundamental — simplified here by the pitch ramp)
+  vib.start(t); vib.stop(t + 0.8);
+}
+
+function playClick() {
+  if (!soundOn) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.type = 'sine';
+  o.frequency.setValueAtTime(800, t);
+  o.frequency.exponentialRampToValueAtTime(400, t + 0.05);
+  g.gain.setValueAtTime(0.1, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+  o.start(t); o.stop(t + 0.07);
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById('sound-toggle').textContent = soundOn ? '🔊 Sound ON' : '🔇 Sound OFF';
+}
+
+function showTerms() {
+  document.getElementById('game-page').style.display = 'none';
+  document.getElementById('terms-page').style.display = 'flex';
+}
+
+function hideTerms() {
+  document.getElementById('terms-page').style.display = 'none';
+  document.getElementById('game-page').style.display = 'block';
+}
+
+// ─── COURT COORDINATE SYSTEM ────────────────────────────────────
+// y=0.0  → TOP   = Opponent baseline
+// y=0.34 → Opponent kitchen (NVZ) line  (7ft / 44ft total ≈ 0.159 from net at 0.5)
+// y=0.50 → NET
+// y=0.66 → Your kitchen (NVZ) line
+// y=1.0  → BOTTOM = Your baseline
+//
+// x=0.0 → left sideline, x=1.0 → right sideline
+// YOUR side is always at the BOTTOM of the canvas.
+
+const NVZ = 0.159; // 7ft / 44ft = fraction of court from net to kitchen line
+
+const scenarios = [
+  // ── BEGINNER ──────────────────────────────────────────────────
+  {
+    difficulty: "Beginner",
+    text: "You're at the Kitchen Line (NVZ). A slow, HIGH ball floats toward you at shoulder height. Both opponents are back near their baseline.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.28, 0.10], opp2: [0.72, 0.10], ball: [0.5, 0.58] },
+    options: ["Dink cross-court", "Overhead smash", "Drop back and reset", "Lob deep"],
+    correct: 1, targetPos: [0.48, 0.10], arcHeight: 22,
+    feedback: "Overhead smash! Both opponents are far back at their baseline — attack a high ball at the NVZ with a put-away smash aimed at their feet or the gap between them."
+  },
+  {
+    difficulty: "Beginner",
+    text: "You're at the baseline. Opponents are both at the NVZ. You've just returned serve — a third shot opportunity awaits.",
+    positions: { you: [0.5, 0.92], partner: [0.22, 0.92], opp1: [0.28, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.72] },
+    options: ["Drive hard at them", "Third shot drop", "Lob over them", "Slam it down the line"],
+    correct: 1, targetPos: [0.42, 0.40], arcHeight: 55,
+    feedback: "Third shot drop! A soft drop into the kitchen gives you time to advance to the NVZ without gifting them an easy overhead smash."
+  },
+  {
+    difficulty: "Beginner",
+    text: "You just served from the baseline. Opponent returns a high, floaty lob that sails deep — looks like it may land near your baseline.",
+    positions: { you: [0.5, 0.85], partner: [0.22, 0.80], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.80] },
+    options: ["Sprint and smash", "Let it bounce out", "Overhead on the run", "Retreat and reset"],
+    correct: 3, targetPos: [0.5, 0.10], arcHeight: 80,
+    feedback: "Retreat and reset! A deep lob past the baseline should be let out for a fault. If it's in, back up, let it bounce, and reset with a controlled groundstroke — don't swing wildly."
+  },
+  {
+    difficulty: "Beginner",
+    text: "Both you and your partner are at the NVZ. A dink comes right at your body. Your opponents are also at their NVZ.",
+    positions: { you: [0.55, 0.67], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.55, 0.58] },
+    options: ["Drive it hard", "Dink it back softly", "Lob over them", "Step back and smash"],
+    correct: 1, targetPos: [0.42, 0.37], arcHeight: 28,
+    feedback: "Dink it back softly! In a dink rally, patience wins. Keep it low and into the kitchen — forcing an error is better than risking a pop-up they can smash away."
+  },
+  {
+    difficulty: "Beginner",
+    text: "You're at the NVZ and stepped into the kitchen to reach a short dink. You're now standing inside the kitchen. Ball is still in the air.",
+    positions: { you: [0.5, 0.72], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.65] },
+    options: ["Volley it before it bounces", "Let it bounce then dink", "Leave it for partner", "Smash it"],
+    correct: 1, targetPos: [0.5, 0.39], arcHeight: 28,
+    feedback: "Let it bounce then dink! You cannot volley while standing in the Non-Volley Zone. You MUST wait for the ball to bounce before hitting it. Then dink it back low."
+  },
+  {
+    difficulty: "Beginner",
+    text: "You're in no man's land (mid-court, between baseline and NVZ). A fast drive comes right at your chest.",
+    positions: { you: [0.5, 0.78], partner: [0.22, 0.78], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.70] },
+    options: ["Swing a big drive back", "Block soft and keep moving to NVZ", "Retreat to baseline", "Try an overhead"],
+    correct: 1, targetPos: [0.42, 0.38], arcHeight: 28,
+    feedback: "Block soft and keep moving! No man's land is dangerous. A soft block that lands in the kitchen kills the pace and keeps you advancing toward the NVZ where you want to be."
+  },
+  {
+    difficulty: "Beginner",
+    text: "You're at the NVZ. Opponents speed up a fast drive RIGHT at your chest — you barely have time to react.",
+    positions: { you: [0.55, 0.67], partner: [0.22, 0.67], opp1: [0.35, 0.33], opp2: [0.72, 0.33], ball: [0.55, 0.60] },
+    options: ["Swing a big counter-drive", "Compact block with paddle up", "Step back off the NVZ", "Try a lob return"],
+    correct: 1, targetPos: [0.42, 0.38], arcHeight: 18,
+    feedback: "Compact block! Against a fast drive at your body, shorten your swing drastically. A compact block redirecting the ball into the kitchen is the highest-percentage response."
+  },
+  {
+    difficulty: "Beginner",
+    text: "Both teams are at the NVZ. You get a dink at ankle height — very low, barely above the ground.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.63] },
+    options: ["Speed-up attack — no one expects it", "Pop it up to get elevation", "Dink it back carefully", "Smash it"],
+    correct: 2, targetPos: [0.38, 0.38], arcHeight: 32,
+    feedback: "Dink carefully! A low ball means you'll be hitting upward — any attack from below the net creates a popup. Lift it back into their kitchen and wait for a better opportunity."
+  },
+
+  // ── INTERMEDIATE ──────────────────────────────────────────────
+  {
+    difficulty: "Intermediate",
+    text: "Dink rally at the NVZ. A cross-court dink comes back — low and short. The opponent who hit it is leaning hard to their backhand side, leaving a gap.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.18, 0.30], opp2: [0.75, 0.36], ball: [0.32, 0.60] },
+    options: ["Dink back cross-court", "Dink down the line", "Speed-up to body", "Roll dink to open court"],
+    correct: 3, targetPos: [0.82, 0.35], arcHeight: 22,
+    feedback: "Roll dink to open court! Their leaning leaves a big gap. A low, angled dink to the vacated area forces scrambling and likely produces a pop-up."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "Dink rally — opponent hits a medium ball at your shoulder. You have time to reset or attack. Their paddle is already up and ready.",
+    positions: { you: [0.6, 0.67], partner: [0.2, 0.67], opp1: [0.35, 0.33], opp2: [0.72, 0.33], ball: [0.6, 0.60] },
+    options: ["Speed-up to chest", "Dink cross-court softly", "Lob over them", "Let partner take it"],
+    correct: 1, targetPos: [0.22, 0.36], arcHeight: 24,
+    feedback: "Dink cross-court softly! Opponent's paddle is already up — a speed-up here gets picked off easily. Patient dinking keeps pressure on and waits for a better attack opportunity."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "You're at the NVZ in a dink rally. A dink pops up — above the net but below shoulder height. Opponent's paddle is hanging low at their side.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.58] },
+    options: ["Speed-up at the closer opponent", "Dink it back", "Lob deep", "Roll to feet of deeper opponent"],
+    correct: 0, targetPos: [0.28, 0.28], arcHeight: 10,
+    feedback: "Speed-up at the closer opponent! A pop-up above the net with their paddle down is your trigger to attack. A sharp flat drive to the closer body removes their reaction time."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "Your team is at the baseline. Opponents are at the NVZ. You have a comfortable forehand — ball has bounced waist high.",
+    positions: { you: [0.55, 0.92], partner: [0.22, 0.92], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.55, 0.80] },
+    options: ["Rip a winner at them", "Third shot drop to the kitchen", "Lob over them", "Drive and follow to NVZ"],
+    correct: 1, targetPos: [0.42, 0.40], arcHeight: 55,
+    feedback: "Third shot drop! Even from the baseline the drop is high percentage. A soft drop into the kitchen lets you safely advance to the NVZ without risking a pop-up."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "Your team advances after a good drop. Opponents reset with a ball that floats at waist height — you're still in the transition zone.",
+    positions: { you: [0.5, 0.78], partner: [0.22, 0.78], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.65] },
+    options: ["Smash it for a winner", "Another drop to the kitchen", "Drive hard cross-court", "Lob over them"],
+    correct: 1, targetPos: [0.38, 0.40], arcHeight: 45,
+    feedback: "Another drop to the kitchen! You're still in transition — not yet at the NVZ. A controlled drop keeps you progressing forward without the risk of a poorly timed attack."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "You're at the NVZ. Your partner gets pulled wide and is out of position. A fast ball comes to your backhand side.",
+    positions: { you: [0.55, 0.67], partner: [0.05, 0.72], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.55, 0.60] },
+    options: ["Dink cross-court and hold", "Speed-up to cover court", "Slide to cover the middle", "Call switch, let partner cover"],
+    correct: 2, targetPos: [0.45, 0.38], arcHeight: 24,
+    feedback: "Slide to cover the middle! Your partner is pulled wide — you need to shift toward the center to cover the open court. Play a neutral dink, then communicate to reset positions."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "Serving team. You're at the baseline. The return lands short and HIGH inside the service box — a gift ball near mid-court.",
+    positions: { you: [0.55, 0.92], partner: [0.22, 0.92], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.55, 0.60] },
+    options: ["Slam for a winner", "Third shot drop into NVZ", "Drive and follow to NVZ", "Back up and reset"],
+    correct: 2, targetPos: [0.62, 0.26], arcHeight: 14,
+    feedback: "Drive and follow to NVZ! A short, high return is attackable — drive it hard at their feet and charge the net behind it. This is a rare chance to skip the drop and seize control early."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "You've hit a good third shot drop and are advancing. Opponents reset with a soft, short ball — landing right at the kitchen line as you're mid-court.",
+    positions: { you: [0.5, 0.75], partner: [0.22, 0.75], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.61] },
+    options: ["Slam it from mid-court", "Sprint all the way in and dink it", "Stop and wait for a better ball", "Lob to reset"],
+    correct: 1, targetPos: [0.38, 0.38], arcHeight: 32,
+    feedback: "Sprint in and dink it! A short, soft return is your invitation to close the gap. Keep your feet moving forward, arrive ready to dink, and lock in at the NVZ."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "Both at NVZ. Opponents hit a wide dink that draws your partner off the court to their left. Opponents shift right to cover. What do you do?",
+    positions: { you: [0.55, 0.67], partner: [0.02, 0.67], opp1: [0.25, 0.33], opp2: [0.72, 0.33], ball: [0.02, 0.62] },
+    options: ["Poach to take partner's shot", "Hold position — partner covers it", "Slide left to help partner", "Attack the middle gap"],
+    correct: 1, targetPos: [0.30, 0.38], arcHeight: 28,
+    feedback: "Hold your position! Your partner is handling the ball — they're in position, you are not. Poaching crosses wires and leaves the middle open. Hold the center, let them play it."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "Serving team. Both opponents rush the net on the return. Their return is short — bounces in your service box, a bit high and slow.",
+    positions: { you: [0.5, 0.92], partner: [0.22, 0.92], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.72] },
+    options: ["Third shot drop", "Drive hard between them", "Lob over them", "Play it back to the baseline"],
+    correct: 1, targetPos: [0.5, 0.27], arcHeight: 14,
+    feedback: "Drive between them! A short, high return is attackable — drive it hard through the middle gap and follow it to the net. Don't waste an easy ball on a drop when you have an attack opportunity."
+  },
+  {
+    difficulty: "Intermediate",
+    text: "You've won 3 exchanges with a sharp cross-court dink. Both opponents are now visibly leaning to cover that angle.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.28, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.59] },
+    options: ["Continue cross-court — it's working", "Attack down the line to change it up", "Lob over the leaning opponent", "Speed-up to the body"],
+    correct: 1, targetPos: [0.72, 0.32], arcHeight: 12,
+    feedback: "Attack down the line! You've established a pattern and they're leaning to cover it. The moment your opponent commits to one direction is the moment to punish the other."
+  },
+
+  // ── ADVANCED ──────────────────────────────────────────────────
+  {
+    difficulty: "Advanced",
+    text: "You're at the NVZ left side. Opponent dinks wide to your forehand — you're pulled completely off the court. Ball is below net height.",
+    positions: { you: [0.05, 0.67], partner: [0.65, 0.67], opp1: [0.3, 0.33], opp2: [0.75, 0.33], ball: [0.0, 0.63] },
+    options: ["Around-the-post (ATP)", "Lob over them", "Reset cross-court dink", "Speed-up down the line"],
+    correct: 0, targetPos: [0.88, 0.25], arcHeight: 10,
+    feedback: "Around-the-post (ATP)! Pulled wide and below net level, the ATP is your weapon — the ball travels around (not over) the post. It's legal, unreturnable when done well."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Dink rally — 10 shots cross-court. You notice opponent's paddle drops low between every shot. You get a slightly higher ball (still below shoulder).",
+    positions: { you: [0.5, 0.67], partner: [0.2, 0.67], opp1: [0.3, 0.33], opp2: [0.75, 0.33], ball: [0.5, 0.60] },
+    options: ["Dink cross-court again", "Speed-up at the body", "Erne jump attempt", "Lob"],
+    correct: 2, targetPos: [0.72, 0.28], arcHeight: 10,
+    feedback: "Erne! Their paddle is low and you have a ball you can reach. Jump to the side of the post and volley before it enters the kitchen — surprise and speed combined are nearly undefendable."
+  },
+  {
+    difficulty: "Advanced",
+    text: "You're in a fast speed-up exchange at the NVZ. Opponents are driving hard. You get a ball at your right hip — backhand side.",
+    positions: { you: [0.55, 0.67], partner: [0.2, 0.67], opp1: [0.3, 0.33], opp2: [0.75, 0.33], ball: [0.62, 0.63] },
+    options: ["Counter-drive to open side", "Reset: backhand block to kitchen", "Step back off the NVZ", "Erne out of the way"],
+    correct: 1, targetPos: [0.45, 0.40], arcHeight: 22,
+    feedback: "Reset with a backhand block! Under fire at your hip, a compact backhand block that dies in the kitchen kills the rally pace. Trying to counter-drive risks a mishit pop-up."
+  },
+  {
+    difficulty: "Advanced",
+    text: "You're serving. Opponents always return to your partner's backhand. You suspect another backhand return. You position to poach the middle.",
+    positions: { you: [0.68, 0.92], partner: [0.22, 0.92], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.22, 0.67] },
+    options: ["Poach and put it away", "Hold — poaching leaves you exposed", "Signal partner to switch", "Fake the poach then hold"],
+    correct: 0, targetPos: [0.38, 0.25], arcHeight: 10,
+    feedback: "Poach and put it away! You've read the pattern. A decisive poach wins the point — hesitating leaves a ball in no man's land. Communicate with your partner so they cover your vacated side."
+  },
+  {
+    difficulty: "Advanced",
+    text: "You're at the NVZ. Opponents lob deep over your head — it will land in bounds near your baseline. Your partner is still at the net.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.88] },
+    options: ["Sprint back and smash it", "Call 'switch', let partner chase", "Sprint back, bounce, lob back deep", "Let it go out"],
+    correct: 2, targetPos: [0.48, 0.08], arcHeight: 100,
+    feedback: "Sprint back, bounce, lob back deep! Run it down, let it bounce, and reset with a deep lob while repositioning. Your partner stays at NVZ — you recover behind them before resetting formation."
+  },
+  {
+    difficulty: "Advanced",
+    text: "You're in a fast speed-up exchange. You accidentally pop a ball up slightly — opponent winds up to attack from close range.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.32, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.58] },
+    options: ["Counter-attack immediately", "Duck and cover your body compact", "Step back off the NVZ", "Fake a retreat"],
+    correct: 1, targetPos: [0.45, 0.40], arcHeight: 18,
+    feedback: "Duck and cover your body compact! Against a winding-up attacker at close range, make yourself a small, compact target. A tight defensive position gives you the best chance to block."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Stacked formation — you both shifted left after the serve. Opponent returns down the middle before your shift is complete.",
+    positions: { you: [0.72, 0.92], partner: [0.4, 0.92], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.67] },
+    options: ["You take it (shift complete)", "Partner takes it (mid-shift)", "Call for it and poach", "Let it bounce and decide"],
+    correct: 1, targetPos: [0.42, 0.40], arcHeight: 30,
+    feedback: "Partner takes it! The stacking shift happens after the serve — if the return comes before you've repositioned, whoever is in position takes the ball. Call 'yours' or 'mine' immediately."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Dink rally. Opponent has a big forehand attack. You've been targeting their backhand all point. Now you get a ball you could place to their forehand — low and angled.",
+    positions: { you: [0.5, 0.67], partner: [0.2, 0.67], opp1: [0.72, 0.33], opp2: [0.28, 0.33], ball: [0.5, 0.60] },
+    options: ["Stay backhand — it's working", "Attack their forehand to change direction", "Speed-up down the middle", "Lob the forehand side"],
+    correct: 0, targetPos: [0.72, 0.36], arcHeight: 25,
+    feedback: "Stay to the backhand — it's working! Pattern recognition is everything in pickleball. Keep exploiting the weaker side. Changing a winning strategy without reason hands them the advantage."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Speed-up exchange. You've reset with soft dinks and slowed the pace — a 4th ball comes softly to your forehand. Opponents are re-set too.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.75, 0.33], ball: [0.5, 0.63] },
+    options: ["Fire another speed-up immediately", "Dink softly to consolidate", "Lob to test their overhead", "Speed-up to the corner"],
+    correct: 1, targetPos: [0.35, 0.38], arcHeight: 28,
+    feedback: "Dink to consolidate! You earned a soft ball — use it to re-establish your NVZ position. Attacking again from a soft ball risks resetting the war on their terms."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Cross-court dink battle — 20+ shots to the same corner. A slightly attackable ball arrives. Both opponents have shifted to cover cross-court.",
+    positions: { you: [0.5, 0.67], partner: [0.22, 0.67], opp1: [0.28, 0.33], opp2: [0.72, 0.33], ball: [0.5, 0.60] },
+    options: ["Continue cross-court — it's reliable", "Drive it down the line — change the angle", "Lob to reset", "Speed-up to the body"],
+    correct: 1, targetPos: [0.72, 0.30], arcHeight: 12,
+    feedback: "Drive down the line! You've conditioned them to cover cross-court. A committed opponent is a predictable one — punish the vacated angle with a change of direction."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Dink rally. A ball is aimed at your forehand, but your partner is right there and calls 'MINE!'",
+    positions: { you: [0.45, 0.67], partner: [0.22, 0.67], opp1: [0.3, 0.33], opp2: [0.72, 0.33], ball: [0.25, 0.62] },
+    options: ["Take it anyway — you were ready", "Stop and let partner hit it", "Call the switch", "Both reach for it"],
+    correct: 1, targetPos: [0.32, 0.38], arcHeight: 28,
+    feedback: "Let partner hit it! Clear communication wins. If your partner called for it, trust them. Two players reaching for the same ball risks a mishit or collision — always honor the call."
+  },
+  {
+    difficulty: "Advanced",
+    text: "Stacking formation — after your serve both need to shift right. Opponents return immediately before the shift is complete.",
+    positions: { you: [0.38, 0.92], partner: [0.65, 0.92], opp1: [0.3, 0.33], opp2: [0.7, 0.33], ball: [0.5, 0.75] },
+    options: ["Complete the shift — stick to the plan", "Whoever is in position takes it", "Call 'cancel stack' and reset", "Let it bounce out of bounds"],
+    correct: 1, targetPos: [0.42, 0.38], arcHeight: 30,
+    feedback: "Whoever is in position takes it! Stack shifts happen when there's time. A quick return means abandon the plan — play the ball with whoever is closest. Adapt first, communicate after."
+  }
+];
+
+// ─── STATE ──────────────────────────────────────────────────────
+let current = null, answered = false;
+let score = 0, total = 0, streak = 0;
+let usedIndices = [], activeFilter = 'all';
+
+function setFilter(f) {
+  playClick();
+  activeFilter = f;
+  ['all','Beginner','Intermediate','Advanced'].forEach(k => {
+    document.getElementById('filter-' + k).className = 'filter-btn' + (k === f ? ' active-' + k : '');
+  });
+  usedIndices = [];
+  loadScenario();
+}
+
+function getPool() {
+  return activeFilter === 'all' ? scenarios : scenarios.filter(s => s.difficulty === activeFilter);
+}
+
+function pickScenario() {
+  const pool = getPool();
+  if (!pool.length) return null;
+  if (usedIndices.length >= pool.length) usedIndices = [];
+  let idx, attempts = 0;
+  do { idx = Math.floor(Math.random() * pool.length); attempts++; }
+  while (usedIndices.includes(idx) && attempts < 100);
+  usedIndices.push(idx);
+  return pool[idx];
+}
+
+// ─── COURT DRAWING — side-angle perspective ──────────────────────
+//
+// Coordinate system (unchanged from scenarios):
+//   cx : 0 = left sideline,       1 = right sideline
+//   cy : 0 = opponent baseline,   1 = your baseline (near/bottom-left)
+//
+// Key cy values:
+//   0.000  opponent baseline  (far)
+//   0.341  opponent NVZ line  (15 ft from opp baseline = 7 ft from net)
+//   0.500  net
+//   0.659  your NVZ line      (7 ft from net)
+//   1.000  your baseline      (near)
+//
+// Screen corners — side-angle oblique, YOUR side is near bottom-left:
+//   cy=1 cx=0  →  NL  near-left   (your baseline, left)
+//   cy=1 cx=1  →  NR  near-right  (your baseline, right)
+//   cy=0 cx=0  →  FL  far-left    (opp baseline, left)
+//   cy=0 cx=1  →  FR  far-right   (opp baseline, right)
+
+const PERSP = {
+  NL: {x: 115, y: 352},
+  NR: {x: 458, y: 352},
+  FL: {x: 262, y: 15},
+  FR: {x: 598, y: 15},
+};
+
+function c2s(cx, cy) {
+  // t=0 → near (cy=1 your side),  t=1 → far (cy=0 opp side)
+  const t = 1 - cy;
+  const {NL, NR, FL, FR} = PERSP;
+  const lx = NL.x + t * (FL.x - NL.x);
+  const rx = NR.x + t * (FR.x - NR.x);
+  const sy = NL.y + t * (FL.y - NL.y);
+  return { x: lx + cx * (rx - lx), y: sy };
+}
+
+function fillQuad(ctx, cy0, cy1, cx0, cx1, color) {
+  const tl = c2s(cx0, cy0), tr = c2s(cx1, cy0);
+  const bl = c2s(cx0, cy1), br = c2s(cx1, cy1);
+  ctx.beginPath();
+  ctx.moveTo(tl.x, tl.y); ctx.lineTo(tr.x, tr.y);
+  ctx.lineTo(br.x, br.y); ctx.lineTo(bl.x, bl.y);
+  ctx.closePath();
+  ctx.fillStyle = color; ctx.fill();
+}
+
+function hline(ctx, cy, cx0=0, cx1=1) {
+  const L = c2s(cx0, cy), R = c2s(cx1, cy);
+  ctx.beginPath(); ctx.moveTo(L.x, L.y); ctx.lineTo(R.x, R.y); ctx.stroke();
+}
+
+function vline(ctx, cx, cy0, cy1) {
+  const A = c2s(cx, cy0), B = c2s(cx, cy1);
+  ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+}
+
+function drawCourt(scenario, ballOverride) {
+  const canvas = document.getElementById('court');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const NET  = 0.5;
+  const ONVZ = NET - 7/44;   // 0.341 — opponent kitchen line
+  const YNVZ = NET + 7/44;   // 0.659 — your kitchen line
+
+  // ── 1. Fill court zones ──────────────────────────────────────
+  const COURT  = '#4a7a35';   // muted forest green
+  const KITCH  = '#3d6b2c';   // slightly darker for kitchen contrast
+  const SHADOW = 'rgba(0,0,0,0.12)';
+
+  // Full court base
+  fillQuad(ctx, 0, 1, 0, 1, COURT);
+
+  // Kitchen zones (slightly lighter)
+  fillQuad(ctx, ONVZ, NET,  0, 1, KITCH);  // opponent kitchen
+  fillQuad(ctx, NET,  YNVZ, 0, 1, KITCH);  // your kitchen
+
+  // Subtle far-end depth shading
+  fillQuad(ctx, 0, 0.25, 0, 1, SHADOW);
+
+  // ── 2. Court lines ───────────────────────────────────────────
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.lineWidth = 2;
+
+  // Outer boundary
+  const corners = [c2s(0,0), c2s(1,0), c2s(1,1), c2s(0,1)];
+  ctx.beginPath();
+  ctx.moveTo(corners[0].x, corners[0].y);
+  corners.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.closePath(); ctx.stroke();
+
+  // NVZ (kitchen) lines
+  ctx.lineWidth = 2;
+  hline(ctx, ONVZ);   // opponent kitchen line
+  hline(ctx, YNVZ);   // your kitchen line
+
+  // Center service lines (only in service areas — NOT through kitchen)
+  ctx.lineWidth = 1.8;
+  vline(ctx, 0.5, 0,    ONVZ);  // opponent service center
+  vline(ctx, 0.5, YNVZ, 1);     // your service center
+
+  // ── 3. Net (3-D object) ──────────────────────────────────────
+  const netL = c2s(0,   NET);
+  const netR = c2s(1,   NET);
+  const NET_H = 28;   // pixels tall
+
+  // Net face fill
+  ctx.beginPath();
+  ctx.moveTo(netL.x, netL.y - NET_H);
+  ctx.lineTo(netR.x, netR.y - NET_H);
+  ctx.lineTo(netR.x, netR.y);
+  ctx.lineTo(netL.x, netL.y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(100,110,100,0.75)'; ctx.fill();
+
+  // Net mesh — horizontal bands
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 0.8;
+  for (let i = 1; i <= 5; i++) {
+    const frac = i / 6;
+    ctx.beginPath();
+    ctx.moveTo(netL.x, netL.y - NET_H * frac);
+    ctx.lineTo(netR.x, netR.y - NET_H * frac);
+    ctx.stroke();
+  }
+
+  // Net mesh — vertical bands
+  for (let i = 1; i <= 9; i++) {
+    const fx = i / 10;
+    const bL = c2s(fx, NET);
+    ctx.beginPath();
+    ctx.moveTo(bL.x, bL.y - NET_H);
+    ctx.lineTo(bL.x, bL.y);
+    ctx.stroke();
+  }
+
+  // Net top tape (white stripe)
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(netL.x, netL.y - NET_H);
+  ctx.lineTo(netR.x, netR.y - NET_H);
+  ctx.stroke();
+
+  // Net bottom shadow line
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(netL.x, netL.y + 1);
+  ctx.lineTo(netR.x, netR.y + 1);
+  ctx.stroke();
+
+  // Net posts
+  const POST_H = NET_H + 6;
+  [[0, netL], [1, netR]].forEach(([, p]) => {
+    ctx.fillStyle = '#ccc';
+    ctx.fillRect(p.x - 3, p.y - POST_H, 5, POST_H + 3);
+    ctx.fillStyle = '#999';
+    ctx.fillRect(p.x - 3, p.y - POST_H, 2, POST_H + 3);
+  });
+
+  // ── 4. Outside court annotations with dotted lines ───────────
+  const annotate = (text, targetCx, targetCy, side) => {
+    const target = c2s(targetCx, targetCy);
+    const LX = 100;   // right edge of left-side labels
+    const RX = 568;   // left edge of right-side labels
+    const labelX = side === 'left' ? LX : RX;
+
+    // Dotted line from label edge to target point
+    ctx.save();
+    ctx.setLineDash([3, 5]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(labelX + (side === 'left' ? 4 : -4), target.y);
+    ctx.lineTo(target.x, target.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrow dot at target
+    ctx.beginPath();
+    ctx.arc(target.x, target.y, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fill();
+
+    // Label text
+    ctx.font = 'bold 11px Segoe UI';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = side === 'left' ? 'right' : 'left';
+    ctx.fillText(text, labelX, target.y + 4);
+    ctx.restore();
+  };
+
+  // Left side: Net, Kitchen, Kitchen Line
+  annotate('Net',          0,    NET,              'left');
+  annotate('Kitchen (NVZ)', 0,   (NET + YNVZ) / 2, 'left');
+  annotate('Kitchen Line', 0,    YNVZ,             'left');
+
+  // Right side: Sideline, Centerline, Baseline
+  annotate('Sideline',   1,   0.72,             'right');
+  annotate('Centerline', 0.5, (YNVZ + 1) / 2,  'right');
+  annotate('Baseline',   1,   0.98,             'right');
+
+  // ── 5. Players & ball ────────────────────────────────────────
+  const drawDot = (cx, cy, color, label) => {
+    const s = c2s(cx, cy);
+    const r  = 7  + cy * 6;          // larger when near (cy→1)
+    const fs = 7  + cy * 3;          // bigger font when near
+    ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${fs.toFixed(0)}px Segoe UI`;
+    ctx.textAlign = 'center';
+    ctx.fillText(label, s.x, s.y + fs * 0.38);
+  };
+
+  const p = scenario.positions;
+  // Render far players first so near players draw on top
+  drawDot(p.opp1[0],    p.opp1[1],    '#dc2626', 'OPP');
+  drawDot(p.opp2[0],    p.opp2[1],    '#dc2626', 'OPP');
+  drawDot(p.partner[0], p.partner[1], '#f97316', 'PTR');
+  drawDot(p.you[0],     p.you[1],     '#2563eb', 'YOU');
+
+  // Ball — supports animation override {cx, cy, arcOff}
+  const bCx = ballOverride ? ballOverride.cx : p.ball[0];
+  const bCy = ballOverride ? ballOverride.cy : p.ball[1];
+  const arcOff = ballOverride ? (ballOverride.arcOff || 0) : 0;
+  const bs = c2s(bCx, bCy);
+  const br = 5 + bCy * 4;
+  if (arcOff > 4) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(bs.x, bs.y, br * 0.9, br * 0.38, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(bs.x, bs.y - arcOff, br, 0, Math.PI*2);
+  ctx.fillStyle = '#facc15'; ctx.fill();
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.arc(bs.x - br*0.28, bs.y - arcOff - br*0.28, br*0.32, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fill();
+}
+
+// ─── BALL ANIMATION ─────────────────────────────────────────────
+let animFrame = null;
+
+function animateBall(scenario) {
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  const start = scenario.positions.ball;
+  const target = scenario.targetPos || start;
+  const arcH   = scenario.arcHeight || 40;
+  const duration = 750;
+  const t0 = performance.now();
+
+  function step(now) {
+    const raw = Math.min((now - t0) / duration, 1);
+    const e   = raw < 0.5 ? 2*raw*raw : -1 + (4 - 2*raw)*raw; // ease-in-out
+    const cx  = start[0] + e * (target[0] - start[0]);
+    const cy  = start[1] + e * (target[1] - start[1]);
+    const arc = arcH * 4 * raw * (1 - raw);
+    drawCourt(scenario, { cx, cy, arcOff: arc });
+    if (raw < 1) animFrame = requestAnimationFrame(step);
+    else animFrame = null;
+  }
+  animFrame = requestAnimationFrame(step);
+}
+
+// ─── GAME LOGIC ─────────────────────────────────────────────────
+function loadScenario() {
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  current = pickScenario();
+  if (!current) {
+    document.getElementById('scenario-text').textContent = 'No scenarios for this filter. Try another level!';
+    document.getElementById('options').innerHTML = '';
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('next-btn').style.display = 'none';
+    return;
+  }
+  answered = false;
+  drawCourt(current);
+
+  document.getElementById('scenario-text').textContent = current.text;
+  const badge = document.getElementById('diff-badge');
+  badge.textContent = current.difficulty;
+  badge.className = 'difficulty-badge d-' + current.difficulty;
+
+  document.getElementById('feedback').textContent = 'Choose the best shot above.';
+  document.getElementById('feedback').className = 'feedback-box';
+  document.getElementById('next-btn').style.display = 'none';
+
+  const opts = document.getElementById('options');
+  opts.innerHTML = '';
+  current.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'shot-btn';
+    btn.textContent = opt;
+    btn.onclick = () => handleAnswer(i);
+    opts.appendChild(btn);
+  });
+}
+
+function handleAnswer(idx) {
+  if (answered) return;
+  answered = true;
+  total++;
+
+  const btns = document.querySelectorAll('.shot-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const fb = document.getElementById('feedback');
+  if (idx === current.correct) {
+    score++; streak++;
+    btns[idx].classList.add('correct');
+    fb.textContent = '✓ Correct! ' + current.feedback;
+    fb.className = 'feedback-box correct';
+    playCorrect();
+  } else {
+    streak = 0;
+    btns[idx].classList.add('wrong');
+    btns[current.correct].classList.add('reveal');
+    fb.textContent = '✗ Not quite. ' + current.feedback;
+    fb.className = 'feedback-box wrong';
+    playWrong();
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('total').textContent = total;
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('pct').textContent = total > 0 ? Math.round(score/total*100) + '%' : '—';
+  document.getElementById('next-btn').style.display = 'block';
+
+  setTimeout(() => animateBall(current), 350);
+}
+
+function nextScenario() { playClick(); loadScenario(); }
+
+loadScenario();
+</script>
+</body>
+</html>

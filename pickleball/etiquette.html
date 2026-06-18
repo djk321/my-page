@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickleball Etiquette</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      padding: 100px 20px 60px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      flex-wrap: wrap;
+      z-index: 100;
+    }
+
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    header h1 {
+      font-size: 38px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .content {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #555;
+      padding: 20px 4px 4px;
+    }
+
+    .section-label:first-child { padding-top: 0; }
+
+    .rule-card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .rule-card:hover {
+      border-color: #c9a84c55;
+      box-shadow: 0 4px 20px rgba(201, 168, 76, 0.08);
+    }
+
+    .rule-card.open {
+      border-color: #c9a84c;
+      box-shadow: 0 8px 32px rgba(201, 168, 76, 0.12);
+    }
+
+    .rule-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 22px 24px;
+      user-select: none;
+    }
+
+    .rule-icon { font-size: 28px; line-height: 1; flex-shrink: 0; }
+
+    .rule-title {
+      flex: 1;
+      font-size: 17px;
+      font-weight: 600;
+      color: #e8d5a3;
+    }
+
+    .rule-chevron {
+      font-size: 14px;
+      color: #555;
+      transition: transform 0.22s ease, color 0.18s;
+      flex-shrink: 0;
+    }
+
+    .rule-card.open .rule-chevron {
+      transform: rotate(180deg);
+      color: #c9a84c;
+    }
+
+    .rule-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .rule-card.open .rule-body {
+      max-height: 500px;
+    }
+
+    .rule-body-inner {
+      padding: 0 24px 22px 68px;
+      font-size: 15px;
+      color: #999;
+      line-height: 1.75;
+    }
+
+    .rule-body-inner strong { color: #c9a84c; }
+
+    .rule-body-inner ul {
+      margin-top: 10px;
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .rapid-fire-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .rf-card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+
+    .rf-card:hover {
+      border-color: #c9a84c55;
+      box-shadow: 0 4px 16px rgba(201, 168, 76, 0.08);
+    }
+
+    .rf-icon { font-size: 24px; line-height: 1; }
+    .rf-title { font-size: 14px; font-weight: 700; color: #e8d5a3; }
+    .rf-desc { font-size: 13px; color: #777; line-height: 1.6; }
+    .rf-desc strong { color: #c9a84c; }
+
+    footer { margin-top: 60px; text-align: center; font-size: 12px; color: #333; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="index.html">Pickleball</a>
+    <a href="trainer.html">Training</a>
+    <a href="drills.html">Drills</a>
+    <a href="etiquette.html" class="active">Etiquette</a>
+  </nav>
+
+  <header>
+    <h1>🤝 Pickleball Etiquette</h1>
+    <p>Play with respect &amp; sportsmanship</p>
+  </header>
+
+  <div class="content">
+
+    <!-- LINE CALLS -->
+    <div class="section-label">Line Calls</div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">📣</div>
+        <div class="rule-title">Only Call a Ball Out If You're 100% Sure</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          The ball must touch the ground completely outside the line — <strong>if any part of the ball touches the line, it's in.</strong> If you're 99% sure, give your opponent the benefit of the doubt. Making close calls won't win you many games anyway — you win by being better, not by making questionable calls.
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🤝</div>
+        <div class="rule-title">Overrule Your Partner If They Got It Wrong</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          If your partner calls a ball out and you think it was in, <strong>speak up and overrule them</strong> — say "I think that was in, let's give them the point." It might create a little friction with your partner, but if they're mature they'll respect it. Honest play matters more than keeping the peace with your own team.
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🚫</div>
+        <div class="rule-title">Don't Argue With Opponents Over Their Calls</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          If your opponents make a call you disagree with, <strong>generally don't argue or challenge them</strong> — especially in practice or recreational games. Raising tensions over a call isn't worth it. Keep things civil on the court. If you feel it's a pattern, you can calmly note it once, then let it go.
+        </div>
+      </div>
+    </div>
+
+    <!-- SELF-OFFICIATING -->
+    <div class="section-label">Self-Officiating</div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🙋</div>
+        <div class="rule-title">Always Call Rules on Yourself</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          If you break a rule and no one calls it, <strong>call it on yourself.</strong> Common examples:
+          <ul>
+            <li>Stepping in the kitchen on a volley</li>
+            <li>Foot fault on your serve</li>
+            <li>Ball bouncing twice before you hit it</li>
+          </ul>
+          Your opponents may have seen it but didn't want to say anything. Calling it yourself builds trust and shows you're playing fair. <strong>Never try to win by breaking the rules.</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVING -->
+    <div class="section-label">Serving</div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🔢</div>
+        <div class="rule-title">Call the Score Loudly — Then Wait for Everyone</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          Before every serve: announce the score loudly so all four players hear it, <strong>then wait until your opponents are looking at you and in the ready position</strong> before you serve. Serving before they're set is called a "quick serve" and gives you an unfair advantage. The sequence is: call the score → confirm everyone's ready → serve.
+        </div>
+      </div>
+    </div>
+
+    <!-- SPORTSMANSHIP -->
+    <div class="section-label">Sportsmanship</div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">😤</div>
+        <div class="rule-title">Don't Be a Sore Winner or a Sore Loser</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          <strong>Sore winner:</strong> being obnoxiously loud, over-celebrating every point, making your opponents feel bad for losing. Even in a rec game, don't go overboard.<br><br>
+          <strong>Sore loser:</strong> making excuses when you lose — <em>"that was a lucky shot,"</em> <em>"I wasn't trying my hardest."</em> Don't justify why they beat you. If anything, compliment them. Just try to have fun whether you win or lose.
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🏅</div>
+        <div class="rule-title">Never Get Mad at Your Partner</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          When your partner misses, <strong>they already feel bad</strong> — they're not out there trying to lose. Don't yell, sigh, or show frustration. The best things you can say: <em>"Next point,"</em> <em>"Don't worry about it,"</em> <em>"Good try."</em> You don't even need to say anything — just stay positive. A demoralized partner loses more points, not fewer.
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">💬</div>
+        <div class="rule-title">No Unsolicited Advice</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          Don't coach your partner or your opponents unless they specifically ask. <strong>Constant tips during a game feel like pressure</strong>, not help — the other person may feel like they're playing badly because of all your feedback. Keep the mental load low. Save the coaching for after the game if they want it.
+        </div>
+      </div>
+    </div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🎯</div>
+        <div class="rule-title">Don't Target the Weakest Player in Rec Games</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          In a tournament, targeting the weaker player is smart strategy. <strong>In a rec game, it's annoying and not fun for anyone.</strong> The stronger player on the other team isn't going to touch the ball, and the weaker one gets discouraged. Instead, treat it as a practice game — work on your third shot drop, your dinking, your hands — and keep hitting to both players to keep the game fun for everyone.
+        </div>
+      </div>
+    </div>
+
+    <!-- COURT AWARENESS -->
+    <div class="section-label">Court Awareness</div>
+
+    <div class="rule-card">
+      <div class="rule-header">
+        <div class="rule-icon">🚶</div>
+        <div class="rule-title">Never Walk Onto or Through a Court Mid-Point</div>
+        <div class="rule-chevron">▼</div>
+      </div>
+      <div class="rule-body">
+        <div class="rule-body-inner">
+          If your ball rolls onto another court, <strong>wait for their point to finish</strong> — say "ball on" to warn them, but don't run on to grab it mid-rally. If you need to walk through another court to reach yours, wait for the point to end, ask politely, then move through quickly. <strong>Don't dilly-dally</strong> on their court.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Pickleball &mdash; Play Well, Play Right</footer>
+
+  <script>
+    document.querySelectorAll('.rule-card').forEach(card => {
+      card.querySelector('.rule-header').addEventListener('click', () => {
+        card.classList.toggle('open');
+      });
+    });
+  </script>
+
+</body>
+</html>

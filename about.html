@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 100px 20px 60px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      z-index: 100;
+    }
+
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    /* Two-column layout */
+    .bio-grid {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+
+    /* LEFT COLUMN */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      position: sticky;
+      top: 100px;
+    }
+
+    .avatar {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2a2a3a, #1a1a24);
+      border: 3px solid #c9a84c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 72px;
+    }
+
+    .name {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+    }
+
+    .tagline {
+      font-size: 14px;
+      color: #888;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .socials {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .social-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      background: #1a1a24;
+      color: #ccc;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .social-btn:hover {
+      border-color: #c9a84c;
+      color: #c9a84c;
+    }
+
+    /* RIGHT COLUMN */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #c9a84c;
+      margin-bottom: 12px;
+    }
+
+    .bio-text p {
+      font-size: 16px;
+      color: #aaa;
+      line-height: 1.8;
+      margin-bottom: 12px;
+    }
+
+    .bio-text p:last-child { margin-bottom: 0; }
+
+    /* Project cards */
+    .projects-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .project-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .project-card:hover {
+      border-color: #c9a84c;
+      background: #1e1e2a;
+    }
+
+    .project-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+      width: 48px;
+      text-align: center;
+    }
+
+    .project-info {
+      flex: 1;
+    }
+
+    .project-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e8d5a3;
+      margin-bottom: 4px;
+    }
+
+    .project-desc {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .project-arrow {
+      color: #444;
+      font-size: 18px;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .project-card:hover .project-arrow {
+      color: #c9a84c;
+      transform: translateX(3px);
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .bio-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .left-col {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html" class="active">About</a>
+    <a href="chess-games/index.html">Chess Tools</a>
+    <a href="chess-mashup/index.html">Chess Mashup</a>
+    <a href="game-fusion/index.html">Game Fusion</a>
+    <a href="pickleball/index.html">Pickleball</a>
+  </nav>
+
+  <div class="container">
+    <div class="bio-grid">
+
+      <!-- LEFT: Avatar + name + links -->
+      <div class="left-col">
+        <img class="avatar" src="Avatar.PNG" alt="Dan Keller" style="object-fit:cover; object-position: center top;">
+        <div class="name">Dan Keller</div>
+        <div class="tagline">Vibe Coding some apps using Claude Code &amp; GitHub</div>
+        <div class="socials">
+          <a class="social-btn" href="https://github.com/djk321">🐙 GitHub</a>
+
+          <a class="social-btn" href="mailto:djk321@gmail.com">✉️ Email me</a>
+        </div>
+      </div>
+
+      <!-- RIGHT: Bio + projects -->
+      <div class="right-col">
+
+        <div class="bio-text">
+          <div class="section-label">About</div>
+          <p>Hi! I'm a former computer programmer learning to vibe code my way into the future<p>Inspired by my grandkids to keep up-to-date<p>This arcade is my corner of the internet to try somethings out.</p>
+        </div>
+
+        <div>
+          <div class="section-label">What I've Built So Far</div>
+          <div class="projects-grid">
+
+            <a class="project-card" href="chess-games/index.html">
+              <div class="project-icon">♟</div>
+              <div class="project-info">
+                <div class="project-name">Chess Tools</div>
+                <div class="project-desc">Opening explorer, daily puzzles, and game review — everything you need to get better at chess.</div>
+              </div>
+              <div class="project-arrow">→</div>
+            </a>
+
+            <a class="project-card" href="chess-mashup/index.html">
+              <div class="project-icon">🎲</div>
+              <div class="project-info">
+                <div class="project-name">Chess Mashup</div>
+                <div class="project-desc">Chess meets other games in chaotic, experimental hybrids. What happens when you add dice? Cards? Dominoes? Find out.</div>
+              </div>
+              <div class="project-arrow">→</div>
+            </a>
+
+            <a class="project-card" href="game-fusion/index.html">
+              <div class="project-icon">⚡</div>
+              <div class="project-info">
+                <div class="project-name">Game Fusion</div>
+                <div class="project-desc">Genre-bending game experiments that don't fit anywhere else. Pure chaos, pure fun.</div>
+              </div>
+              <div class="project-arrow">→</div>
+            </a>
+
+            <a class="project-card" href="pickleball/index.html">
+              <div class="project-icon">🏓</div>
+              <div class="project-info">
+                <div class="project-name">Pickleball</div>
+                <div class="project-desc">A shot decision trainer and 10 animated drills — dinking, drops, resets, footwork, and more. Built for players who want to practice smarter.</div>
+              </div>
+              <div class="project-arrow">→</div>
+            </a>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var r=decodeURIComponent(document.referrer),
+        map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],
+        label=null;
+      for(var i=0;i<map.length;i++) if(map[i][0].test(r)){label=map[i][1];break;}
+    })();
+  </script>
+
+</body>
+</html>
