@@ -255,7 +255,7 @@
           <div class="section-label">What I've Built So Far</div>
           <div class="projects-grid">
 
-            <a class="project-card chess-link" href="#" onclick="showChessPopup(event)">
+            <a class="project-card" href="chess-games/index.html">
               <div class="project-icon">♟</div>
               <div class="project-info">
                 <div class="project-name">Chess Tools</div>
@@ -264,11 +264,20 @@
               <div class="project-arrow">→</div>
             </a>
 
-            <a class="project-card chess-link" href="#" onclick="showChessPopup(event)">
+            <a class="project-card" href="chess-mashup/index.html">
               <div class="project-icon">🎲</div>
               <div class="project-info">
                 <div class="project-name">Chess Mashup</div>
                 <div class="project-desc">Chess meets other games in chaotic, experimental hybrids. What happens when you add dice? Cards? Dominoes? Find out.</div>
+              </div>
+              <div class="project-arrow">→</div>
+            </a>
+
+            <a class="project-card" href="game-fusion/index.html">
+              <div class="project-icon">⚡</div>
+              <div class="project-info">
+                <div class="project-name">Game Fusion</div>
+                <div class="project-desc">Genre-bending game experiments that don't fit anywhere else. Pure chaos, pure fun.</div>
               </div>
               <div class="project-arrow">→</div>
             </a>
@@ -289,34 +298,13 @@
     </div>
   </div>
 
-  <!-- Chess popup modal -->
-  <div id="chess-popup" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:999; align-items:center; justify-content:center;">
-    <div style="background:#1a1a24; border:2px solid #c9a84c; border-radius:16px; padding:36px 32px; max-width:380px; width:90%; text-align:center; position:relative;">
-      <div style="font-size:42px; margin-bottom:12px;">♟</div>
-      <h2 style="font-size:20px; font-weight:700; color:#e8d5a3; margin-bottom:10px;">Want Access to the Chess Pages?</h2>
-      <p style="font-size:14px; color:#888; line-height:1.7; margin-bottom:24px;">
-        The Chess Tools and Chess Mashup sections are available — just drop me an email and I'll send you the link!
-      </p>
-      <a href="mailto:djk321@gmail.com?subject=Chess%20Pages%20Access&body=Hi%20Dan%2C%20I'd%20love%20access%20to%20the%20Chess%20pages!"
-         style="display:inline-block; background:linear-gradient(135deg,#e8d5a3,#c9a84c); color:#0f0f14; font-weight:700; font-size:14px; padding:11px 28px; border-radius:8px; text-decoration:none; margin-bottom:12px;">
-        ✉️ Email Me for Access
-      </a>
-      <br>
-      <button onclick="document.getElementById('chess-popup').style.display='none';"
-        style="background:none; border:none; color:#555; font-size:13px; cursor:pointer; margin-top:4px; text-decoration:underline;">
-        Maybe later
-      </button>
-    </div>
-  </div>
-
   <script>
-    function showChessPopup(e) {
-      e.preventDefault();
-      document.getElementById('chess-popup').style.display = 'flex';
-    }
-    document.getElementById('chess-popup').addEventListener('click', function(e) {
-      if (e.target === this) this.style.display = 'none';
-    });
+    (function(){
+      var r=decodeURIComponent(document.referrer),
+        map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],
+        label=null;
+      for(var i=0;i<map.length;i++) if(map[i][0].test(r)){label=map[i][1];break;}
+    })();
   </script>
 
 </body>
