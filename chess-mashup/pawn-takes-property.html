@@ -168,10 +168,23 @@
     .legend-item { display: flex; align-items: center; gap: 2px; }
     .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
     .status-bar { background: #1a110a; border: 2px solid #8b6914; border-radius: 6px; padding: 6px 12px; margin-top: 6px; text-align: center; font-size: 13px; min-width: 300px; max-width: 560px; width: 100%; }
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; }
-    .modal { background: #2a1f14; border: 3px solid #d4a843; border-radius: 12px; padding: 24px; text-align: center; max-width: 320px; }
-    .modal h2 { color: #d4a843; font-size: 22px; margin-bottom: 8px; }
-    .modal p { color: #c8b88a; margin-bottom: 12px; font-size: 13px; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.88); display: flex; align-items: center; justify-content: center; z-index: 100; overflow-y: auto; padding: 20px; }
+    .modal { background: #2a1f14; border: 3px solid #d4a843; border-radius: 12px; padding: 20px 24px; text-align: center; max-width: 560px; width: 100%; }
+    .modal h2 { color: #d4a843; font-size: 22px; margin-bottom: 6px; }
+    .modal p { color: #c8b88a; margin-bottom: 10px; font-size: 13px; }
+    .recap-board { display: grid; grid-template-columns: repeat(8,1fr); border: 2px solid #8b6914; margin: 12px auto; width: 100%; max-width: 320px; aspect-ratio: 1; }
+    .recap-sq { position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1; }
+    .recap-sq.light { background: #f0d9b5; }
+    .recap-sq.dark { background: #b58863; }
+    .recap-sq.hl-check { background: #c0392b !important; }
+    .recap-sq.hl-attacker { background: #d4a843 !important; }
+    .recap-sq.hl-bankrupt { background: rgba(76,175,80,0.45) !important; }
+    .recap-piece { font-size: clamp(12px,4vw,22px); line-height:1; text-shadow: 1px 1px 2px rgba(0,0,0,0.7); }
+    .recap-prop-dot { position:absolute; bottom:1px; right:1px; width:5px; height:5px; border-radius:50%; }
+    .recap-stats { display: flex; gap: 12px; justify-content: center; margin: 10px 0 6px; flex-wrap: wrap; }
+    .recap-stat { background: #1a110a; border: 1px solid #5a3e1b; border-radius: 6px; padding: 6px 12px; font-size: 11px; color: #c8b88a; }
+    .recap-stat strong { color: #d4a843; display: block; font-size: 14px; }
+    .recap-legend { font-size: 10px; color: #888; margin-bottom: 10px; }
     .rules-toggle { cursor: pointer; color: #d4a843; font-size: 11px; text-decoration: underline; margin-top: 4px; display: block; text-align: center; }
     .rules-box { background: #1a110a; border: 1px solid #5a3e1b; border-radius: 6px; padding: 8px; margin-top: 6px; font-size: 10px; color: #c8b88a; line-height: 1.6; display: none; }
     .rules-box.open { display: block; }
@@ -278,7 +291,10 @@
     <div class="modal">
       <h2 id="modal-title">Game Over!</h2>
       <p id="modal-msg"></p>
-      <button onclick="initGame()">🎲 Play Again</button>
+      <div class="recap-legend" id="recap-legend"></div>
+      <div class="recap-stats" id="recap-stats"></div>
+      <div class="recap-board" id="recap-board"></div>
+      <button onclick="initGame()" style="margin-top:14px;">🎲 Play Again</button>
     </div>
   </div>
 
@@ -630,12 +646,77 @@ function finishTurn() {
 
 function endGame(winner,reason) {
   state.gameOver=true;renderAll();
-  let title,msg;
-  if(reason==='checkmate'){title=`${winner==='w'?'♔ White':'♚ Black'} Wins!`;msg='Checkmate! The king has fallen.';}
-  else if(reason==='bankruptcy'){title=`${winner==='w'?'♔ White':'♚ Black'} Wins!`;msg='Bankruptcy! Opponent ran out of money.';}
-  else{title='Stalemate!';msg='No valid moves — the game ends in a draw.';}
+  let title,msg,legend='';
+  if(reason==='checkmate'){
+    title=`${winner==='w'?'♔ White':'♚ Black'} Wins!`;
+    msg='Checkmate! The king has fallen — no escape.';
+    legend='🟥 King in check &nbsp;|&nbsp; 🟨 Attacking piece(s)';
+  } else if(reason==='bankruptcy'){
+    title=`${winner==='w'?'♔ White':'♚ Black'} Wins!`;
+    msg='Bankruptcy! The empire crumbled — rent bled them dry.';
+    legend='🟩 Properties owned by winner';
+  } else {
+    title='Stalemate!';
+    msg='No valid moves — the game ends in a draw.';
+  }
   document.getElementById('modal-title').textContent=title;
   document.getElementById('modal-msg').textContent=msg;
+  document.getElementById('recap-legend').innerHTML=legend;
+
+  // Stats
+  const loser=winner==='w'?'b':'w';
+  const wProps=state.properties.filter(p=>p==='w').length;
+  const bProps=state.properties.filter(p=>p==='b').length;
+  document.getElementById('recap-stats').innerHTML=`
+    <div class="recap-stat"><strong>$${state.money.w.toLocaleString()}</strong>♔ White cash</div>
+    <div class="recap-stat"><strong>${wProps}</strong>♔ White props</div>
+    <div class="recap-stat"><strong>$${state.money.b.toLocaleString()}</strong>♚ Black cash</div>
+    <div class="recap-stat"><strong>${bProps}</strong>♚ Black props</div>`;
+
+  // Build recap board
+  const boardEl=document.getElementById('recap-board');
+  boardEl.innerHTML='';
+
+  // Find highlight squares
+  const highlights={};
+  if(reason==='checkmate'){
+    const loserKing=findKing(loser);
+    if(loserKing) highlights[loserKing[0]*8+loserKing[1]]='hl-check';
+    // find all attacker squares
+    const opp=loser==='w'?'b':'w';
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      const p=state.board[r][c];
+      if(p&&p[0]===opp){
+        const mv=getRawMoves(r,c);
+        if(loserKing&&mv.some(([mr,mc])=>mr===loserKing[0]&&mc===loserKing[1]))
+          highlights[r*8+c]='hl-attacker';
+      }
+    }
+  } else if(reason==='bankruptcy'){
+    state.properties.forEach((owner,idx)=>{ if(owner===winner) highlights[idx]='hl-bankrupt'; });
+  }
+
+  for(let row=0;row<8;row++) for(let col=0;col<8;col++){
+    const sq=document.createElement('div');
+    const idx=row*8+col;
+    sq.className='recap-sq '+((row+col)%2===0?'light':'dark');
+    if(highlights[idx]) sq.classList.add(highlights[idx]);
+    // owner dot
+    if(state.properties[idx]){
+      const dot=document.createElement('div');
+      dot.className='recap-prop-dot';
+      dot.style.background=state.properties[idx]==='w'?'#f0e8d0':'#333';
+      dot.style.border='1px solid '+(state.properties[idx]==='w'?'#999':'#aaa');
+      sq.appendChild(dot);
+    }
+    const piece=state.board[row][col];
+    if(piece){
+      const p=document.createElement('div');p.className='recap-piece';
+      p.textContent=PIECE_SYMBOLS[piece];sq.appendChild(p);
+    }
+    boardEl.appendChild(sq);
+  }
+
   document.getElementById('modal').style.display='flex';
 }
 
