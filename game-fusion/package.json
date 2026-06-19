@@ -1,0 +1,13 @@
+{
+  "name": "game-fusion-art-generator",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate-art.mjs",
+    "generate:pair": "node generate-art.mjs",
+    "generate:all": "node generate-art.mjs --all"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
+}

@@ -538,59 +538,95 @@ function gameScene(g, cx, cy, pc, lc) {
   const id = g.id;
   const op = (n) => ` opacity="${n}"`;
   if (id==='chess') {
-    let b=''; for(let r=0;r<4;r++) for(let c=0;c<4;c++)
-      b+=`<rect x="${cx-54+c*27}" y="${cy-54+r*27}" width="27" height="27" fill="${(r+c)%2?pc+'bb':lc+'33'}"/>`;
-    return b+`<text x="${cx-27}" y="${cy-22}" font-size="30" text-anchor="middle" fill="${lc}">♛</text>
-      <text x="${cx+27}" y="${cy+5}" font-size="22" text-anchor="middle" fill="${lc}"${op(.75)}>♜</text>
-      <text x="${cx-27}" y="${cy+52}" font-size="18" text-anchor="middle" fill="${lc}"${op(.6)}>♟</text>
-      <text x="${cx+27}" y="${cy+52}" font-size="18" text-anchor="middle" fill="${lc}"${op(.5)}>♞</text>
-      <rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="2.5"${op(.55)}/>`;
+    let b='';
+    b+=`<rect x="${cx-63}" y="${cy-60}" width="126" height="126" rx="3" fill="#000" opacity=".4"/>`;
+    for(let r=0;r<5;r++) for(let c=0;c<5;c++) {
+      const dark=(r+c)%2;
+      b+=`<rect x="${cx-62+c*25}" y="${cy-59+r*25}" width="25" height="25" fill="${dark?pc+'cc':'#f2e9d0'}"/>`;
+      if(dark) b+=`<rect x="${cx-62+c*25}" y="${cy-59+r*25}" width="25" height="4" fill="#fff" opacity=".08"/>`;
+    }
+    b+=`<rect x="${cx-63}" y="${cy-60}" width="127" height="127" fill="none" stroke="${lc}" stroke-width="2.5" opacity=".85"/>`;
+    b+=`<circle cx="${cx-24}" cy="${cy-22}" r="17" fill="${lc}" opacity=".18"/>`;
+    b+=`<circle cx="${cx-24}" cy="${cy-22}" r="11" fill="${lc}" opacity=".12"/>`;
+    b+=`<text x="${cx-24}" y="${cy-12}" font-size="34" text-anchor="middle" fill="${lc}" filter="url(#glow)">♛</text>`;
+    b+=`<text x="${cx+28}" y="${cy+8}" font-size="24" text-anchor="middle" fill="${lc}" opacity=".8">♜</text>`;
+    b+=`<text x="${cx-24}" y="${cy+52}" font-size="17" text-anchor="middle" fill="${lc}" opacity=".6">♟</text>`;
+    b+=`<text x="${cx+4}" y="${cy+52}" font-size="17" text-anchor="middle" fill="${lc}" opacity=".45">♟</text>`;
+    b+=`<text x="${cx+28}" y="${cy+52}" font-size="17" text-anchor="middle" fill="${lc}" opacity=".32">♟</text>`;
+    return b;
   }
   if (id==='dominoes') {
     const tile=(x,y,d1,d2,rot)=>{
       const dots=(n,bx,by)=>{const p=[[.5,.5],[.25,.25],[.75,.75],[.25,.75],[.75,.25],[.5,.25],[.5,.75],[.25,.5],[.75,.5]].slice(0,n);
         return p.map(([dx,dy])=>`<circle cx="${bx+dx*36}" cy="${by+dy*20}" r="4" fill="${lc}"${op(.9)}/>`).join('');};
-      return `<g transform="rotate(${rot} ${x+40} ${y+52})">`+
-        `<rect x="${x}" y="${y}" width="80" height="104" rx="8" fill="${pc}"${op(.85)}/>`+
-        `<line x1="${x}" y1="${y+52}" x2="${x+80}" y2="${y+52}" stroke="${lc}" stroke-width="2"${op(.5)}/>`+
-        dots(d1,x+4,y+4)+dots(d2,x+4,y+56)+`</g>`;};
+      return `<g transform="rotate(${rot} ${x+40} ${y+52})">
+        <rect x="${x+2}" y="${y+4}" width="80" height="104" rx="8" fill="#000" opacity=".3"/>
+        <rect x="${x}" y="${y}" width="80" height="104" rx="8" fill="${pc}"${op(.88)}/>
+        <rect x="${x}" y="${y}" width="80" height="6" rx="4" fill="#fff" opacity=".12"/>
+        <line x1="${x}" y1="${y+52}" x2="${x+80}" y2="${y+52}" stroke="${lc}" stroke-width="2"${op(.55)}/>
+        ${dots(d1,x+4,y+4)}${dots(d2,x+4,y+56)}</g>`;};
     return tile(cx-60,cy-80,6,5,0)+tile(cx-20,cy+10,3,4,-8);
   }
   if (id==='poker') {
     const card=(x,y,rot,suit,rank,suitColor)=>`<g transform="rotate(${rot} ${cx} ${cy})">
-      <rect x="${x}" y="${y}" width="52" height="76" rx="6" fill="#f8f8ef"${op(.93)}/>
-      <text x="${x+8}" y="${y+20}" font-size="15" fill="${suitColor}">${rank}</text>
-      <text x="${x+8}" y="${y+36}" font-size="15" fill="${suitColor}">${suit}</text>
-      <text x="${x+26}" y="${y+52}" font-size="28" text-anchor="middle" fill="${suitColor}"${op(.7)}>${suit}</text></g>`;
-    return card(cx-70,cy-48,-18,'♥','A','#c62828')+card(cx-32,cy-56,0,'♠','K','#111')+
-      card(cx+8,cy-48,18,'♦','Q','#c62828')+
-      [0,1,2,3,4].map(i=>`<ellipse cx="${cx-24+i*13}" cy="${cy+48}" rx="15" ry="5" fill="${['#c62828','#1565c0','#2e7d32','#f57f17','#555'][i]}"${op(.9)}/>`).join('');
+      <rect x="${x+3}" y="${y+4}" width="52" height="76" rx="6" fill="#000" opacity=".35"/>
+      <rect x="${x}" y="${y}" width="52" height="76" rx="6" fill="#f8f8ef"${op(.96)}/>
+      <rect x="${x}" y="${y}" width="52" height="5" rx="3" fill="#fff" opacity=".4"/>
+      <text x="${x+8}" y="${y+18}" font-size="14" fill="${suitColor}" font-weight="bold">${rank}</text>
+      <text x="${x+8}" y="${y+32}" font-size="14" fill="${suitColor}">${suit}</text>
+      <text x="${x+26}" y="${y+56}" font-size="30" text-anchor="middle" fill="${suitColor}"${op(.75)}>${suit}</text></g>`;
+    const chips=[['#c62828','#e53935'],['#1565c0','#1976d2'],['#2e7d32','#388e3c'],['#f57f17','#f9a825'],['#444','#666']];
+    let chipsHtml='';
+    chips.forEach(([dark,bright],i)=>{
+      const cx2=cx-30+i*16, cy2=cy+54-i*4;
+      chipsHtml+=`<ellipse cx="${cx2}" cy="${cy2+4}" rx="16" ry="5" fill="#000" opacity=".3"/>
+        <ellipse cx="${cx2}" cy="${cy2}" rx="16" ry="5" fill="${dark}"/>
+        <ellipse cx="${cx2}" cy="${cy2}" rx="16" ry="2" fill="${bright}" opacity=".8"/>`;
+    });
+    return card(cx-74,cy-52,-20,'♥','A','#c62828')+card(cx-36,cy-60,0,'♠','K','#111')+
+      card(cx+4,cy-52,20,'♦','Q','#c62828')+chipsHtml;
   }
   if (id==='battleship') {
     let grid=''; for(let r=0;r<5;r++) for(let c=0;c<5;c++)
-      grid+=`<rect x="${cx-60+c*24}" y="${cy-60+r*24}" width="22" height="22" fill="none" stroke="${lc}" stroke-width="1"${op(.35)}/>`;
-    const hits=[[0,1],[2,2],[1,3]].map(([r,c])=>`<text x="${cx-49+c*24}" y="${cy-44+r*24}" font-size="14" fill="#e53935" text-anchor="middle">✕</text>`).join('');
+      grid+=`<rect x="${cx-60+c*24}" y="${cy-60+r*24}" width="22" height="22" fill="${lc}" opacity="${(r+c)%2?.06:.03}" stroke="${lc}" stroke-width="1" opacity=".3"/>`;
+    const hits=[[0,1],[2,2],[1,3]].map(([r,c])=>`
+      <circle cx="${cx-49+c*24}" cy="${cy-49+r*24}" r="7" fill="#e53935" opacity=".2"/>
+      <text x="${cx-49+c*24}" y="${cy-44+r*24}" font-size="14" fill="#e53935" text-anchor="middle" filter="url(#glow)">✕</text>`).join('');
     return grid+hits+
-      `<rect x="${cx-52}" y="${cy+14}" width="104" height="18" rx="4" fill="${lc}"${op(.8)}/>
-       <rect x="${cx-36}" y="${cy+6}" width="72" height="14" rx="3" fill="${lc}"${op(.6)}/>
-       <rect x="${cx-16}" y="${cy-4}" width="32" height="12" rx="2" fill="${lc}"${op(.5)}/>`;
+      `<rect x="${cx-54}" y="${cy+14}" width="108" height="18" rx="5" fill="${lc}" opacity=".85"/>
+       <rect x="${cx-38}" y="${cy+4}" width="76" height="14" rx="4" fill="${lc}" opacity=".65"/>
+       <rect x="${cx-18}" y="${cy-6}" width="36" height="13" rx="3" fill="${lc}" opacity=".45"/>
+       <rect x="${cx-8}" y="${cy-16}" width="16" height="12" rx="2" fill="${lc}" opacity=".3"/>`;
   }
   if (id==='dnd') {
-    const pts=10,r1=58,r2=32,pts2=Array.from({length:pts*2},(_, i)=>{
+    const pts=10,r1=58,r2=32;
+    const pts2=Array.from({length:pts*2},(_,i)=>{
       const a=Math.PI/pts*i-Math.PI/2, r=i%2?r2:r1;
       return `${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`;}).join(' ');
-    return `<polygon points="${pts2}" fill="${pc}"${op(.8)} stroke="${lc}" stroke-width="2"/>
-      <text x="${cx}" y="${cy+8}" font-size="28" text-anchor="middle" fill="${lc}" font-weight="bold">20</text>
-      <line x1="${cx}" y1="${cy-r1-16}" x2="${cx}" y2="${cy+r1+16}" stroke="${lc}" stroke-width="3"${op(.4)}/>
-      <line x1="${cx-r1-16}" y1="${cy}" x2="${cx+r1+16}" y2="${cy}" stroke="${lc}" stroke-width="2"${op(.25)}/>
-      <text x="${cx}" y="${cy-72}" font-size="26" text-anchor="middle" fill="${lc}"${op(.8)}>⚔</text>`;
+    let runes='';
+    for(let i=0;i<8;i++){const a=Math.PI*2/8*i,r=80;runes+=`<circle cx="${cx+r*Math.cos(a)}" cy="${cy+r*Math.sin(a)}" r="4" fill="${lc}" opacity=".25"/>`;}
+    return runes+
+      `<circle cx="${cx}" cy="${cy}" r="70" fill="${lc}" opacity=".06"/>
+      <circle cx="${cx}" cy="${cy}" r="52" fill="${pc}" opacity=".12"/>
+      <polygon points="${pts2}" fill="${pc}" opacity=".85" stroke="${lc}" stroke-width="2.5" filter="url(#glow)"/>
+      <polygon points="${pts2}" fill="none" stroke="${lc}" stroke-width=".8" opacity=".5"/>
+      <text x="${cx}" y="${cy+10}" font-size="30" text-anchor="middle" fill="${lc}" font-weight="bold" filter="url(#glow)">20</text>
+      <line x1="${cx}" y1="${cy-r1-14}" x2="${cx}" y2="${cy+r1+14}" stroke="${lc}" stroke-width="2.5" opacity=".35"/>
+      <line x1="${cx-r1-14}" y1="${cy}" x2="${cx+r1+14}" y2="${cy}" stroke="${lc}" stroke-width="1.5" opacity=".2"/>
+      <text x="${cx}" y="${cy-80}" font-size="28" text-anchor="middle" fill="${lc}" opacity=".9" filter="url(#glow)">⚔</text>`;
   }
   if (id==='monopoly') {
-    const bldgs=[[cx-50,cy+20,20,72],[cx-24,cy-4,20,96],[cx+4,cy+8,20,84],[cx+28,cy-18,20,110],[cx+52,cy+14,20,78]];
-    return bldgs.map(([x,y,w,h])=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${lc}"${op(.3+Math.random()*.3)} stroke="${lc}" stroke-width="1"${op(.5)}/>`
-      +`<rect x="${x+2}" y="${y+4}" width="4" height="6" fill="${pc}"${op(.8)}/>`
-      +`<rect x="${x+8}" y="${y+4}" width="4" height="6" fill="${pc}"${op(.8)}/>`).join('')
-      +`<text x="${cx}" y="${cy-40}" font-size="36" text-anchor="middle" fill="${lc}"${op(.8)}>$</text>`;
+    const bldgs=[[cx-58,cy+30,18,62],[cx-38,cy+8,22,84],[cx-14,cy+18,20,74],[cx+8,cy-10,24,102],[cx+34,cy+14,20,78],[cx+56,cy+24,16,68]];
+    let sky='';
+    bldgs.forEach(([x,y,w,h],idx)=>{
+      sky+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${lc}" opacity="${idx===3?.45:.28}"/>`;
+      for(let wy=y+6;wy<y+h-8;wy+=10){
+        sky+=`<rect x="${x+3}" y="${wy}" width="5" height="6" fill="${pc}" opacity="${wy%20===6?.75:.15}"/>`;
+        sky+=`<rect x="${x+w-8}" y="${wy}" width="5" height="6" fill="${pc}" opacity="${wy%20===6?.75:.15}"/>`;
+      }
+    });
+    return sky+`<rect x="${cx-60}" y="${cy+92}" width="120" height="3" fill="${lc}" opacity=".35"/>
+      <text x="${cx+10}" y="${cy-20}" font-size="42" text-anchor="middle" fill="${lc}" opacity=".9" filter="url(#glow)">$</text>`;
   }
   if (id==='risk') {
     return `<ellipse cx="${cx-30}" cy="${cy-20}" rx="45" ry="30" fill="${pc}"${op(.7)} stroke="${lc}" stroke-width="1.5"/>
@@ -602,117 +638,176 @@ function gameScene(g, cx, cy, pc, lc) {
       <text x="${cx}" y="${cy-68}" font-size="22" text-anchor="middle" fill="${lc}"${op(.7)}>⚑</text>`;
   }
   if (id==='go') {
-    let grid=''; for(let r=0;r<5;r++) for(let c=0;c<5;c++) {
-      grid+=`<line x1="${cx-48+c*24}" y1="${cy-48}" x2="${cx-48+c*24}" y2="${cy+48}" stroke="${lc}" stroke-width="1"${op(.4)}/>`;
-      grid+=`<line x1="${cx-48}" y1="${cy-48+r*24}" x2="${cx+48}" y2="${cy-48+r*24}" stroke="${lc}" stroke-width="1"${op(.4)}/>`;
+    let grid=`<rect x="${cx-52}" y="${cy-52}" width="104" height="104" rx="3" fill="${pc}" opacity=".12"/>`;
+    for(let r=0;r<5;r++) for(let c=0;c<5;c++) {
+      grid+=`<line x1="${cx-48+c*24}" y1="${cy-48}" x2="${cx-48+c*24}" y2="${cy+48}" stroke="${lc}" stroke-width="1" opacity=".45"/>`;
+      grid+=`<line x1="${cx-48}" y1="${cy-48+r*24}" x2="${cx+48}" y2="${cy-48+r*24}" stroke="${lc}" stroke-width="1" opacity=".45"/>`;
     }
+    [[1,1],[1,3],[3,1],[3,3],[2,2]].forEach(([r,c])=>grid+=`<circle cx="${cx-48+c*24}" cy="${cy-48+r*24}" r="3" fill="${lc}" opacity=".5"/>`);
     const stones=[[0,0,'#111'],[1,2,'#eee'],[2,1,'#111'],[3,3,'#eee'],[1,4,'#111'],[4,2,'#eee'],[3,1,'#111']];
-    return grid+stones.map(([r,c,cl])=>`<circle cx="${cx-48+c*24}" cy="${cy-48+r*24}" r="10" fill="${cl}" stroke="${cl==='#111'?lc:pc}" stroke-width="1.5"/>`).join('');
+    return grid+stones.map(([r,c,cl])=>{
+      const isBlack=cl==='#111';
+      return `<circle cx="${cx-48+c*24}" cy="${cy-48+r*24}" r="11" fill="${cl}" stroke="${isBlack?lc:pc}" stroke-width="1.5"/>
+        <ellipse cx="${cx-48+c*24-3}" cy="${cy-48+r*24-3}" rx="4" ry="3" fill="#fff" opacity="${isBlack?.18:.55}"/>`;
+    }).join('');
   }
   if (id==='mahjong') {
-    const tile=(x,y,ch,rot=0)=>`<g transform="rotate(${rot} ${x+22} ${y+32})"><rect x="${x}" y="${y}" width="44" height="60" rx="4" fill="#f5e8c8"${op(.9)} stroke="#8B6914" stroke-width="2"/>
+    const tile=(x,y,ch,rot=0)=>`<g transform="rotate(${rot} ${x+22} ${y+32})">
+      <rect x="${x+2}" y="${y+3}" width="44" height="60" rx="4" fill="#000" opacity=".25"/>
+      <rect x="${x}" y="${y}" width="44" height="60" rx="4" fill="#f5e8c8" opacity=".93" stroke="#8B6914" stroke-width="2"/>
+      <rect x="${x}" y="${y}" width="44" height="5" rx="2" fill="#fff" opacity=".3"/>
       <text x="${x+22}" y="${y+38}" font-size="26" text-anchor="middle" fill="${pc}">${ch}</text></g>`;
     return tile(cx-52,cy-40,'字',-5)+tile(cx-14,cy-48,'龍',0)+tile(cx+24,cy-40,'風',5)+
       tile(cx-52,cy+28,'花',-3)+tile(cx+24,cy+28,'竹',3);
   }
   if (id==='clue') {
-    return `<rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="1.5"${op(.4)}/>
-      ${[[cx-56,cy-56,cx,cy-56],[cx,cy-56,cx,cy],[cx-56,cy,cx,cy],[cx-56,cy-56,cx-56,cy],[cx,cy,cx+56,cy],[cx+56,cy-56,cx+56,cy],[cx,cy-56,cx+56,cy-56]].map(([x1,y1,x2,y2])=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${lc}" stroke-width="1.5"${op(.3)}/>`).join('')}
-      <circle cx="${cx+20}" cy="${cy+20}" r="28" fill="none" stroke="${lc}" stroke-width="8"${op(.7)}/>
-      <line x1="${cx+40}" y1="${cy+40}" x2="${cx+60}" y2="${cy+60}" stroke="${lc}" stroke-width="10" stroke-linecap="round"${op(.7)}/>
-      <text x="${cx-24}" y="${cy-16}" font-size="18" text-anchor="middle" fill="${lc}"${op(.7)}>🔪</text>
-      <text x="${cx-24}" y="${cy+10}" font-size="14" text-anchor="middle" fill="${lc}"${op(.5)}>?</text>`;
+    const roomLines=[[cx-56,cy-56,cx,cy-56],[cx,cy-56,cx,cy],[cx-56,cy,cx,cy],[cx-56,cy-56,cx-56,cy],[cx,cy,cx+56,cy],[cx+56,cy-56,cx+56,cy],[cx,cy-56,cx+56,cy-56]];
+    return `<rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="${lc}" opacity=".06"/>
+      <rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="1.5" opacity=".45"/>
+      ${roomLines.map(([x1,y1,x2,y2])=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${lc}" stroke-width="1.5" opacity=".32"/>`).join('')}
+      <circle cx="${cx+22}" cy="${cy+22}" r="28" fill="none" stroke="${lc}" stroke-width="8" opacity=".75"/>
+      <line x1="${cx+42}" y1="${cy+42}" x2="${cx+62}" y2="${cy+62}" stroke="${lc}" stroke-width="10" stroke-linecap="round" opacity=".75"/>
+      <text x="${cx-22}" y="${cy-14}" font-size="20" text-anchor="middle" fill="${lc}" opacity=".75">🔪</text>
+      <text x="${cx-22}" y="${cy+14}" font-size="16" text-anchor="middle" fill="${lc}" opacity=".5">?</text>`;
   }
   if (id==='uno') {
     const card=(x,y,rot,col,sym)=>`<g transform="rotate(${rot} ${cx} ${cy})">
-      <rect x="${x}" y="${y}" width="46" height="70" rx="8" fill="${col}"${op(.9)}/>
-      <ellipse cx="${x+23}" cy="${y+35}" rx="16" ry="24" fill="#0003"/>
-      <text x="${x+23}" y="${y+44}" font-size="28" text-anchor="middle" fill="#fff" font-weight="bold">${sym}</text></g>`;
-    return card(cx-60,cy-40,-20,'#e53935','7')+card(cx-26,cy-44,0,'#1565c0','↺')+card(cx+8,cy-40,20,'#2e7d32','W')+
-      `<rect x="${cx-22}" y="${cy+36}" width="44" height="8" rx="4" fill="${lc}"${op(.6)}/>`;
+      <rect x="${x+3}" y="${y+4}" width="46" height="70" rx="8" fill="#000" opacity=".3"/>
+      <rect x="${x}" y="${y}" width="46" height="70" rx="8" fill="${col}" opacity=".92"/>
+      <ellipse cx="${x+23}" cy="${y+35}" rx="17" ry="25" fill="#0002"/>
+      <rect x="${x}" y="${y}" width="46" height="5" rx="4" fill="#fff" opacity=".2"/>
+      <text x="${x+23}" y="${y+46}" font-size="30" text-anchor="middle" fill="#fff" font-weight="bold">${sym}</text></g>`;
+    return card(cx-62,cy-42,-22,'#e53935','7')+card(cx-28,cy-46,0,'#1565c0','↺')+card(cx+6,cy-42,22,'#2e7d32','W')+
+      `<rect x="${cx-24}" y="${cy+38}" width="48" height="8" rx="4" fill="${lc}" opacity=".65"/>`;
   }
   if (id==='tetris') {
-    const sq=(x,y,c)=>`<rect x="${x}" y="${y}" width="22" height="22" rx="2" fill="${c}"${op(.9)} stroke="#000" stroke-width="1"/>`;
-    return sq(cx-33,cy-55,'#e53935')+sq(cx-11,cy-55,'#e53935')+sq(cx+11,cy-55,'#e53935')+sq(cx-11,cy-33,'#e53935')+ // T
-      sq(cx-33,cy-11,'#1565c0')+sq(cx-11,cy-11,'#1565c0')+sq(cx-11,cy+11,'#1565c0')+sq(cx+11,cy+11,'#1565c0')+ // S
-      sq(cx-33,cy+33,'#2e7d32')+sq(cx-11,cy+33,'#2e7d32')+sq(cx+11,cy+33,'#2e7d32')+sq(cx+11,cy+55,'#2e7d32')+ // L
+    const sq=(x,y,c)=>`
+      <rect x="${x+1}" y="${y+2}" width="22" height="22" rx="2" fill="#000" opacity=".3"/>
+      <rect x="${x}" y="${y}" width="22" height="22" rx="2" fill="${c}" opacity=".92"/>
+      <rect x="${x}" y="${y}" width="22" height="5" rx="2" fill="#fff" opacity=".28"/>
+      <rect x="${x}" y="${y}" width="5" height="22" rx="2" fill="#fff" opacity=".12"/>`;
+    return sq(cx-33,cy-55,'#e53935')+sq(cx-11,cy-55,'#e53935')+sq(cx+11,cy-55,'#e53935')+sq(cx-11,cy-33,'#e53935')+
+      sq(cx-33,cy-11,'#1565c0')+sq(cx-11,cy-11,'#1565c0')+sq(cx-11,cy+11,'#1565c0')+sq(cx+11,cy+11,'#1565c0')+
+      sq(cx-33,cy+33,'#2e7d32')+sq(cx-11,cy+33,'#2e7d32')+sq(cx+11,cy+33,'#2e7d32')+sq(cx+11,cy+55,'#2e7d32')+
       sq(cx-33,cy+55,'#f57f17')+sq(cx-11,cy+55,'#f57f17')+
-      `<rect x="${cx-35}" y="${cy+77}" width="110" height="4" fill="${lc}"${op(.5)}/>`;
+      `<rect x="${cx-35}" y="${cy+77}" width="112" height="4" fill="${lc}" opacity=".5"/>`;
   }
   if (id==='pacman') {
-    const dots=[[cx-44,cy-44],[cx-22,cy-44],[cx,cy-44],[cx+22,cy-44],[cx+44,cy-44],[cx-44,cy-22],[cx-44,cy],[cx-44,cy+22],[cx-44,cy+44],[cx-22,cy+44],[cx,cy+44],[cx+22,cy+44],[cx+44,cy+44]];
-    return dots.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5" fill="${lc}"${op(.7)}/>`).join('')+
-      `<path d="M ${cx+22} ${cy} A 44 44 0 1 0 ${cx+22} ${cy+1} Z" fill="${lc}"${op(.9)} clip-path="none"/>`+
-      `<path d="M ${cx+22} ${cy} L ${cx+66} ${cy-22} A 44 44 0 0 0 ${cx+66} ${cy+22} Z" fill="${pc}"${op(.9)}/>`+
-      `<circle cx="${cx-8}" cy="${cy-16}" r="6" fill="${pc}"/>`+
-      `<circle cx="${cx+10}" cy="${cy-60}" r="14" fill="${lc}"${op(.6)}/><rect x="${cx-4}" cy="${cy-74}" width="28" height="18" fill="${lc}"${op(.6)}/>`+
-      `<circle cx="${cx+10}" cy="${cy-74}" r="5" fill="${pc}"/><circle cx="${cx+24}" cy="${cy-74}" r="5" fill="${pc}"/>`;
+    const walls=`
+      <rect x="${cx-66}" y="${cy-66}" width="132" height="132" rx="4" fill="none" stroke="#1565c0" stroke-width="3" opacity=".5"/>
+      <rect x="${cx-42}" y="${cy-42}" width="30" height="20" rx="2" fill="none" stroke="#1565c0" stroke-width="2" opacity=".4"/>
+      <rect x="${cx+12}" y="${cy-42}" width="30" height="20" rx="2" fill="none" stroke="#1565c0" stroke-width="2" opacity=".4"/>
+      <rect x="${cx-42}" y="${cy+22}" width="30" height="20" rx="2" fill="none" stroke="#1565c0" stroke-width="2" opacity=".4"/>`;
+    const dots=[[cx-52,cy-52],[cx-26,cy-52],[cx,cy-52],[cx+26,cy-52],[cx-52,cy-26],[cx-52,cy],[cx-52,cy+26],[cx+26,cy+26],[cx+52,cy+26]];
+    const pellets=dots.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="4" fill="${lc}" opacity=".7"/>`).join('');
+    const power=`<circle cx="${cx+52}" cy="${cy-52}" r="9" fill="${lc}" opacity=".9" filter="url(#glow)"/>
+      <circle cx="${cx+52}" cy="${cy+52}" r="9" fill="${lc}" opacity=".9" filter="url(#glow)"/>`;
+    const pacman=`<path d="M ${cx+10} ${cy+10} A 44 44 0 1 0 ${cx+10} ${cy+11} Z" fill="${lc}" opacity=".92"/>
+      <path d="M ${cx+10} ${cy+10} L ${cx+54} ${cy-14} A 44 44 0 0 0 ${cx+54} ${cy+34} Z" fill="${pc}" opacity=".9"/>
+      <circle cx="${cx-6}" cy="${cy-8}" r="6" fill="${pc}"/>`;
+    const ghost=`<circle cx="${cx+52}" cy="${cy-20}" r="14" fill="${lc}" opacity=".65"/>
+      <rect x="${cx+38}" y="${cy-20}" width="28" height="18" fill="${lc}" opacity=".65"/>
+      <path d="M ${cx+38} ${cy-2} Q ${cx+44} ${cy+8} ${cx+50} ${cy-2} Q ${cx+56} ${cy+8} ${cx+62} ${cy+2} Q ${cx+66} ${cy+8} ${cx+66} ${cy-2}" fill="${lc}" opacity=".65"/>
+      <circle cx="${cx+46}" cy="${cy-22}" r="4" fill="${pc}"/><circle cx="${cx+58}" cy="${cy-22}" r="4" fill="${pc}"/>`;
+    return walls+pellets+power+pacman+ghost;
   }
   if (id==='checkers') {
-    let b=''; for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
-      b+=`<rect x="${cx-54+c*27}" y="${cy-54+r*27}" width="27" height="27" fill="${(r+c)%2?pc+'cc':'#f0e8d8'}"/>`;
-      if((r+c)%2&&r<2) b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="10" fill="#e53935" stroke="#9a0000" stroke-width="1.5"${op(.9)}/>`;
-      if((r+c)%2&&r>=2) b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="10" fill="#f5f0e8" stroke="#888" stroke-width="1.5"${op(.9)}/>`;
+    let b=`<rect x="${cx-56}" y="${cy-56}" width="112" height="112" rx="2" fill="#000" opacity=".2"/>`;
+    for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
+      const dark=(r+c)%2;
+      b+=`<rect x="${cx-54+c*27}" y="${cy-54+r*27}" width="27" height="27" fill="${dark?pc+'cc':'#f2eadc'}"/>`;
+      if(dark) b+=`<rect x="${cx-54+c*27}" y="${cy-54+r*27}" width="27" height="4" fill="#fff" opacity=".08"/>`;
+      if(dark&&r<2){
+        b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="11" fill="#b71c1c" opacity=".25"/>`;
+        b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="10" fill="#e53935" stroke="#9a0000" stroke-width="1.5" opacity=".92"/>`;
+        b+=`<ellipse cx="${cx-44+c*27}" cy="${cy-44+r*27}" rx="4" ry="3" fill="#fff" opacity=".3"/>`;
+      }
+      if(dark&&r>=2){
+        b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="11" fill="#999" opacity=".2"/>`;
+        b+=`<circle cx="${cx-40+c*27}" cy="${cy-40+r*27}" r="10" fill="#f5f0e8" stroke="#888" stroke-width="1.5" opacity=".92"/>`;
+        b+=`<ellipse cx="${cx-44+c*27}" cy="${cy-44+r*27}" rx="4" ry="3" fill="#fff" opacity=".45"/>`;
+      }
     }
-    return b+`<rect x="${cx-56}" y="${cy-56}" width="112" height="112" fill="none" stroke="${lc}" stroke-width="2"${op(.5)}/>`;
+    return b+`<rect x="${cx-55}" y="${cy-55}" width="110" height="110" fill="none" stroke="${lc}" stroke-width="2" opacity=".55"/>`;
   }
   if (id==='backgammon') {
-    const tri=(x,up,col)=>{ const tip=up?cy-64:cy+64; const by=up?cy+64:cy-64;
-      return `<polygon points="${x},${by} ${x+22},${tip} ${x+44},${by}" fill="${col}"${op(.8)}/>`; };
-    return [0,1,2,3].map(i=>tri(cx-54+i*28,true,i%2?lc:pc)).join('')+
-      [0,1,2,3].map(i=>tri(cx-54+i*28,false,i%2?pc:lc)).join('')+
-      `<rect x="${cx-56}" y="${cy-4}" width="112" height="8" fill="${pc}"${op(.4)}/>
-       <circle cx="${cx-30}" cy="${cy+44}" r="11" fill="#f5f0e8" stroke="#888" stroke-width="2"/>
-       <circle cx="${cx-6}" cy="${cy+44}" r="11" fill="#f5f0e8" stroke="#888" stroke-width="2"/>
-       <circle cx="${cx+18}" cy="${cy+44}" r="11" fill="#111" stroke="#444" stroke-width="2"/>`;
+    const tri=(x,up,col)=>{ const tip=up?cy-66:cy+66; const by=up?cy+66:cy-66;
+      return `<polygon points="${x},${by} ${x+23},${tip} ${x+46},${by}" fill="${col}" opacity=".82"/>
+        <polygon points="${x},${by} ${x+23},${tip} ${x+46},${by}" fill="none" stroke="#fff" stroke-width=".5" opacity=".15"/>`; };
+    return [0,1,2,3].map(i=>tri(cx-56+i*29,true,i%2?lc:pc)).join('')+
+      [0,1,2,3].map(i=>tri(cx-56+i*29,false,i%2?pc:lc)).join('')+
+      `<rect x="${cx-4}" y="${cy-68}" width="8" height="136" fill="${pc}" opacity=".55"/>
+       <rect x="${cx-58}" y="${cy-5}" width="116" height="10" fill="${pc}" opacity=".4"/>
+       <circle cx="${cx-32}" cy="${cy+46}" r="12" fill="#f0ece4" stroke="#999" stroke-width="2"/>
+       <ellipse cx="${cx-36}" cy="${cy+42}" rx="4" ry="3" fill="#fff" opacity=".4"/>
+       <circle cx="${cx-6}" cy="${cy+46}" r="12" fill="#f0ece4" stroke="#999" stroke-width="2"/>
+       <ellipse cx="${cx-10}" cy="${cy+42}" rx="4" ry="3" fill="#fff" opacity=".4"/>
+       <circle cx="${cx+20}" cy="${cy+46}" r="12" fill="#111" stroke="#444" stroke-width="2"/>
+       <ellipse cx="${cx+16}" cy="${cy+42}" rx="4" ry="3" fill="#fff" opacity=".2"/>`;
   }
   if (id==='connect4') {
-    let g=''; for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
-      const filled=Math.random()>.45, col=filled?(Math.random()>.5?'#e53935':'#f9a825'):'transparent';
-      g+=`<circle cx="${cx-42+c*28}" cy="${cy-42+r*28}" r="11" fill="${col}" stroke="${lc}" stroke-width="2"${op(filled?.9:.3)}/>`;
+    const pattern=[[1,0,1,0],[0,1,0,1],[1,1,0,0],[0,0,1,1]];
+    const cols=['#e53935','#f9a825'];
+    let gr=`<rect x="${cx-58}" y="${cy-58}" width="116" height="116" rx="8" fill="${pc}" opacity=".75"/>
+      <rect x="${cx-58}" y="${cy-58}" width="116" height="5" rx="4" fill="#fff" opacity=".12"/>`;
+    for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
+      const filled=pattern[r][c];
+      const col=filled?(r+c)%2===0?cols[0]:cols[1]:'transparent';
+      gr+=`<circle cx="${cx-42+c*28}" cy="${cy-42+r*28}" r="11" fill="${filled?'#000':'transparent'}" opacity=".3"/>`;
+      gr+=`<circle cx="${cx-42+c*28}" cy="${cy-42+r*28}" r="11" fill="${col}" stroke="${lc}" stroke-width="1.5" opacity="${filled?.92:.28}"/>`;
+      if(filled) gr+=`<ellipse cx="${cx-46+c*28}" cy="${cy-46+r*28}" rx="4" ry="3" fill="#fff" opacity=".3"/>`;
     }
-    return `<rect x="${cx-56}" y="${cy-56}" width="112" height="112" rx="6" fill="${pc}"${op(.7)}/>`+g;
+    return gr;
   }
   if (id==='minesweeper') {
     const nums=['1','3','','2','🚩','1','','3','2'];
-    let g=''; for(let r=0;r<3;r++) for(let c=0;c<3;c++) {
-      const n=nums[r*3+c];
-      g+=`<rect x="${cx-42+c*28}" y="${cy-42+r*28}" width="26" height="26" fill="${n?'#c0c0c0':'#d8d8d8'}" stroke="#888" stroke-width="1"/>`;
-      if(n) g+=`<text x="${cx-29+c*28}" y="${cy-24+r*28}" font-size="13" text-anchor="middle" fill="${n==='🚩'?'#e53935':n==='1'?'#1565c0':n==='2'?'#2e7d32':'#c62828'}">${n}</text>`;
+    const numColors={'1':'#1565c0','2':'#2e7d32','3':'#c62828','🚩':'#e53935'};
+    let gr='';
+    for(let r=0;r<3;r++) for(let c=0;c<3;c++) {
+      const n=nums[r*3+c], revealed=!!n;
+      gr+=`<rect x="${cx-43+c*30}" y="${cy-43+r*30}" width="28" height="28" fill="${revealed?'#bdbdbd':'#e0e0e0'}" stroke="${revealed?'#999':'#aaa'}" stroke-width="1.5"/>`;
+      if(!revealed){
+        gr+=`<rect x="${cx-43+c*30}" y="${cy-43+r*30}" width="28" height="4" fill="#fff" opacity=".4"/>`;
+        gr+=`<rect x="${cx-43+c*30}" y="${cy-43+r*30}" width="4" height="28" fill="#fff" opacity=".25"/>`;
+      }
+      if(n) gr+=`<text x="${cx-29+c*30}" y="${cy-23+r*30}" font-size="14" text-anchor="middle" fill="${numColors[n]||'#333'}" font-weight="bold">${n}</text>`;
     }
-    return g+`<text x="${cx}" y="${cy+52}" font-size="36" text-anchor="middle"${op(.7)}>💥</text>`;
+    return gr+`<text x="${cx}" y="${cy+52}" font-size="38" text-anchor="middle" opacity=".8">💥</text>`;
   }
   if (id==='mtg') {
-    return `<rect x="${cx-52}" y="${cy-72}" width="104" height="144" rx="8" fill="${pc}"${op(.85)} stroke="${lc}" stroke-width="3"/>
-      <rect x="${cx-44}" y="${cy-64}" width="88" height="60" rx="4" fill="${lc}"${op(.15)} stroke="${lc}" stroke-width="1"/>
-      <text x="${cx}" y="${cy-28}" font-size="32" text-anchor="middle" fill="${lc}"${op(.8)}>✦</text>
-      <rect x="${cx-44}" y="${cy+4}" width="88" height="48" rx="4" fill="${lc}"${op(.12)} stroke="${lc}" stroke-width="1"/>
-      <text x="${cx}" y="${cy+26}" font-size="11" text-anchor="middle" fill="${lc}"${op(.7)}>Legendary Creature</text>
-      <text x="${cx}" y="${cy+40}" font-size="10" text-anchor="middle" fill="${lc}"${op(.5)}>Dragon — 8/8 Flying</text>
-      <text x="${cx-38}" y="${cy+66}" font-size="12" fill="${lc}"${op(.6)}>5/${lc.slice(1,3)==='26'?'9':'7'}</text>`;
+    return `<rect x="${cx-54}" y="${cy-74}" width="108" height="148" rx="10" fill="${pc}" opacity=".9" stroke="${lc}" stroke-width="3"/>
+      <rect x="${cx-54}" y="${cy-74}" width="108" height="6" rx="5" fill="#fff" opacity=".15"/>
+      <rect x="${cx-46}" y="${cy-66}" width="92" height="62" rx="4" fill="${lc}" opacity=".14" stroke="${lc}" stroke-width="1"/>
+      <text x="${cx}" y="${cy-28}" font-size="36" text-anchor="middle" fill="${lc}" opacity=".9" filter="url(#glow)">✦</text>
+      <rect x="${cx-46}" y="${cy+2}" width="92" height="52" rx="4" fill="${lc}" opacity=".11" stroke="${lc}" stroke-width="1"/>
+      <text x="${cx}" y="${cy+24}" font-size="11" text-anchor="middle" fill="${lc}" opacity=".75">Legendary Creature</text>
+      <text x="${cx}" y="${cy+38}" font-size="10" text-anchor="middle" fill="${lc}" opacity=".55">Dragon — 8/8 Flying</text>
+      <text x="${cx-40}" y="${cy+67}" font-size="12" fill="${lc}" opacity=".65">5/9</text>
+      <text x="${cx+40}" y="${cy+67}" font-size="12" text-anchor="end" fill="${lc}" opacity=".65">8/8</text>`;
   }
   if (id==='minecraft') {
     const cube=(x,y,s,cf,ct,cr)=>`
       <polygon points="${x},${y} ${x+s},${y-s*.5} ${x+s*2},${y} ${x+s},${y+s*.5}" fill="${ct}"/>
       <polygon points="${x},${y} ${x},${y+s} ${x+s},${y+s*1.5} ${x+s},${y+s*.5}" fill="${cf}"/>
-      <polygon points="${x+s},${y+s*.5} ${x+s},${y+s*1.5} ${x+s*2},${y+s} ${x+s*2},${y}" fill="${cr}"/>`;
-    return cube(cx-44,cy-20,30,'#8B6914','#c8a832','#6B4A00')+cube(cx-14,cy-36,30,'#5a8a3c','#7ab850','#3a6a1c')+cube(cx+16,cy-20,30,'#5a6a7a','#7a8a9a','#3a4a5a')+
+      <polygon points="${x+s},${y+s*.5} ${x+s},${y+s*1.5} ${x+s*2},${y+s} ${x+s*2},${y}" fill="${cr}"/>
+      <polygon points="${x},${y} ${x+s},${y-s*.5} ${x+s*2},${y} ${x+s},${y+s*.5}" fill="none" stroke="#fff" stroke-width=".5" opacity=".15"/>`;
+    return cube(cx-44,cy-20,30,'#8B6914','#c8a832','#6B4A00')+
+      cube(cx-14,cy-36,30,'#5a8a3c','#7ab850','#3a6a1c')+
+      cube(cx+16,cy-20,30,'#5a6a7a','#7a8a9a','#3a4a5a')+
       cube(cx-44,cy+10,30,'#5a4a3a','#7a6a5a','#3a2a1a');
   }
   if (id==='scrabble') {
-    const tiles=[['Q',10],['U',1],['E',1],['S',1],['T',1]]; let g='';
-    tiles.forEach(([lt,pts],i)=>{
-      g+=`<rect x="${cx-56+i*28}" y="${cy-14}" width="26" height="26" rx="3" fill="#d4a96e" stroke="#8B6914" stroke-width="1.5"/>
-          <text x="${cx-43+i*28}" y="${cy+5}" font-size="17" text-anchor="middle" fill="#2c1a00" font-weight="bold">${lt}</text>
-          <text x="${cx-34+i*28}" y="${cy+11}" font-size="7" fill="#2c1a00"${op(.7)}>${pts}</text>`;
-    });
-    const tiles2=[['Z',10],['O',1],['N',1],['E',1]]; let g2='';
-    tiles2.forEach(([lt,pts],i)=>{
-      g2+=`<rect x="${cx-42+i*28}" y="${cy+20}" width="26" height="26" rx="3" fill="#d4a96e" stroke="#8B6914" stroke-width="1.5"/>
-           <text x="${cx-29+i*28}" y="${cy+39}" font-size="17" text-anchor="middle" fill="#2c1a00" font-weight="bold">${lt}</text>
-           <text x="${cx-20+i*28}" y="${cy+45}" font-size="7" fill="#2c1a00"${op(.7)}>${pts}</text>`;
-    });
-    return g+g2+`<rect x="${cx-58}" y="${cy-56}" width="116" height="116" fill="none" stroke="${lc}" stroke-width="1"${op(.3)}/>`;
+    const mkTile=(lt,pts,x,y)=>`
+      <rect x="${x+2}" y="${y+3}" width="28" height="28" rx="3" fill="#000" opacity=".2"/>
+      <rect x="${x}" y="${y}" width="28" height="28" rx="3" fill="#d4a96e" stroke="#8B6914" stroke-width="1.5"/>
+      <rect x="${x}" y="${y}" width="28" height="5" rx="2" fill="#fff" opacity=".25"/>
+      <text x="${x+14}" y="${y+19}" font-size="17" text-anchor="middle" fill="#2c1a00" font-weight="bold">${lt}</text>
+      <text x="${x+23}" y="${y+26}" font-size="7" fill="#2c1a00" opacity=".7">${pts}</text>`;
+    const row1=[['Q',10],['U',1],['E',1],['S',1],['T',1]];
+    const row2=[['Z',10],['O',1],['N',1],['E',1]];
+    return `<rect x="${cx-60}" y="${cy-56}" width="120" height="116" fill="none" stroke="${lc}" stroke-width="1" opacity=".3"/>
+      ${row1.map(([l,p],i)=>mkTile(l,p,cx-58+i*30,cy-20)).join('')}
+      ${row2.map(([l,p],i)=>mkTile(l,p,cx-44+i*30,cy+16)).join('')}`;
   }
   // Default fallback
   return `<text x="${cx}" y="${cy+16}" font-size="96" text-anchor="middle" fill="${lc}"${op(.85)}>${g.icon}</text>`;
@@ -722,57 +817,133 @@ function gameScene(g, cx, cy, pc, lc) {
 function buildBoxArtSVG(a, b) {
   const W=560, H=400;
   const ca=a.accent, cal=a.accentB, cb=b.accent, cbl=b.accentB;
+  const half=W/2;
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
   <defs>
+    <!-- Glow filter used by game scenes -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Soft inner glow for emblem -->
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Background gradient: diagonal blend of both game colors -->
     <linearGradient id="bgG" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="${ca}" stop-opacity=".95"/>
-      <stop offset="50%"  stop-color="#090912" stop-opacity="1"/>
-      <stop offset="100%" stop-color="${cb}" stop-opacity=".95"/>
+      <stop offset="0%"   stop-color="${ca}" stop-opacity=".9"/>
+      <stop offset="42%"  stop-color="#07070f" stop-opacity="1"/>
+      <stop offset="58%"  stop-color="#07070f" stop-opacity="1"/>
+      <stop offset="100%" stop-color="${cb}" stop-opacity=".9"/>
     </linearGradient>
-    <radialGradient id="glA" cx="27%" cy="46%" r="34%">
-      <stop offset="0%" stop-color="${cal}" stop-opacity=".28"/>
+    <!-- Per-side radial bloom -->
+    <radialGradient id="glA" cx="22%" cy="44%" r="38%">
+      <stop offset="0%" stop-color="${cal}" stop-opacity=".35"/>
       <stop offset="100%" stop-color="transparent"/>
     </radialGradient>
-    <radialGradient id="glB" cx="73%" cy="46%" r="34%">
-      <stop offset="0%" stop-color="${cbl}" stop-opacity=".28"/>
+    <radialGradient id="glB" cx="78%" cy="44%" r="38%">
+      <stop offset="0%" stop-color="${cbl}" stop-opacity=".35"/>
       <stop offset="100%" stop-color="transparent"/>
     </radialGradient>
-    <linearGradient id="fadeBot" x1="0%" y1="55%" x2="0%" y2="100%">
+    <!-- Vignette — dark edges -->
+    <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
       <stop offset="0%" stop-color="transparent"/>
-      <stop offset="100%" stop-color="#090912" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#000" stop-opacity=".55"/>
+    </radialGradient>
+    <!-- Bottom fade into label band -->
+    <linearGradient id="fadeBot" x1="0%" y1="50%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="#07070f" stop-opacity=".92"/>
     </linearGradient>
+    <!-- Panel A clip -->
+    <clipPath id="clipA"><rect x="0" y="0" width="${half}" height="${H}"/></clipPath>
+    <!-- Panel B clip -->
+    <clipPath id="clipB"><rect x="${half}" y="0" width="${half}" height="${H}"/></clipPath>
   </defs>
+
+  <!-- Background layers -->
   <rect width="${W}" height="${H}" fill="url(#bgG)"/>
   <rect width="${W}" height="${H}" fill="url(#glA)"/>
   <rect width="${W}" height="${H}" fill="url(#glB)"/>
+  <rect width="${W}" height="${H}" fill="url(#vignette)"/>
   <rect width="${W}" height="${H}" fill="url(#fadeBot)"/>
-  <!-- Game A scene -->
-  <g>${gameScene(a, 145, 195, ca, cal)}</g>
-  <!-- Game B scene -->
-  <g>${gameScene(b, W-145, 195, cb, cbl)}</g>
-  <!-- Divider -->
-  <line x1="${W/2}" y1="28" x2="${W/2}" y2="${H-52}" stroke="#c9a84c" stroke-width="1" opacity=".18"/>
+
+  <!-- Subtle horizontal rule separating content from label band -->
+  <line x1="0" y1="${H-52}" x2="${W}" y2="${H-52}" stroke="#c9a84c" stroke-width=".5" opacity=".2"/>
+
+  <!-- Game A scene (clipped to left half) -->
+  <g clip-path="url(#clipA)">${gameScene(a, 145, 192, ca, cal)}</g>
+  <!-- Game B scene (clipped to right half) -->
+  <g clip-path="url(#clipB)">${gameScene(b, W-145, 192, cb, cbl)}</g>
+
+  <!-- Divider line with glow -->
+  <line x1="${half}" y1="18" x2="${half}" y2="${H-54}" stroke="${cal}" stroke-width="1.5" opacity=".12"/>
+  <line x1="${half}" y1="18" x2="${half}" y2="${H-54}" stroke="#c9a84c" stroke-width=".6" opacity=".22"/>
+
   <!-- Center emblem -->
-  <circle cx="${W/2}" cy="190" r="32" fill="#090912" stroke="#c9a84c" stroke-width="2" opacity=".96"/>
-  <text x="${W/2}" y="202" font-size="28" fill="#c9a84c" text-anchor="middle">⚡</text>
-  <!-- Frame -->
-  <rect x="9" y="9" width="${W-18}" height="${H-18}" fill="none" stroke="#c9a84c" stroke-width="2.5" rx="7" opacity=".7"/>
-  <rect x="15" y="15" width="${W-30}" height="${H-30}" fill="none" stroke="#c9a84c" stroke-width=".8" rx="5" opacity=".35"/>
-  <text x="28" y="42" font-size="17" fill="#c9a84c" opacity=".75">✦</text>
-  <text x="${W-28}" y="42" font-size="17" fill="#c9a84c" opacity=".75" text-anchor="end">✦</text>
-  <text x="28" y="${H-14}" font-size="17" fill="#c9a84c" opacity=".75">✦</text>
-  <text x="${W-28}" y="${H-14}" font-size="17" fill="#c9a84c" opacity=".75" text-anchor="end">✦</text>
-  <!-- Bottom band -->
-  <rect x="0" y="${H-48}" width="${W}" height="48" fill="#090912" opacity=".75"/>
-  <line x1="44" y1="${H-30}" x2="${W/2-64}" y2="${H-30}" stroke="#c9a84c" stroke-width=".75" opacity=".45"/>
-  <line x1="${W/2+64}" y1="${H-30}" x2="${W-44}" y2="${H-30}" stroke="#c9a84c" stroke-width=".75" opacity=".45"/>
-  <text x="${W/2}" y="${H-22}" font-size="11" fill="#c9a84c" text-anchor="middle" letter-spacing="4"
-        font-family="system-ui,sans-serif">${a.name.toUpperCase()} × ${b.name.toUpperCase()}</text>
+  <circle cx="${half}" cy="190" r="38" fill="#07070f" opacity=".95"/>
+  <circle cx="${half}" cy="190" r="38" fill="none" stroke="${cal}" stroke-width="1.5" opacity=".4"/>
+  <circle cx="${half}" cy="190" r="33" fill="none" stroke="#c9a84c" stroke-width="2.2" opacity=".9" filter="url(#softGlow)"/>
+  <circle cx="${half}" cy="190" r="28" fill="none" stroke="#c9a84c" stroke-width=".5" opacity=".35"/>
+  <text x="${half}" y="202" font-size="28" fill="#c9a84c" text-anchor="middle" filter="url(#glow)">⚡</text>
+
+  <!-- Outer frame — double rule -->
+  <rect x="8" y="8" width="${W-16}" height="${H-16}" fill="none" stroke="#c9a84c" stroke-width="2.5" rx="8" opacity=".72"/>
+  <rect x="14" y="14" width="${W-28}" height="${H-28}" fill="none" stroke="#c9a84c" stroke-width=".8" rx="5" opacity=".32"/>
+
+  <!-- Corner ornaments (small diamond clusters) -->
+  <g fill="#c9a84c" opacity=".7">
+    <polygon points="24,24 30,18 36,24 30,30"/>
+    <circle cx="24" cy="24" r="2.5" opacity=".5"/>
+    <circle cx="36" cy="24" r="2.5" opacity=".5"/>
+    <circle cx="24" cy="36" r="2.5" opacity=".5"/>
+  </g>
+  <g fill="#c9a84c" opacity=".7">
+    <polygon points="${W-24},24 ${W-30},18 ${W-36},24 ${W-30},30"/>
+    <circle cx="${W-24}" cy="24" r="2.5" opacity=".5"/>
+    <circle cx="${W-36}" cy="24" r="2.5" opacity=".5"/>
+    <circle cx="${W-24}" cy="36" r="2.5" opacity=".5"/>
+  </g>
+  <g fill="#c9a84c" opacity=".7">
+    <polygon points="24,${H-24} 30,${H-18} 36,${H-24} 30,${H-30}"/>
+    <circle cx="24" cy="${H-24}" r="2.5" opacity=".5"/>
+    <circle cx="36" cy="${H-24}" r="2.5" opacity=".5"/>
+    <circle cx="24" cy="${H-36}" r="2.5" opacity=".5"/>
+  </g>
+  <g fill="#c9a84c" opacity=".7">
+    <polygon points="${W-24},${H-24} ${W-30},${H-18} ${W-36},${H-24} ${W-30},${H-30}"/>
+    <circle cx="${W-24}" cy="${H-24}" r="2.5" opacity=".5"/>
+    <circle cx="${W-36}" cy="${H-24}" r="2.5" opacity=".5"/>
+    <circle cx="${W-24}" cy="${H-36}" r="2.5" opacity=".5"/>
+  </g>
+
+  <!-- Bottom label band -->
+  <rect x="0" y="${H-50}" width="${W}" height="50" fill="#07070f" opacity=".82"/>
+  <!-- Decorative rules flanking title -->
+  <line x1="28" y1="${H-27}" x2="${half-72}" y2="${H-27}" stroke="#c9a84c" stroke-width=".8" opacity=".5"/>
+  <line x1="${half+72}" y1="${H-27}" x2="${W-28}" y2="${H-27}" stroke="#c9a84c" stroke-width=".8" opacity=".5"/>
+  <!-- Small diamonds on rules -->
+  <polygon points="${half-72},${H-27} ${half-68},${H-23} ${half-64},${H-27} ${half-68},${H-31}" fill="#c9a84c" opacity=".55"/>
+  <polygon points="${half+72},${H-27} ${half+68},${H-23} ${half+64},${H-27} ${half+68},${H-31}" fill="#c9a84c" opacity=".55"/>
+  <!-- Title text -->
+  <text x="${half}" y="${H-20}" font-size="11.5" fill="#c9a84c" text-anchor="middle"
+        letter-spacing="5" font-family="system-ui,sans-serif" font-weight="600"
+        filter="url(#glow)">${a.name.toUpperCase()} × ${b.name.toUpperCase()}</text>
 </svg>`;
 }
 
 function loadRevealArt(a, b) {
-  document.getElementById('revealArt').innerHTML = buildBoxArtSVG(a, b);
+  const key = [a.id, b.id].sort().join('-');
+  const img = new Image();
+  img.src = `art/${key}.webp`;
+  img.onload = () => {
+    document.getElementById('revealArt').innerHTML =
+      `<img src="art/${key}.webp" style="width:100%;display:block;border-radius:12px" alt="${a.name} × ${b.name} box art"/>`;
+  };
+  img.onerror = () => {
+    document.getElementById('revealArt').innerHTML = buildBoxArtSVG(a, b);
+  };
 }
 
 // ── Story builder ─────────────────────────────────────────────────────

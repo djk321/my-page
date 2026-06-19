@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tower Tactics — Chess × Jenga</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f14; color: #e8e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 20px 48px; }
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c9a84c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #fff; }
+    nav a.active { color: #fff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    #topBar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 880px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    h1 { font-size: 24px; font-weight: 500; letter-spacing: -0.5px; }
+    .subtitle { font-size: 11px; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+
+    #root { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; width: 100%; max-width: 880px; }
+
+    /* Tower canvas panel */
+    #tower-panel { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 0 0 auto; }
+
+    canvas { display: block; border-radius: 12px; border: 1px solid #2a2a3a; }
+
+    /* Controls */
+    #mode-bar { display: flex; gap: 8px; }
+    .seg { display: flex; border: 0.5px solid #333; border-radius: 8px; overflow: hidden; }
+    .seg button { padding: 7px 16px; font-size: 12px; border: none; background: #1a1a24; cursor: pointer; color: #aaa; font-family: inherit; transition: background 0.15s; }
+    .seg button.act { background: #c9a84c; color: #0f0f14; font-weight: 600; }
+    .seg button:not(:last-child) { border-right: 0.5px solid #333; }
+    #btn-reset { padding: 7px 14px; font-size: 12px; border: 0.5px solid #333; border-radius: 8px; background: #1a1a24; cursor: pointer; color: #aaa; font-family: inherit; transition: background 0.15s; }
+    #btn-reset:hover { background: #2a2a3a; color: #fff; }
+
+    /* Side panel */
+    #side-panel { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 12px; }
+
+    .panel-box { background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 12px; padding: 16px; }
+    .panel-box h3 { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #666; margin-bottom: 12px; }
+
+    #status-box { border-color: #c9a84c; }
+    #turn-label { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    #hint-label { font-size: 12px; color: #888; line-height: 1.5; }
+
+    .rule-item { font-size: 12px; color: #888; line-height: 1.6; padding: 4px 0; border-bottom: 0.5px solid #2a2a3a; }
+    .rule-item:last-child { border-bottom: none; }
+    .rule-piece { color: #c9a84c; font-weight: 600; }
+
+    #log-box { max-height: 160px; overflow-y: auto; }
+    .log-entry { font-size: 11px; color: #666; line-height: 1.6; padding: 2px 0; border-bottom: 0.5px solid #1e1e28; }
+    .log-entry:last-child { border-bottom: none; }
+    .log-capture { color: #e06060; }
+    .log-cascade { color: #e0a040; }
+    .log-win { color: #c9a84c; font-weight: 600; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; }
+
+    /* Splash screen */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: #0f0f14;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      transition: opacity 0.6s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translate(0,0) rotate(0deg); }
+      20%     { transform: translate(-6px,-2px) rotate(-1.2deg); }
+      40%     { transform: translate(6px,2px) rotate(1.2deg); }
+      60%     { transform: translate(-4px,-3px) rotate(-0.8deg); }
+      80%     { transform: translate(5px,1px) rotate(0.8deg); }
+    }
+    #splash img {
+      width: min(520px, 90vw);
+      border-radius: 16px;
+      box-shadow: 0 0 60px rgba(201,168,76,0.2);
+    }
+    #splash-text {
+      text-align: center;
+    }
+    #splash-text h2 {
+      font-size: clamp(22px, 4vw, 34px);
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+    #splash-text p {
+      font-size: 13px;
+      color: #666;
+      font-style: italic;
+      letter-spacing: 1px;
+    }
+    #btn-play {
+      padding: 14px 44px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #c9a84c, #e8d5a3);
+      color: #0f0f14;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 0 30px rgba(201,168,76,0.35);
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    #btn-play:hover {
+      box-shadow: 0 0 50px rgba(201,168,76,0.6);
+      transform: scale(1.04);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="splash">
+    <img id="splash-img" src="Tower-Tactics.png" alt="Tower Tactics">
+    <div id="splash-text">
+      <h2>Tower Tactics</h2>
+      <p>The ultimate test of strategic stability and cunning construction!</p>
+    </div>
+    <button id="btn-play" onclick="playSplash()">▶ Play Game</button>
+  </div>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="index.html" class="active">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="../pickleball/index.html">Pickleball</a>
+  </nav>
+
+  <div id="topBar">
+    <div>
+      <h1>♜ Tower Tactics</h1>
+      <div class="subtitle">Chess × Jenga &mdash; Strategic Stability &amp; Cunning Construction</div>
+    </div>
+  </div>
+
+  <div id="root">
+    <div id="tower-panel">
+      <canvas id="gc" width="420" height="490"></canvas>
+      <div id="mode-bar">
+        <div class="seg">
+          <button class="act" id="bmove" onclick="setMode('move')">♟ Move Piece</button>
+          <button id="brem" onclick="setMode('remove')">▪ Remove Block</button>
+        </div>
+        <button id="btn-reset" onclick="resetGame()">↺ New Game</button>
+      </div>
+    </div>
+
+    <div id="side-panel">
+      <div class="panel-box" id="status-box">
+        <h3>Status</h3>
+        <div id="turn-label">White's Turn</div>
+        <div id="hint-label">Click one of your pieces to select it</div>
+      </div>
+
+      <div class="panel-box">
+        <h3>How to Play</h3>
+        <div class="rule-item"><span class="rule-piece">Move Piece</span> — select your piece, then click a highlighted square to move or capture.</div>
+        <div class="rule-item"><span class="rule-piece">Remove Block</span> — pull out any red-highlighted block (no piece on top).</div>
+        <div class="rule-item"><span class="rule-piece">Cascade</span> — if an entire row empties, all blocks above fall, capturing any pieces caught in the collapse.</div>
+        <div class="rule-item"><span class="rule-piece">Win</span> — capture the opponent's Keep (♔ / ♚) to win. One action per turn.</div>
+      </div>
+
+      <div class="panel-box">
+        <h3>Piece Movement</h3>
+        <div class="rule-item"><span class="rule-piece">♔ Keep</span> — 1 step any direction</div>
+        <div class="rule-item"><span class="rule-piece">♖ Rook</span> — slides horizontally or vertically</div>
+        <div class="rule-item"><span class="rule-piece">♗ Bishop</span> — slides diagonally</div>
+        <div class="rule-item"><span class="rule-piece">♘ Knight</span> — L-shape jump</div>
+        <div class="rule-item"><span class="rule-piece">♙ Pawn</span> — 1 step forward; captures diagonally</div>
+      </div>
+
+      <div class="panel-box" id="log-box">
+        <h3>Move Log</h3>
+        <div id="log-entries"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Chess Mashup &mdash; Tower Tactics</footer>
+
+<script>
+const cv = document.getElementById('gc'), ctx = cv.getContext('2d');
+const ROWS = 9, COLS = 3, BW = 114, BH = 38, DX = 16, DY = 9, PX = 5, PY = 3;
+const TX = (420 - (COLS * BW + (COLS - 1) * PX + DX)) / 2;
+const TY = 472;
+
+const SYM = {
+  keep:   { white: '♔', black: '♚' },
+  rook:   { white: '♖', black: '♜' },
+  bishop: { white: '♗', black: '♝' },
+  knight: { white: '♘', black: '♞' },
+  pawn:   { white: '♙', black: '♟' }
+};
+
+let board = [], gs = {};
+
+function pos(r, c) {
+  return { x: TX + c * (BW + PX), y: TY - (r + 1) * (BH + PY) };
+}
+
+function initBoard() {
+  board = Array.from({ length: ROWS }, () =>
+    Array.from({ length: COLS }, () => ({ piece: null, removed: false }))
+  );
+  const w = t => ({ type: t, color: 'white' });
+  const b = t => ({ type: t, color: 'black' });
+  board[0][0].piece = w('rook');   board[0][1].piece = w('keep');   board[0][2].piece = w('rook');
+  board[1][0].piece = w('knight'); board[1][1].piece = w('bishop'); board[1][2].piece = w('knight');
+  board[2][0].piece = w('pawn');   board[2][1].piece = w('pawn');   board[2][2].piece = w('pawn');
+  board[8][0].piece = b('rook');   board[8][1].piece = b('keep');   board[8][2].piece = b('rook');
+  board[7][0].piece = b('knight'); board[7][1].piece = b('bishop'); board[7][2].piece = b('knight');
+  board[6][0].piece = b('pawn');   board[6][1].piece = b('pawn');   board[6][2].piece = b('pawn');
+  gs = { turn: 'white', mode: 'move', sel: null, moves: [], remHL: [], over: false, winner: null, winReason: '' };
+}
+
+function blockAt(px, py) {
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (board[r][c].removed) continue;
+    const { x, y } = pos(r, c);
+    if (px >= x && px <= x + BW && py >= y && py <= y + BH) return { row: r, col: c };
+  }
+  return null;
+}
+
+function drawBlock(r, c, fc, tc, sc) {
+  const { x, y } = pos(r, c);
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.8;
+  ctx.fillStyle = fc; ctx.beginPath(); ctx.rect(x, y, BW, BH); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = tc; ctx.beginPath();
+  ctx.moveTo(x, y); ctx.lineTo(x + DX, y - DY); ctx.lineTo(x + BW + DX, y - DY); ctx.lineTo(x + BW, y);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = sc; ctx.beginPath();
+  ctx.moveTo(x + BW, y); ctx.lineTo(x + BW + DX, y - DY);
+  ctx.lineTo(x + BW + DX, y - DY + BH); ctx.lineTo(x + BW, y + BH);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+}
+
+function drawPiece(r, c, piece) {
+  const { x, y } = pos(r, c);
+  const isW = piece.color === 'white';
+  ctx.fillStyle = isW ? 'rgba(255,252,220,0.93)' : 'rgba(8,8,44,0.93)';
+  ctx.beginPath(); ctx.arc(x + BW / 2, y + BH / 2, 15, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = isW ? '#B8860B' : '#4477BB'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = isW ? '#4a3200' : '#AACCFF';
+  ctx.font = 'bold 17px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(SYM[piece.type][piece.color], x + BW / 2, y + BH / 2 + 1);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, 420, 490);
+  const bg = ctx.createLinearGradient(0, 0, 0, 490);
+  bg.addColorStop(0, '#07101f'); bg.addColorStop(1, '#0d1a36');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 420, 490);
+
+  ctx.fillStyle = '#221508';
+  ctx.fillRect(TX - 8, TY + 2, COLS * (BW + PX) + DX + 4, 10);
+  ctx.fillStyle = '#3a2210';
+  ctx.fillRect(TX - 8, TY - 2, COLS * (BW + PX) + DX + 4, 4);
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c].removed) continue;
+      const isSel = gs.sel && gs.sel.row === r && gs.sel.col === c;
+      const isMove = gs.moves.some(m => m.row === r && m.col === c);
+      const isRem = gs.remHL.some(m => m.row === r && m.col === c);
+      let fc = '#5c4020', tc = '#7a5828', sc = '#382510';
+      if (isSel)       { fc = '#163670'; tc = '#1e4a98'; sc = '#0a2050'; }
+      else if (isMove) { fc = '#165018'; tc = '#22702a'; sc = '#0a3210'; }
+      else if (isRem)  { fc = '#681818'; tc = '#882020'; sc = '#380808'; }
+      drawBlock(r, c, fc, tc, sc);
+    }
+  }
+
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (!board[r][c].removed && board[r][c].piece) drawPiece(r, c, board[r][c].piece);
+  }
+
+  if (gs.over) {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)'; ctx.fillRect(0, 0, 420, 490);
+    ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 30px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const wn = gs.winner.charAt(0).toUpperCase() + gs.winner.slice(1);
+    ctx.fillText(wn + ' Wins!', 210, 215);
+    ctx.fillStyle = '#888'; ctx.font = '15px Georgia';
+    ctx.fillText(gs.winReason || '', 210, 255);
+    ctx.fillStyle = '#555'; ctx.font = '12px system-ui';
+    ctx.fillText('Click New Game to play again', 210, 288);
+  }
+}
+
+function getValidMoves(r, c) {
+  const piece = board[r][c].piece;
+  if (!piece || piece.color !== gs.turn) return [];
+  const moves = [], dir = piece.color === 'white' ? 1 : -1;
+  function add(nr, nc) {
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
+    if (board[nr][nc].removed) return false;
+    const t = board[nr][nc].piece;
+    if (t && t.color === piece.color) return false;
+    moves.push({ row: nr, col: nc });
+    return !t;
+  }
+  switch (piece.type) {
+    case 'pawn': {
+      const fr = r + dir;
+      if (fr >= 0 && fr < ROWS && !board[fr][c].removed && !board[fr][c].piece) moves.push({ row: fr, col: c });
+      for (const dc of [-1, 1]) {
+        const fc = c + dc;
+        if (fr >= 0 && fr < ROWS && fc >= 0 && fc < COLS && !board[fr][fc].removed) {
+          const t = board[fr][fc].piece;
+          if (t && t.color !== piece.color) moves.push({ row: fr, col: fc });
+        }
+      }
+      break;
+    }
+    case 'rook':
+      for (let i = c - 1; i >= 0; i--)   if (!add(r, i)) break;
+      for (let i = c + 1; i < COLS; i++)  if (!add(r, i)) break;
+      for (let i = r - 1; i >= 0; i--)   if (!add(i, c)) break;
+      for (let i = r + 1; i < ROWS; i++)  if (!add(i, c)) break;
+      break;
+    case 'bishop':
+      for (const [dr, dc] of [[-1,-1],[-1,1],[1,-1],[1,1]]) {
+        let nr = r + dr, nc = c + dc;
+        while (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) { if (!add(nr, nc)) break; nr += dr; nc += dc; }
+      }
+      break;
+    case 'knight':
+      for (const [dr, dc] of [[-2,-1],[-2,1],[2,-1],[2,1],[-1,-2],[-1,2],[1,-2],[1,2]]) add(r+dr, c+dc);
+      break;
+    case 'keep':
+      for (const [dr, dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]) add(r+dr, c+dc);
+      break;
+  }
+  return moves;
+}
+
+function getRemovable() {
+  const out = [];
+  for (let r = 1; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c].removed || board[r][c].piece) continue;
+      out.push({ row: r, col: c });
+    }
+  }
+  return out;
+}
+
+function cascade() {
+  let changed = true, captured = [];
+  while (changed) {
+    changed = false;
+    for (let r = 1; r < ROWS; r++) {
+      if (board[r - 1].every(b => b.removed)) {
+        for (let c = 0; c < COLS; c++) {
+          if (!board[r][c].removed) {
+            if (board[r][c].piece) { captured.push({ ...board[r][c].piece }); board[r][c].piece = null; }
+            board[r][c].removed = true; changed = true;
+          }
+        }
+      }
+    }
+  }
+  return captured;
+}
+
+function checkWin() {
+  let wk = false, bk = false;
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const p = board[r][c].piece;
+    if (!p) continue;
+    if (p.type === 'keep' && p.color === 'white') wk = true;
+    if (p.type === 'keep' && p.color === 'black') bk = true;
+  }
+  if (!bk) { gs.over = true; gs.winner = 'white'; gs.winReason = "Black's Keep has fallen!"; addLog("White wins — Black's Keep captured!", 'win'); }
+  else if (!wk) { gs.over = true; gs.winner = 'black'; gs.winReason = "White's Keep has fallen!"; addLog("Black wins — White's Keep captured!", 'win'); }
+}
+
+function addLog(msg, cls) {
+  const el = document.getElementById('log-entries');
+  const d = document.createElement('div');
+  d.className = 'log-entry' + (cls ? ' log-' + cls : '');
+  d.textContent = msg;
+  el.appendChild(d);
+  el.parentElement.scrollTop = el.parentElement.scrollHeight;
+}
+
+function updateUI() {
+  const tl = document.getElementById('turn-label'), hl = document.getElementById('hint-label');
+  if (gs.over) {
+    const wn = gs.winner.charAt(0).toUpperCase() + gs.winner.slice(1);
+    tl.textContent = wn + ' Wins!'; tl.style.color = '#c9a84c';
+    hl.textContent = gs.winReason; return;
+  }
+  const tn = gs.turn === 'white' ? 'White' : 'Black';
+  tl.textContent = tn + "'s Turn";
+  tl.style.color = gs.turn === 'white' ? '#e8d8a0' : '#88aaee';
+  if (gs.mode === 'move') {
+    hl.textContent = gs.sel ? 'Piece selected — click a green block to move' : 'Click one of your pieces to select it';
+  } else {
+    hl.textContent = 'Click a red-highlighted block to remove it';
+  }
+  document.getElementById('bmove').classList.toggle('act', gs.mode === 'move');
+  document.getElementById('brem').classList.toggle('act', gs.mode === 'remove');
+}
+
+function setMode(m) {
+  if (gs.over) return;
+  gs.mode = m; gs.sel = null; gs.moves = [];
+  gs.remHL = m === 'remove' ? getRemovable() : [];
+  updateUI(); draw();
+}
+
+function endTurn() {
+  gs.turn = gs.turn === 'white' ? 'black' : 'white';
+  gs.sel = null; gs.moves = []; gs.mode = 'move'; gs.remHL = [];
+  updateUI(); draw();
+}
+
+cv.addEventListener('click', e => {
+  if (gs.over) return;
+  const r = cv.getBoundingClientRect();
+  const sx = cv.width / r.width, sy = cv.height / r.height;
+  const px = (e.clientX - r.left) * sx, py = (e.clientY - r.top) * sy;
+  const clicked = blockAt(px, py);
+  if (!clicked) return;
+  const { row, col } = clicked;
+
+  if (gs.mode === 'move') {
+    if (gs.sel) {
+      const isValid = gs.moves.some(m => m.row === row && m.col === col);
+      if (isValid) {
+        const mp = board[gs.sel.row][gs.sel.col].piece;
+        const tp = board[row][col].piece;
+        if (tp) addLog(`${gs.turn} captures ${tp.color} ${tp.type}!`, 'capture');
+        board[row][col].piece = mp;
+        board[gs.sel.row][gs.sel.col].piece = null;
+        addLog(`${gs.turn}: ${mp.type} → row ${row + 1}, col ${col + 1}`);
+        checkWin();
+        if (!gs.over) endTurn();
+        draw(); return;
+      }
+      if (board[row][col].piece && board[row][col].piece.color === gs.turn) {
+        gs.sel = { row, col }; gs.moves = getValidMoves(row, col);
+      } else { gs.sel = null; gs.moves = []; }
+    } else {
+      if (board[row][col].piece && board[row][col].piece.color === gs.turn) {
+        gs.sel = { row, col }; gs.moves = getValidMoves(row, col);
+      }
+    }
+  } else {
+    const isR = gs.remHL.some(m => m.row === row && m.col === col);
+    if (isR) {
+      board[row][col].removed = true;
+      addLog(`${gs.turn} removed block at row ${row + 1}, col ${col + 1}`);
+      const cap = cascade();
+      if (cap.length) addLog(`Cascade! ${cap.map(p => p.color + ' ' + p.type).join(', ')} fell!`, 'cascade');
+      checkWin();
+      if (!gs.over) endTurn();
+      draw(); return;
+    }
+  }
+  updateUI(); draw();
+});
+
+function resetGame() {
+  document.getElementById('log-entries').innerHTML = '';
+  initBoard(); updateUI(); draw();
+  addLog('New game started — White goes first.');
+  addLog('Move Piece: select → green square. Remove Block: pull out a red block.');
+}
+
+function playSplash() {
+  const splash = document.getElementById('splash');
+  const img = document.getElementById('splash-img');
+
+  document.getElementById('splash-text').style.opacity = '0';
+  document.getElementById('btn-play').style.opacity = '0';
+
+  img.style.animation = 'shake 0.32s ease-in-out';
+
+  setTimeout(() => {
+    const rect = img.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+
+    const sc = document.createElement('canvas');
+    sc.width = W; sc.height = H;
+    sc.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;z-index:1001;pointer-events:none;border-radius:16px`;
+    document.body.appendChild(sc);
+    const sCtx = sc.getContext('2d');
+    img.style.visibility = 'hidden';
+
+    const N = 13;
+    const stripH = H / N;
+
+    // Bottom floor collapses first, each floor above follows
+    const floors = Array.from({ length: N }, (_, i) => {
+      const dir = i % 2 === 0 ? 1 : -1;
+      return {
+        srcY: i * stripH,
+        y: i * stripH,
+        x: 0,
+        vy: 0,
+        vx: dir * (0.6 + Math.random() * 1.2),
+        rot: 0,
+        rv: dir * (0.022 + Math.random() * 0.022),
+        op: 1,
+        falling: false,
+        delay: (N - 1 - i) * 58, // i=N-1 (bottom) starts at 0ms, i=0 (top) starts last
+      };
+    });
+
+    let elapsed = 0, last = null;
+
+    function animate(ts) {
+      if (!last) last = ts;
+      elapsed += ts - last; last = ts;
+      sCtx.clearRect(0, 0, W, H);
+      let alive = 0;
+
+      floors.forEach(f => {
+        if (f.op <= 0) return;
+        alive++;
+
+        if (!f.falling && elapsed >= f.delay) {
+          f.falling = true;
+          f.vy = 1.2;
+        }
+
+        if (f.falling) {
+          f.vy += 0.52;
+          f.y  += f.vy;
+          f.x  += f.vx;
+          f.rot += f.rv;
+          if (f.y > H * 0.55) f.op -= 0.045;
+        }
+
+        sCtx.save();
+        sCtx.globalAlpha = Math.max(0, f.op);
+        sCtx.translate(W / 2 + f.x, f.y + stripH / 2);
+        sCtx.rotate(f.rot);
+        sCtx.drawImage(img, 0, f.srcY, W, stripH, -W / 2, -stripH / 2, W, stripH);
+        sCtx.restore();
+      });
+
+      alive > 0 ? requestAnimationFrame(animate) : (sc.remove(), splash.remove());
+    }
+
+    requestAnimationFrame(animate);
+  }, 340);
+}
+
+initBoard(); updateUI(); draw();
+addLog('Welcome to Tower Tactics! White moves up ↑, Black moves down ↓.');
+addLog('Capture the Keep (♔/♚) to win. One action per turn.');
+</script>
+
+</body>
+</html>
