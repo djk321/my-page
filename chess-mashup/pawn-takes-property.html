@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pawn Takes Property – Chess Mashup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #3d2b1f;
+      font-family: 'Georgia', serif;
+      color: #f5e6c8;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 14px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      z-index: 300;
+    }
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+      font-family: system-ui, sans-serif;
+    }
+    nav a:hover { color: #fff; }
+    nav a.active { color: #fff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    /* ======= INTRO SCREEN ======= */
+    #intro {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #3d2b1f;
+      padding-top: 60px;
+      overflow: hidden;
+    }
+
+    .intro-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .poster-wrap {
+      position: relative;
+      width: min(360px, 88vw);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 0 0 3px #8b6914;
+    }
+    .poster-wrap img {
+      width: 100%;
+      display: block;
+      border-radius: 10px;
+    }
+
+    .play-btn {
+      background: linear-gradient(135deg, #d4a843, #8b6914);
+      color: #1a110a;
+      border: none;
+      padding: 14px 48px;
+      font-size: 20px;
+      font-family: Georgia, serif;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      letter-spacing: 1px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .play-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(212,168,67,0.4);
+    }
+    .play-btn:active { transform: translateY(1px); }
+
+    /* ======= CRUMBLE CANVAS ======= */
+    #crumble-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 201;
+      pointer-events: none;
+      display: none;
+    }
+
+    /* ======= GAME ROOT ======= */
+    #game-root {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+      padding-top: 60px;
+    }
+    #game-root.visible { opacity: 1; }
+
+    /* ======= GAME STYLES ======= */
+    h2.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+    #app { display: flex; flex-direction: column; align-items: center; padding: 10px; }
+    .title-bar { text-align: center; margin-bottom: 8px; }
+    .title-bar h1 { color: #d4a843; font-size: 22px; text-shadow: 2px 2px 4px #000; }
+    .title-bar p { font-style: italic; color: #c8b88a; font-size: 12px; }
+    .game-layout { display: flex; gap: 10px; align-items: flex-start; width: 100%; max-width: 900px; }
+    .side-panel { width: 160px; flex-shrink: 0; }
+    .player-card { background: #2a1f14; border: 2px solid #8b6914; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+    .player-card.white-player { border-color: #e8dcc8; }
+    .player-card.black-player { border-color: #555; }
+    .player-card.active-turn { box-shadow: 0 0 12px #d4a843; }
+    .player-name { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    .white-player .player-name { color: #f0e8d0; }
+    .black-player .player-name { color: #aaa; }
+    .money { font-size: 18px; color: #4caf50; font-weight: bold; }
+    .money.low { color: #f44336; }
+    .props-owned { font-size: 10px; color: #aaa; margin-top: 4px; }
+    .pieces-lost { font-size: 10px; color: #c0392b; margin-top: 2px; }
+    .board-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; }
+    #board { display: grid; grid-template-columns: repeat(8, 1fr); border: 3px solid #8b6914; box-shadow: 0 0 20px rgba(0,0,0,0.8); width: 100%; max-width: 560px; aspect-ratio: 1; }
+    .sq { position: relative; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.15s; overflow: hidden; aspect-ratio: 1; }
+    .sq:hover { filter: brightness(1.2); }
+    .sq.light { background: #f0d9b5; }
+    .sq.dark { background: #b58863; }
+    .sq.selected { outline: 3px solid #d4a843; outline-offset: -3px; z-index: 2; }
+    .sq.valid-move { outline: 3px solid #4caf50; outline-offset: -3px; z-index: 2; }
+    .sq.valid-move::after { content: ''; position: absolute; width: 30%; height: 30%; background: rgba(76,175,80,0.5); border-radius: 50%; }
+    .sq.valid-capture { outline: 3px solid #f44336; outline-offset: -3px; z-index: 2; }
+    .sq.last-move { background: rgba(212,168,67,0.4) !important; }
+    .prop-stripe { position: absolute; top: 0; left: 0; right: 0; height: 5px; }
+    .prop-owner-dot { position: absolute; bottom: 1px; right: 1px; width: 6px; height: 6px; border-radius: 50%; }
+    .piece { font-size: clamp(16px, 3vw, 26px); line-height: 1; z-index: 1; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); pointer-events: none; user-select: none; }
+    .prop-name { position: absolute; bottom: 0; font-size: 6px; color: rgba(0,0,0,0.6); text-align: center; line-height: 1; padding: 0 1px; pointer-events: none; font-family: Arial, sans-serif; white-space: nowrap; overflow: hidden; width: 100%; }
+    .sq.light .prop-name { color: rgba(0,0,0,0.5); }
+    .sq.dark .prop-name { color: rgba(255,255,255,0.6); }
+    .info-panel { width: 160px; flex-shrink: 0; }
+    .log-box { background: #1a110a; border: 1px solid #5a3e1b; border-radius: 6px; padding: 6px; height: 200px; overflow-y: auto; }
+    .log-box h3 { font-size: 11px; color: #d4a843; margin-bottom: 4px; text-align: center; }
+    .log-entry { font-size: 10px; padding: 2px 0; border-bottom: 1px solid #2a1f14; color: #c8b88a; }
+    .log-entry.capture { color: #e74c3c; }
+    .log-entry.rent { color: #9b59b6; }
+    .log-entry.buy { color: #27ae60; }
+    .log-entry.check { color: #f39c12; font-weight: bold; }
+    .action-box { background: #1a110a; border: 1px solid #5a3e1b; border-radius: 6px; padding: 8px; margin-top: 8px; text-align: center; }
+    .action-box h3 { font-size: 11px; color: #d4a843; margin-bottom: 6px; }
+    .prop-info { font-size: 11px; color: #c8b88a; margin-bottom: 6px; line-height: 1.4; }
+    button { background: #8b6914; color: #f5e6c8; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: Georgia, serif; margin: 2px; transition: background 0.2s; }
+    button:hover { background: #d4a843; color: #1a110a; }
+    button.danger { background: #7a1a1a; }
+    button.danger:hover { background: #c0392b; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; justify-content: center; font-size: 9px; }
+    .legend-item { display: flex; align-items: center; gap: 2px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+    .status-bar { background: #1a110a; border: 2px solid #8b6914; border-radius: 6px; padding: 6px 12px; margin-top: 6px; text-align: center; font-size: 13px; min-width: 300px; max-width: 560px; width: 100%; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: #2a1f14; border: 3px solid #d4a843; border-radius: 12px; padding: 24px; text-align: center; max-width: 320px; }
+    .modal h2 { color: #d4a843; font-size: 22px; margin-bottom: 8px; }
+    .modal p { color: #c8b88a; margin-bottom: 12px; font-size: 13px; }
+    .rules-toggle { cursor: pointer; color: #d4a843; font-size: 11px; text-decoration: underline; margin-top: 4px; display: block; text-align: center; }
+    .rules-box { background: #1a110a; border: 1px solid #5a3e1b; border-radius: 6px; padding: 8px; margin-top: 6px; font-size: 10px; color: #c8b88a; line-height: 1.6; display: none; }
+    .rules-box.open { display: block; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="index.html" class="active">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="../pickleball/index.html">Pickleball</a>
+  </nav>
+
+  <!-- INTRO SCREEN -->
+  <div id="intro">
+    <div class="intro-inner">
+      <div class="poster-wrap" id="poster-wrap">
+        <img id="poster-img" src="Chess-Monopoly.png" alt="Pawn Takes Property" crossorigin="anonymous" />
+      </div>
+      <button class="play-btn" id="play-btn" onclick="startCrumble()">▶ Play Game</button>
+    </div>
+  </div>
+
+  <!-- CRUMBLE CANVAS -->
+  <canvas id="crumble-canvas"></canvas>
+
+  <!-- GAME ROOT -->
+  <div id="game-root">
+    <div id="app">
+      <h2 class="sr-only">Pawn Takes Property: a Chess and Monopoly hybrid game where players move chess pieces to buy properties and collect rent while trying to checkmate their opponent.</h2>
+      <div class="title-bar">
+        <h1>♟ Pawn Takes Property ♟</h1>
+        <p>The Grandmaster's Gambit for Real Estate Tycoons!</p>
+      </div>
+      <div class="game-layout">
+        <!-- Left: White player -->
+        <div class="side-panel">
+          <div class="player-card white-player" id="white-card">
+            <div class="player-name">♔ White Tycoon</div>
+            <div class="money" id="white-money">$1,500</div>
+            <div class="props-owned" id="white-props">Properties: 0</div>
+            <div class="pieces-lost" id="white-lost"></div>
+          </div>
+          <div class="legend">
+            <div style="font-size:10px;color:#d4a843;width:100%;text-align:center;margin-bottom:2px;">Property Groups</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#8b4513"></div> Brown</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#87ceeb"></div> Lt Blue</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e91e63"></div> Pink</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ff9800"></div> Orange</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f44336"></div> Red</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ffeb3b"></div> Yellow</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div> Green</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3f51b5"></div> Blue</div>
+          </div>
+          <span class="rules-toggle" onclick="toggleRules()">📜 How to Play</span>
+          <div class="rules-box" id="rules-box">
+            <b>Chess Rules apply!</b> Pieces move normally.<br><br>
+            <b>Landing on a property:</b><br>
+            • Unowned → Buy it or pass<br>
+            • You own it → Safe<br>
+            • Opponent owns it → Pay rent!<br><br>
+            <b>Capturing</b> an opponent's piece claims their most expensive property too!<br><br>
+            <b>Bankruptcy</b> ($0 or less) = You lose!<br>
+            <b>Checkmate</b> = You lose!<br><br>
+            <b>Rent</b> = $20–$200 based on property group.
+          </div>
+        </div>
+
+        <!-- Center: Board -->
+        <div class="board-wrap">
+          <div id="board"></div>
+          <div class="status-bar" id="status">White's turn — Select a piece to move</div>
+          <div class="legend" style="max-width:560px;width:100%;justify-content:center;margin-top:4px;">
+            <span style="font-size:9px;color:#aaa;">◉ = White owns &nbsp; ◉ = Black owns</span>
+          </div>
+        </div>
+
+        <!-- Right: Black player + log -->
+        <div class="info-panel">
+          <div class="player-card black-player" id="black-card">
+            <div class="player-name" style="color:#999;">♚ Black Tycoon</div>
+            <div class="money" id="black-money">$1,500</div>
+            <div class="props-owned" id="black-props">Properties: 0</div>
+            <div class="pieces-lost" id="black-lost"></div>
+          </div>
+          <div class="action-box" id="action-box">
+            <h3>📋 Actions</h3>
+            <div class="prop-info" id="prop-info">Select a piece to see options</div>
+            <div id="action-btns"></div>
+          </div>
+          <div class="log-box" style="margin-top:8px;">
+            <h3>📰 Game Log</h3>
+            <div id="log-entries"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <h2 id="modal-title">Game Over!</h2>
+      <p id="modal-msg"></p>
+      <button onclick="initGame()">🎲 Play Again</button>
+    </div>
+  </div>
+
+<script>
+// ============ CRUMBLE ANIMATION ============
+function startCrumble() {
+  document.getElementById('play-btn').disabled = true;
+  const canvas = document.getElementById('crumble-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.style.display = 'block';
+  const W = window.innerWidth, H = window.innerHeight;
+  canvas.width = W; canvas.height = H;
+
+  const img = document.getElementById('poster-img');
+  const rect = document.getElementById('poster-wrap').getBoundingClientRect();
+  const COLS = 14, ROWS = 18;
+  const sw = rect.width / COLS, sh = rect.height / ROWS;
+  const ox = rect.left, oy = rect.top;
+
+  const off = document.createElement('canvas');
+  off.width = rect.width; off.height = rect.height;
+  const octx = off.getContext('2d');
+  octx.drawImage(img, 0, 0, rect.width, rect.height);
+
+  const shards = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const x0 = c*sw, y0 = r*sh, x1 = x0+sw, y1 = y0+sh;
+      const flip = Math.random() > 0.5;
+      const tris = flip
+        ? [[[x0,y0],[x1,y0],[x0,y1]], [[x1,y0],[x1,y1],[x0,y1]]]
+        : [[[x0,y0],[x1,y0],[x1,y1]], [[x0,y0],[x1,y1],[x0,y1]]];
+      tris.forEach(pts => {
+        const cx = (pts[0][0]+pts[1][0]+pts[2][0])/3 + ox;
+        const cy = (pts[0][1]+pts[1][1]+pts[2][1])/3 + oy;
+        const angle = Math.atan2(cy - H/2, cx - W/2);
+        const speed = 4 + Math.random()*8;
+        shards.push({
+          pts, ox, oy, x:0, y:0,
+          vx: Math.cos(angle)*speed*(0.5+Math.random()),
+          vy: Math.sin(angle)*speed*(0.5+Math.random()) - 2,
+          gravity: 0.18+Math.random()*0.12,
+          rot:0, rotV:(Math.random()-0.5)*0.18,
+          alpha:1, imgRef:off, imgW:rect.width, imgH:rect.height
+        });
+      });
+    }
+  }
+
+  const intro = document.getElementById('intro');
+  intro.style.transition = 'opacity 0.3s';
+  intro.style.opacity = '0';
+  setTimeout(() => { intro.style.display = 'none'; }, 350);
+
+  const gameRoot = document.getElementById('game-root');
+  gameRoot.style.display = 'block';
+  setTimeout(() => gameRoot.classList.add('visible'), 400);
+  initGame();
+
+  let startTime = null;
+  function animate(ts) {
+    if (!startTime) startTime = ts;
+    ctx.clearRect(0, 0, W, H);
+    let allGone = true;
+    shards.forEach(s => {
+      if (s.alpha <= 0) return;
+      allGone = false;
+      s.x += s.vx; s.y += s.vy; s.vy += s.gravity;
+      s.rot += s.rotV; s.alpha -= 0.012;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, s.alpha);
+      const cx = (s.pts[0][0]+s.pts[1][0]+s.pts[2][0])/3 + s.ox + s.x;
+      const cy = (s.pts[0][1]+s.pts[1][1]+s.pts[2][1])/3 + s.oy + s.y;
+      ctx.translate(cx, cy);
+      ctx.rotate(s.rot);
+      ctx.beginPath();
+      const dx = (s.pts[0][0]+s.pts[1][0]+s.pts[2][0])/3;
+      const dy = (s.pts[0][1]+s.pts[1][1]+s.pts[2][1])/3;
+      ctx.moveTo(s.pts[0][0]-dx, s.pts[0][1]-dy);
+      ctx.lineTo(s.pts[1][0]-dx, s.pts[1][1]-dy);
+      ctx.lineTo(s.pts[2][0]-dx, s.pts[2][1]-dy);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(s.imgRef, -(dx+s.ox-s.ox), -dy, s.imgW, s.imgH);
+      ctx.restore();
+    });
+    if (!allGone && (ts - startTime) < 3000) requestAnimationFrame(animate);
+    else canvas.style.display = 'none';
+  }
+  requestAnimationFrame(animate);
+}
+
+// ============ PROPERTY DATA ============
+const PROPERTIES = [
+  {name:'Mediterranean', price:60, rent:20, color:'#8b4513', group:0},
+  {name:'Community Chest', price:0, rent:0, color:'#777', group:-1},
+  {name:'Baltic Ave', price:60, rent:20, color:'#8b4513', group:0},
+  {name:'Income Tax', price:0, rent:0, color:'#777', group:-1},
+  {name:'Reading RR', price:200, rent:50, color:'#333', group:8},
+  {name:'Oriental Ave', price:100, rent:30, color:'#87ceeb', group:1},
+  {name:'Chance', price:0, rent:0, color:'#777', group:-1},
+  {name:'Vermont Ave', price:100, rent:30, color:'#87ceeb', group:1},
+  {name:'Connecticut', price:120, rent:40, color:'#87ceeb', group:1},
+  {name:'Jail/Visit', price:0, rent:0, color:'#777', group:-1},
+  {name:'St. Charles', price:140, rent:50, color:'#e91e63', group:2},
+  {name:'Electric Co', price:150, rent:75, color:'#9e9e9e', group:9},
+  {name:'States Ave', price:140, rent:50, color:'#e91e63', group:2},
+  {name:'Virginia Ave', price:160, rent:60, color:'#e91e63', group:2},
+  {name:'PA Railroad', price:200, rent:50, color:'#333', group:8},
+  {name:'St. James', price:180, rent:70, color:'#ff9800', group:3},
+  {name:'Community Chest', price:0, rent:0, color:'#777', group:-1},
+  {name:'Tennessee Ave', price:180, rent:70, color:'#ff9800', group:3},
+  {name:'New York Ave', price:200, rent:80, color:'#ff9800', group:3},
+  {name:'Free Parking', price:0, rent:0, color:'#777', group:-1},
+  {name:'Kentucky Ave', price:220, rent:90, color:'#f44336', group:4},
+  {name:'Chance', price:0, rent:0, color:'#777', group:-1},
+  {name:'Indiana Ave', price:220, rent:90, color:'#f44336', group:4},
+  {name:'Illinois Ave', price:240, rent:100, color:'#f44336', group:4},
+  {name:'B&O Railroad', price:200, rent:50, color:'#333', group:8},
+  {name:'Atlantic Ave', price:260, rent:110, color:'#ffeb3b', group:5},
+  {name:'Ventnor Ave', price:260, rent:110, color:'#ffeb3b', group:5},
+  {name:'Water Works', price:150, rent:75, color:'#9e9e9e', group:9},
+  {name:'Marvin Gardens', price:280, rent:120, color:'#ffeb3b', group:5},
+  {name:'Go to Jail', price:0, rent:0, color:'#777', group:-1},
+  {name:'Pacific Ave', price:300, rent:130, color:'#4caf50', group:6},
+  {name:'N. Carolina', price:300, rent:130, color:'#4caf50', group:6},
+  {name:'Community Chest', price:0, rent:0, color:'#777', group:-1},
+  {name:'Pennsylvania Ave', price:320, rent:140, color:'#4caf50', group:6},
+  {name:'Short Line RR', price:200, rent:50, color:'#333', group:8},
+  {name:'Chance', price:0, rent:0, color:'#777', group:-1},
+  {name:'Park Place', price:350, rent:175, color:'#3f51b5', group:7},
+  {name:'Luxury Tax', price:0, rent:0, color:'#777', group:-1},
+  {name:'Boardwalk', price:400, rent:200, color:'#3f51b5', group:7},
+  {name:'Go', price:0, rent:0, color:'#777', group:-1},
+  {name:'Mediterranean', price:60, rent:20, color:'#8b4513', group:0},
+  {name:'Baltic Ave', price:60, rent:20, color:'#8b4513', group:0},
+  {name:'Oriental Ave', price:100, rent:30, color:'#87ceeb', group:1},
+  {name:'Vermont Ave', price:100, rent:30, color:'#87ceeb', group:1},
+  {name:'Connecticut', price:120, rent:40, color:'#87ceeb', group:1},
+  {name:'St. Charles', price:140, rent:50, color:'#e91e63', group:2},
+  {name:'States Ave', price:140, rent:50, color:'#e91e63', group:2},
+  {name:'Virginia Ave', price:160, rent:60, color:'#e91e63', group:2},
+  {name:'St. James', price:180, rent:70, color:'#ff9800', group:3},
+  {name:'Tennessee Ave', price:180, rent:70, color:'#ff9800', group:3},
+  {name:'New York Ave', price:200, rent:80, color:'#ff9800', group:3},
+  {name:'Kentucky Ave', price:220, rent:90, color:'#f44336', group:4},
+  {name:'Indiana Ave', price:220, rent:90, color:'#f44336', group:4},
+  {name:'Illinois Ave', price:240, rent:100, color:'#f44336', group:4},
+  {name:'Atlantic Ave', price:260, rent:110, color:'#ffeb3b', group:5},
+  {name:'Ventnor Ave', price:260, rent:110, color:'#ffeb3b', group:5},
+  {name:'Marvin Gardens', price:280, rent:120, color:'#ffeb3b', group:5},
+  {name:'Pacific Ave', price:300, rent:130, color:'#4caf50', group:6},
+  {name:'N. Carolina', price:300, rent:130, color:'#4caf50', group:6},
+  {name:'Pennsylvania Ave', price:320, rent:140, color:'#4caf50', group:6},
+  {name:'Park Place', price:350, rent:175, color:'#3f51b5', group:7},
+  {name:'Boardwalk', price:400, rent:200, color:'#3f51b5', group:7},
+  {name:'Luxury Tax', price:0, rent:0, color:'#777', group:-1},
+  {name:'Go', price:0, rent:0, color:'#777', group:-1},
+];
+
+const PIECE_SYMBOLS = { wK:'♔',wQ:'♕',wR:'♖',wB:'♗',wN:'♘',wP:'♙',bK:'♚',bQ:'♛',bR:'♜',bB:'♝',bN:'♞',bP:'♟' };
+const PIECE_NAMES = { K:'King',Q:'Queen',R:'Rook',B:'Bishop',N:'Knight',P:'Pawn' };
+
+let state = {};
+
+function initGame() {
+  document.getElementById('modal').style.display = 'none';
+  const board = Array(8).fill(null).map(() => Array(8).fill(null));
+  board[7] = ['wR','wN','wB','wQ','wK','wB','wN','wR'];
+  board[6] = Array(8).fill('wP');
+  board[0] = ['bR','bN','bB','bQ','bK','bB','bN','bR'];
+  board[1] = Array(8).fill('bP');
+  state = {
+    board, turn:'w', selected:null, validMoves:[],
+    properties:Array(64).fill(null), money:{w:1500,b:1500},
+    capturedPieces:{w:[],b:[]}, log:[], gameOver:false,
+    pendingBuy:null, lastMove:null, enPassant:null,
+    castling:{wK:true,wRa:true,wRh:true,bK:true,bRa:true,bRh:true}
+  };
+  renderAll();
+  addLog('Game started! White moves first.','normal');
+  updateStatus("White's turn — Select a piece");
+}
+
+function renderAll() { renderBoard(); updatePanels(); }
+
+function renderBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const sq = document.createElement('div');
+      sq.className = 'sq ' + ((row+col)%2===0 ? 'light' : 'dark');
+      sq.dataset.row = row; sq.dataset.col = col;
+      const idx = row*8+col, prop = PROPERTIES[idx];
+      if (prop && prop.price > 0) {
+        const stripe = document.createElement('div');
+        stripe.className = 'prop-stripe';
+        stripe.style.background = prop.color;
+        sq.appendChild(stripe);
+      }
+      if (state.properties[idx]) {
+        const dot = document.createElement('div');
+        dot.className = 'prop-owner-dot';
+        dot.style.background = state.properties[idx]==='w' ? '#f0e8d0' : '#333';
+        dot.style.border = '1px solid '+(state.properties[idx]==='w'?'#999':'#aaa');
+        sq.appendChild(dot);
+      }
+      const piece = state.board[row][col];
+      if (piece) {
+        const p = document.createElement('div');
+        p.className = 'piece';
+        p.textContent = PIECE_SYMBOLS[piece];
+        sq.appendChild(p);
+      }
+      if (prop && prop.price > 0) {
+        const pn = document.createElement('div');
+        pn.className = 'prop-name';
+        pn.textContent = prop.name.length>10 ? prop.name.substring(0,9)+'.' : prop.name;
+        sq.appendChild(pn);
+      }
+      if (state.selected && state.selected[0]===row && state.selected[1]===col) sq.classList.add('selected');
+      if (state.validMoves.some(m=>m[0]===row&&m[1]===col)) {
+        const t = state.board[row][col];
+        sq.classList.add(t && t[0]!==state.turn ? 'valid-capture' : 'valid-move');
+      }
+      if (state.lastMove && ((state.lastMove.from[0]===row&&state.lastMove.from[1]===col)||(state.lastMove.to[0]===row&&state.lastMove.to[1]===col)))
+        sq.classList.add('last-move');
+      sq.addEventListener('click', () => handleClick(row, col));
+      boardEl.appendChild(sq);
+    }
+  }
+  document.getElementById('white-card').classList.toggle('active-turn', state.turn==='w');
+  document.getElementById('black-card').classList.toggle('active-turn', state.turn==='b');
+}
+
+function updatePanels() {
+  const wM = document.getElementById('white-money'), bM = document.getElementById('black-money');
+  wM.textContent = '$'+state.money.w.toLocaleString();
+  wM.className = 'money'+(state.money.w<200?' low':'');
+  bM.textContent = '$'+state.money.b.toLocaleString();
+  bM.className = 'money'+(state.money.b<200?' low':'');
+  document.getElementById('white-props').textContent = 'Properties: '+state.properties.filter(p=>p==='w').length;
+  document.getElementById('black-props').textContent = 'Properties: '+state.properties.filter(p=>p==='b').length;
+  const wL = state.capturedPieces.w.map(p=>PIECE_SYMBOLS['b'+p]).join(' ');
+  const bL = state.capturedPieces.b.map(p=>PIECE_SYMBOLS['w'+p]).join(' ');
+  document.getElementById('white-lost').textContent = wL ? 'Lost: '+wL : '';
+  document.getElementById('black-lost').textContent = bL ? 'Lost: '+bL : '';
+}
+
+function handleClick(row, col) {
+  if (state.gameOver || state.pendingBuy) return;
+  const piece = state.board[row][col];
+  if (state.selected) {
+    if (state.validMoves.some(m=>m[0]===row&&m[1]===col)) { executeMove(state.selected[0],state.selected[1],row,col); return; }
+    if (piece && piece[0]===state.turn) { state.selected=[row,col]; state.validMoves=getValidMoves(row,col); renderBoard(); showSquareInfo(row,col); return; }
+    state.selected=null; state.validMoves=[]; renderBoard(); clearActionBox(); return;
+  }
+  if (piece && piece[0]===state.turn) { state.selected=[row,col]; state.validMoves=getValidMoves(row,col); renderBoard(); showSquareInfo(row,col); }
+}
+
+function showSquareInfo(row, col) {
+  const idx=row*8+col, prop=PROPERTIES[idx], piece=state.board[row][col];
+  let html = '';
+  if (piece) html += `<b>${PIECE_NAMES[piece[1]]}</b> selected<br>`;
+  if (prop && prop.price>0) {
+    const owner=state.properties[idx];
+    html += `<b>${prop.name}</b><br>Price: $${prop.price} | Rent: $${prop.rent}<br>`;
+    html += owner ? `Owner: ${owner==='w'?'♔ White':'♚ Black'}` : 'Unowned';
+  }
+  document.getElementById('prop-info').innerHTML = html||'Select a piece';
+  document.getElementById('action-btns').innerHTML = `<div style="font-size:10px;color:#888">${state.validMoves.length} valid moves</div>`;
+}
+
+function clearActionBox() {
+  document.getElementById('prop-info').textContent = 'Select a piece to see options';
+  document.getElementById('action-btns').innerHTML = '';
+}
+
+function executeMove(fromRow, fromCol, toRow, toCol) {
+  const piece=state.board[fromRow][fromCol], target=state.board[toRow][toCol];
+  const toIdx=toRow*8+toCol, prop=PROPERTIES[toIdx];
+  if (target) {
+    const cC=target[0],cT=target[1],mC=piece[0];
+    state.capturedPieces[cC==='w'?'w':'b'].push(cT);
+    addLog(`${mC==='w'?'♔ White':'♚ Black'} captures ${PIECE_SYMBOLS[target]}!`,'capture');
+    const oP=state.properties.map((o,i)=>o===cC?i:-1).filter(i=>i>=0);
+    if (oP.length>0) {
+      const stolen=oP.reduce((b,i)=>PROPERTIES[i].price>PROPERTIES[b].price?i:b,oP[0]);
+      state.properties[stolen]=mC;
+      addLog(`+ Seized ${PROPERTIES[stolen].name}!`,'buy');
+    }
+  }
+  if (piece[1]==='P'&&state.enPassant&&toRow===state.enPassant[0]&&toCol===state.enPassant[1]) state.board[fromRow][toCol]=null;
+  state.board[toRow][toCol]=piece; state.board[fromRow][fromCol]=null;
+  state.lastMove={from:[fromRow,fromCol],to:[toRow,toCol]};
+  if (piece[1]==='P'&&(toRow===0||toRow===7)){state.board[toRow][toCol]=piece[0]+'Q';addLog(`${piece[0]==='w'?'♔ White':'♚ Black'} Pawn promoted to Queen!`,'normal');}
+  if (piece[1]==='K'&&Math.abs(toCol-fromCol)===2){
+    if(toCol===6){state.board[fromRow][5]=state.board[fromRow][7];state.board[fromRow][7]=null;}
+    else{state.board[fromRow][3]=state.board[fromRow][0];state.board[fromRow][0]=null;}
+  }
+  if(piece[1]==='K'){state.castling[piece[0]+'K']=false;state.castling[piece[0]+'Ra']=false;state.castling[piece[0]+'Rh']=false;}
+  if(piece[1]==='R'){if(fromCol===0)state.castling[piece[0]+'Ra']=false;if(fromCol===7)state.castling[piece[0]+'Rh']=false;}
+  state.enPassant=null;
+  if(piece[1]==='P'&&Math.abs(toRow-fromRow)===2)state.enPassant=[(fromRow+toRow)/2,toCol];
+  const mover=piece[0];
+  if(prop&&prop.price>0){
+    const owner=state.properties[toIdx];
+    if(owner===null){offerBuy(toIdx,mover,prop);return;}
+    else if(owner!==mover){
+      state.money[mover]-=prop.rent;state.money[owner]+=prop.rent;
+      addLog(`${mover==='w'?'♔ White':'♚ Black'} pays $${prop.rent} rent for ${prop.name}!`,'rent');
+      if(state.money[mover]<=0){endGame(owner,'bankruptcy');return;}
+    }
+  }
+  finishTurn();
+}
+
+function offerBuy(idx, player, prop) {
+  state.pendingBuy={idx,player,prop};state.selected=null;state.validMoves=[];
+  document.getElementById('prop-info').innerHTML=`<b>${prop.name}</b><br>Price: $${prop.price}<br>Rent: $${prop.rent}<br>Your money: $${state.money[player]}`;
+  const btns=document.getElementById('action-btns');btns.innerHTML='';
+  if(state.money[player]>=prop.price){const b=document.createElement('button');b.textContent=`Buy for $${prop.price}`;b.onclick=()=>doBuy(true);btns.appendChild(b);}
+  const p=document.createElement('button');p.textContent='Pass';p.className='danger';p.onclick=()=>doBuy(false);btns.appendChild(p);
+  updateStatus(`${player==='w'?'♔ White':'♚ Black'}: Buy ${prop.name}?`);
+  renderBoard();updatePanels();
+}
+
+function doBuy(buy) {
+  const{idx,player,prop}=state.pendingBuy;state.pendingBuy=null;
+  if(buy){
+    state.money[player]-=prop.price;state.properties[idx]=player;
+    addLog(`${player==='w'?'♔ White':'♚ Black'} buys ${prop.name} for $${prop.price}!`,'buy');
+    if(state.money[player]<=0){endGame(player==='w'?'b':'w','bankruptcy');return;}
+  }else{addLog(`${player==='w'?'♔ White':'♚ Black'} passes on ${prop.name}.`,'normal');}
+  finishTurn();
+}
+
+function finishTurn() {
+  state.selected=null;state.validMoves=[];
+  state.turn=state.turn==='w'?'b':'w';
+  const inCheck=isInCheck(state.turn),hasMoves=hasAnyMoves(state.turn);
+  if(!hasMoves){endGame(inCheck?(state.turn==='w'?'b':'w'):null,inCheck?'checkmate':'stalemate');return;}
+  const tn=state.turn==='w'?'♔ White':'♚ Black';
+  if(inCheck){addLog(`${tn} is in CHECK!`,'check');updateStatus(`${tn}'s turn — IN CHECK!`);}
+  else updateStatus(`${tn}'s turn — Select a piece`);
+  clearActionBox();renderAll();
+}
+
+function endGame(winner,reason) {
+  state.gameOver=true;renderAll();
+  let title,msg;
+  if(reason==='checkmate'){title=`${winner==='w'?'♔ White':'♚ Black'} Wins!`;msg='Checkmate! The king has fallen.';}
+  else if(reason==='bankruptcy'){title=`${winner==='w'?'♔ White':'♚ Black'} Wins!`;msg='Bankruptcy! Opponent ran out of money.';}
+  else{title='Stalemate!';msg='No valid moves — the game ends in a draw.';}
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-msg').textContent=msg;
+  document.getElementById('modal').style.display='flex';
+}
+
+function getValidMoves(row,col) {
+  const piece=state.board[row][col];if(!piece)return[];
+  return getRawMoves(row,col).filter(([tr,tc])=>{
+    const sv=state.board[tr][tc];state.board[tr][tc]=piece;state.board[row][col]=null;
+    const ic=isInCheck(piece[0]);state.board[row][col]=piece;state.board[tr][tc]=sv;return!ic;
+  });
+}
+
+function getRawMoves(row,col) {
+  const piece=state.board[row][col];if(!piece)return[];
+  const color=piece[0],type=piece[1],moves=[];
+  const addIfValid=(r,c)=>{if(r<0||r>7||c<0||c>7)return false;const t=state.board[r][c];if(t&&t[0]===color)return false;moves.push([r,c]);return!t;};
+  const slide=(dr,dc)=>{let r=row+dr,c=col+dc;while(r>=0&&r<=7&&c>=0&&c<=7){const t=state.board[r][c];if(t&&t[0]===color)break;moves.push([r,c]);if(t)break;r+=dr;c+=dc;}};
+  switch(type){
+    case 'P':{const dir=color==='w'?-1:1,sr=color==='w'?6:1;
+      if(row+dir>=0&&row+dir<=7&&!state.board[row+dir][col]){moves.push([row+dir,col]);if(row===sr&&!state.board[row+2*dir][col])moves.push([row+2*dir,col]);}
+      for(const dc of[-1,1]){const r=row+dir,c=col+dc;if(r>=0&&r<=7&&c>=0&&c<=7){const t=state.board[r][c];if(t&&t[0]!==color)moves.push([r,c]);if(state.enPassant&&r===state.enPassant[0]&&c===state.enPassant[1])moves.push([r,c]);}}break;}
+    case 'N':for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])addIfValid(row+dr,col+dc);break;
+    case 'B':slide(-1,-1);slide(-1,1);slide(1,-1);slide(1,1);break;
+    case 'R':slide(-1,0);slide(1,0);slide(0,-1);slide(0,1);break;
+    case 'Q':slide(-1,-1);slide(-1,1);slide(1,-1);slide(1,1);slide(-1,0);slide(1,0);slide(0,-1);slide(0,1);break;
+    case 'K':{for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]])addIfValid(row+dr,col+dc);
+      if(!isInCheck(color)){const r=color==='w'?7:0;if(row===r&&col===4){if(state.castling[color+'K']&&state.castling[color+'Rh']&&!state.board[r][5]&&!state.board[r][6])moves.push([r,6]);if(state.castling[color+'K']&&state.castling[color+'Ra']&&!state.board[r][3]&&!state.board[r][2]&&!state.board[r][1])moves.push([r,2]);}}break;}
+  }
+  return moves;
+}
+
+function findKing(color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(state.board[r][c]===color+'K')return[r,c];return null;}
+function isInCheck(color){const king=findKing(color);if(!king)return false;const opp=color==='w'?'b':'w';for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=state.board[r][c];if(p&&p[0]===opp){const moves=getRawMoves(r,c);if(moves.some(([mr,mc])=>mr===king[0]&&mc===king[1]))return true;}}return false;}
+function hasAnyMoves(color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(state.board[r][c]&&state.board[r][c][0]===color&&getValidMoves(r,c).length>0)return true;return false;}
+function addLog(msg,type){state.log.unshift({msg,type});const el=document.getElementById('log-entries');const e=document.createElement('div');e.className='log-entry '+(type||'normal');e.textContent=msg;el.insertBefore(e,el.firstChild);if(el.children.length>40)el.removeChild(el.lastChild);}
+function updateStatus(msg){document.getElementById('status').textContent=msg;}
+function toggleRules(){document.getElementById('rules-box').classList.toggle('open');}
+</script>
+</body>
+</html>
