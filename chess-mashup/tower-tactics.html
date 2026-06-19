@@ -157,6 +157,10 @@
         </div>
         <button id="btn-reset" onclick="resetGame()">↺ New Game</button>
       </div>
+      <div id="win-banner" style="display:none; text-align:center; padding:14px 20px; background:#1a1a24; border:1px solid #c9a84c; border-radius:12px; margin-top:4px;">
+        <div id="win-title" style="font-size:22px; font-weight:700; color:#c9a84c; margin-bottom:4px;"></div>
+        <div id="win-reason" style="font-size:13px; color:#888;"></div>
+      </div>
     </div>
 
     <div id="side-panel">
@@ -289,16 +293,6 @@ function draw() {
     if (!board[r][c].removed && board[r][c].piece) drawPiece(r, c, board[r][c].piece);
   }
 
-  if (gs.over) {
-    ctx.fillStyle = 'rgba(0,0,0,0.78)'; ctx.fillRect(0, 0, 420, 490);
-    ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 30px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const wn = gs.winner.charAt(0).toUpperCase() + gs.winner.slice(1);
-    ctx.fillText(wn + ' Wins!', 210, 215);
-    ctx.fillStyle = '#888'; ctx.font = '15px Georgia';
-    ctx.fillText(gs.winReason || '', 210, 255);
-    ctx.fillStyle = '#555'; ctx.font = '12px system-ui';
-    ctx.fillText('Click New Game to play again', 210, 288);
-  }
 }
 
 function getValidMoves(r, c) {
@@ -400,11 +394,17 @@ function addLog(msg, cls) {
 
 function updateUI() {
   const tl = document.getElementById('turn-label'), hl = document.getElementById('hint-label');
+  const banner = document.getElementById('win-banner');
   if (gs.over) {
     const wn = gs.winner.charAt(0).toUpperCase() + gs.winner.slice(1);
     tl.textContent = wn + ' Wins!'; tl.style.color = '#c9a84c';
-    hl.textContent = gs.winReason; return;
+    hl.textContent = gs.winReason;
+    document.getElementById('win-title').textContent = wn + ' Wins!';
+    document.getElementById('win-reason').textContent = gs.winReason;
+    banner.style.display = 'block';
+    return;
   }
+  banner.style.display = 'none';
   const tn = gs.turn === 'white' ? 'White' : 'Black';
   tl.textContent = tn + "'s Turn";
   tl.style.color = gs.turn === 'white' ? '#e8d8a0' : '#88aaee';
@@ -478,6 +478,7 @@ cv.addEventListener('click', e => {
 
 function resetGame() {
   document.getElementById('log-entries').innerHTML = '';
+  document.getElementById('win-banner').style.display = 'none';
   initBoard(); updateUI(); draw();
   addLog('New game started — White goes first.');
   addLog('Move Piece: select → green square. Remove Block: pull out a red block.');
