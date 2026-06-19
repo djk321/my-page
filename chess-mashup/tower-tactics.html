@@ -450,7 +450,7 @@ cv.addEventListener('click', e => {
         board[gs.sel.row][gs.sel.col].piece = null;
         addLog(`${gs.turn}: ${mp.type} → row ${row + 1}, col ${col + 1}`);
         checkWin();
-        if (!gs.over) endTurn();
+        if (!gs.over) endTurn(); else updateUI();
         draw(); return;
       }
       if (board[row][col].piece && board[row][col].piece.color === gs.turn) {
@@ -469,7 +469,7 @@ cv.addEventListener('click', e => {
       const cap = cascade();
       if (cap.length) addLog(`Cascade! ${cap.map(p => p.color + ' ' + p.type).join(', ')} fell!`, 'cascade');
       checkWin();
-      if (!gs.over) endTurn();
+      if (!gs.over) endTurn(); else updateUI();
       draw(); return;
     }
   }
