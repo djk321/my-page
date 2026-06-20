@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pickleball - Rules</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c9a84c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+
+    header { text-align: center; margin: 24px 0 32px; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #e8d5a3, #c9a84c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .rules-container { width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 32px; }
+
+    .rule-section { background: #131c2e; border: 1px solid #1e2a3a; border-radius: 12px; padding: 24px 28px; }
+    .rule-section h2 { font-size: 1.05rem; font-weight: 700; color: #fbbf24; margin-bottom: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+    .rule-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .rule-list li { font-size: 0.875rem; color: #cbd5e1; line-height: 1.6; padding-left: 18px; position: relative; }
+    .rule-list li::before { content: '▸'; position: absolute; left: 0; color: #c9a84c; font-size: 0.75rem; top: 2px; }
+
+    .highlight { color: #e8d5a3; font-weight: 600; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; text-align: center; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="index.html">Pickleball</a>
+    <a href="rules.html" class="active">Rules</a>
+    <a href="trainer.html">Training</a>
+    <a href="drills.html">Drills</a>
+    <a href="etiquette.html">Etiquette</a>
+    <a href="helpful-terms.html">Helpful Terms</a>
+  </nav>
+
+  <header>
+    <h1>📋 Rules</h1>
+    <p>Official pickleball rules you need to know</p>
+  </header>
+
+  <div class="rules-container">
+
+    <div class="rule-section">
+      <h2>The Basics</h2>
+      <ul class="rule-list">
+        <li>Pickleball is played on a <span class="highlight">20×44 ft</span> court (same size for singles and doubles).</li>
+        <li>The net is <span class="highlight">36 inches</span> at the sidelines and <span class="highlight">34 inches</span> at the center.</li>
+        <li>Games are played to <span class="highlight">11 points</span>, win by 2. Tournament matches may go to 15 or 21.</li>
+        <li>Only the <span class="highlight">serving team</span> can score a point.</li>
+        <li>Points are called in the order: <span class="highlight">server score – receiver score – server number</span> (doubles only).</li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <h2>Serving</h2>
+      <ul class="rule-list">
+        <li>The serve must be hit <span class="highlight">underhand</span> with the paddle below the wrist and the contact point below the waist.</li>
+        <li>The server must keep both feet behind the baseline and within the sideline extensions at the moment of contact.</li>
+        <li>The ball must land in the <span class="highlight">diagonally opposite service box</span> — past the kitchen line and within the sidelines.</li>
+        <li>In doubles, each player on the serving team gets a turn before the serve passes; the first serving team of the game starts with only <span class="highlight">one serve</span>.</li>
+        <li>There is <span class="highlight">no let serve</span> rule — if the serve clips the net and lands in the correct service box, it is live and in play. Only if it lands in the kitchen or out of bounds is it a fault.</li>
+        <li>The <span class="highlight">drop serve</span> is legal — you may drop the ball and hit it after it bounces, with no restriction on swing direction or contact height.</li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <h2>The Two-Bounce Rule</h2>
+      <ul class="rule-list">
+        <li>After the serve, the ball must <span class="highlight">bounce once on each side</span> before either team may volley.</li>
+        <li>The receiving team must let the serve bounce, then the serving team must let the return bounce — after that, volleys are allowed.</li>
+        <li>This rule prevents serve-and-volley dominance and keeps rallies alive.</li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <h2>The Kitchen (Non-Volley Zone)</h2>
+      <ul class="rule-list">
+        <li>The kitchen is the <span class="highlight">7-foot zone</span> on each side of the net, including the kitchen line itself.</li>
+        <li>You may <span class="highlight">not volley</span> (hit the ball before it bounces) while standing in the kitchen or touching the kitchen line.</li>
+        <li>If your momentum carries you into the kitchen after a volley — even if the ball is already dead — it is a <span class="highlight">fault</span>.</li>
+        <li>You <span class="highlight">can</span> enter the kitchen to play a ball that has bounced; just exit before volleying again.</li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <h2>Faults</h2>
+      <ul class="rule-list">
+        <li>Ball lands <span class="highlight">out of bounds</span> (including the kitchen on a serve).</li>
+        <li>Ball fails to clear the net.</li>
+        <li>Volleying from the kitchen or on the two-bounce rule before the required bounces occur.</li>
+        <li>Ball bounces <span class="highlight">twice</span> on your side before you return it.</li>
+        <li>Player, clothing, or paddle touches the net or the opponent's court during play.</li>
+        <li>Ball hits a player or anything they are wearing/carrying (other than the paddle face).</li>
+      </ul>
+    </div>
+
+    <div class="rule-section">
+      <h2>Line Calls</h2>
+      <ul class="rule-list">
+        <li>A ball that lands on <span class="highlight">any line</span> (except the kitchen line on a serve) is in.</li>
+        <li>A serve that lands on the kitchen line is a <span class="highlight">fault</span>.</li>
+        <li>Players call their own side of the court; give the benefit of the doubt to the opponent when unsure.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <footer>Pickleball &mdash; Rules<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify with official USA Pickleball rules at usapickleball.org.</span></footer>
+</body>
+</html>
