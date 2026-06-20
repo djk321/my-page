@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bocce Ball - Helpful Terms</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c97a4c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+    header { text-align: center; margin: 24px 0 32px; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #e8c9a3, #c97a4c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .terms-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px 48px;
+      width: 100%; max-width: 860px;
+    }
+    .term { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #1e2a3a; padding-bottom: 16px; }
+    .term-name { font-size: 0.95rem; font-weight: 700; color: #fb923c; font-style: italic; text-decoration: underline; text-underline-offset: 3px; }
+    .term-def { font-size: 0.875rem; color: #94a3b8; line-height: 1.5; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; text-align: center; }
+    @media (max-width: 600px) { .terms-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="rules.html">Rules</a>
+    <a href="strategy.html">Strategy</a>
+    <a href="helpful-terms.html" class="active">Terms</a>
+  </nav>
+
+  <header>
+    <h1>📖 Helpful Terms</h1>
+    <p>Bocce vocabulary you need to know</p>
+  </header>
+
+  <div class="terms-grid">
+    <div class="term"><span class="term-name">Pallino</span><span class="term-def">The small target ball (also called jack or boccino) that players aim for throughout the frame</span></div>
+    <div class="term"><span class="term-name">Bocce Ball</span><span class="term-def">One of the four larger balls each team throws toward the pallino — typically 107mm in diameter</span></div>
+    <div class="term"><span class="term-name">Frame</span><span class="term-def">One round of play in which all 8 bocce balls are thrown; similar to an inning in baseball</span></div>
+    <div class="term"><span class="term-name">Pointing (Lagging)</span><span class="term-def">Rolling a bocce ball softly to land as close to the pallino as possible without hitting opponent balls</span></div>
+    <div class="term"><span class="term-name">Spocking (Hitting)</span><span class="term-def">Throwing a bocce ball hard to knock an opponent's ball away from the pallino</span></div>
+    <div class="term"><span class="term-name">Raffa</span><span class="term-def">A hitting shot thrown through the air (aerial) that lands and slides into the target — common in Italian-style bocce</span></div>
+    <div class="term"><span class="term-name">Volo</span><span class="term-def">A high-arc aerial shot that lands directly on the target ball with little roll — requires precise release</span></div>
+    <div class="term"><span class="term-name">In</span><span class="term-def">A bocce ball that is inside a court boundary and counts for scoring purposes</span></div>
+    <div class="term"><span class="term-name">Out</span><span class="term-def">A bocce ball that has crossed a boundary line and is removed from the frame</span></div>
+    <div class="term"><span class="term-name">Dead Ball</span><span class="term-def">A ball removed from play for the frame, usually due to a foul, going out of bounds, or an invalid pallino throw</span></div>
+    <div class="term"><span class="term-name">Foul Line</span><span class="term-def">The line at each end of the court that players must not step on or over when throwing</span></div>
+    <div class="term"><span class="term-name">Banker</span><span class="term-def">A ball that ricochets off the side or back wall before settling near the pallino — legal in walled courts</span></div>
+    <div class="term"><span class="term-name">Kiss</span><span class="term-def">When a bocce ball gently touches and rests directly against the pallino — an ideal pointing shot</span></div>
+    <div class="term"><span class="term-name">Measure</span><span class="term-def">Using a tape measure to determine which ball is closest to the pallino when it cannot be determined by eye</span></div>
+    <div class="term"><span class="term-name">Score (Point)</span><span class="term-def">1 point awarded per bocce ball that is closer to the pallino than the opponent's nearest ball</span></div>
+    <div class="term"><span class="term-name">Nullo (Zero Frame)</span><span class="term-def">A frame where no points are awarded because the two closest balls are equidistant from the pallino</span></div>
+    <div class="term"><span class="term-name">Rolino</span><span class="term-def">Informal term for when the pallino is thrown softly along the ground rather than in the air — common in casual play</span></div>
+    <div class="term"><span class="term-name">Court</span><span class="term-def">The rectangular playing surface; can be dirt, sand, grass, or packed clay — typically 60–90 ft × 10–13 ft in formal play</span></div>
+  </div>
+
+  <footer>Bocce Ball &mdash; Helpful Terms<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify with your local bocce league or official WBC rules.</span></footer>
+</body>
+</html>

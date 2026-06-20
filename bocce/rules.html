@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bocce Ball - Rules</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f14; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c97a4c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+    header { text-align: center; margin: 24px 0 32px; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #e8c9a3, #c97a4c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .content { width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 32px; }
+
+    .section {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 28px 32px;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #c97a4c;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title span { font-size: 1.4rem; }
+
+    .rule-list { display: flex; flex-direction: column; gap: 12px; }
+    .rule { display: flex; gap: 14px; align-items: flex-start; }
+    .rule-num {
+      flex-shrink: 0;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: rgba(201,122,76,0.15);
+      border: 1px solid rgba(201,122,76,0.3);
+      color: #c97a4c;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .rule-text { font-size: 0.9rem; color: #94a3b8; line-height: 1.6; padding-top: 3px; }
+    .rule-text strong { color: #e8c9a3; font-weight: 600; }
+
+    .court-diagram {
+      width: 100%; max-width: 500px; margin: 0 auto;
+      background: #2a6b2a; border-radius: 8px; border: 2px solid #4a8a4a;
+      padding: 20px; position: relative; height: 140px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .court-end {
+      width: 60px; height: 100%;
+      border: 2px dashed #6ab06a; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #6ab06a; text-align: center; font-weight: 600; letter-spacing: 0.5px;
+    }
+    .court-mid { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; }
+    .pallino { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid #ddd; }
+    .dim-label { font-size: 11px; color: #6ab06a; font-weight: 600; text-align: center; margin-top: 8px; }
+
+    .scoring-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .score-box { background: #12121a; border: 1px solid #2a2a3a; border-radius: 10px; padding: 16px 20px; }
+    .score-box-title { font-size: 0.8rem; font-weight: 700; color: #c97a4c; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+    .score-box-text { font-size: 0.875rem; color: #94a3b8; line-height: 1.6; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; text-align: center; }
+    @media (max-width: 600px) { .scoring-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="rules.html" class="active">Rules</a>
+    <a href="strategy.html">Strategy</a>
+    <a href="helpful-terms.html">Terms</a>
+  </nav>
+
+  <header>
+    <h1>📜 Rules of Bocce Ball</h1>
+    <p>How to play the game</p>
+  </header>
+
+  <div class="content">
+
+    <div class="section">
+      <div class="section-title"><span>🏟️</span> The Court</div>
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div class="court-diagram">
+          <div class="court-end">FOUL<br>LINE</div>
+          <div class="court-mid">
+            <div class="pallino"></div>
+            <div class="dim-label">pallino</div>
+          </div>
+          <div class="court-end">FOUL<br>LINE</div>
+        </div>
+        <div class="dim-label" style="color:#666; font-size:12px;">Standard court: 60–90 ft long × 10–13 ft wide</div>
+        <div class="rule-list">
+          <div class="rule"><div class="rule-num">1</div><div class="rule-text">The court is a long narrow rectangle, typically 60–90 feet long and 10–13 feet wide, with solid side and end walls.</div></div>
+          <div class="rule"><div class="rule-num">2</div><div class="rule-text">Each end has a <strong>foul line</strong> — the thrower must release the ball before crossing it.</div></div>
+          <div class="rule"><div class="rule-num">3</div><div class="rule-text">Informal games can be played on grass, sand, or any flat surface without strict size requirements.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>🎯</span> Basic Play</div>
+      <div class="rule-list">
+        <div class="rule"><div class="rule-num">1</div><div class="rule-text">Teams of 1, 2, or 4 players compete. Each side uses <strong>4 bocce balls</strong> of a single color.</div></div>
+        <div class="rule"><div class="rule-num">2</div><div class="rule-text">A coin toss determines who goes first. The winning team throws the <strong>pallino</strong> (small target ball) from behind the foul line to start the frame.</div></div>
+        <div class="rule"><div class="rule-num">3</div><div class="rule-text">The pallino must pass the center line and not hit the back wall to be valid. If invalid, the other team throws it.</div></div>
+        <div class="rule"><div class="rule-num">4</div><div class="rule-text">The team that threw the pallino rolls first. They must try to get as close to the pallino as possible.</div></div>
+        <div class="rule"><div class="rule-num">5</div><div class="rule-text">After each throw, the team whose bocce ball is <strong>farthest from the pallino</strong> throws next — until all balls are thrown.</div></div>
+        <div class="rule"><div class="rule-num">6</div><div class="rule-text">Players may hit (spock) opponent balls or the pallino to change positions. All balls stay where they land.</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>🏆</span> Scoring</div>
+      <div class="scoring-grid">
+        <div class="score-box">
+          <div class="score-box-title">Who Scores</div>
+          <div class="score-box-text">Only one team scores per frame — the team with the bocce ball <strong>closest to the pallino</strong>.</div>
+        </div>
+        <div class="score-box">
+          <div class="score-box-title">How Many Points</div>
+          <div class="score-box-text">1 point for each ball closer to the pallino than the opponent's nearest ball.</div>
+        </div>
+        <div class="score-box">
+          <div class="score-box-title">Winning the Game</div>
+          <div class="score-box-text">First team to reach <strong>12 points</strong> wins (some leagues play to 15 or 16).</div>
+        </div>
+        <div class="score-box">
+          <div class="score-box-title">Ties</div>
+          <div class="score-box-text">If the closest balls are equidistant, no points are awarded — play a new frame.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span>⚠️</span> Fouls &amp; Special Rules</div>
+      <div class="rule-list">
+        <div class="rule"><div class="rule-num">1</div><div class="rule-text"><strong>Foul line:</strong> Stepping on or over the foul line while throwing is a foul. The ball is removed from play.</div></div>
+        <div class="rule"><div class="rule-num">2</div><div class="rule-text"><strong>Out-of-bounds:</strong> A ball that comes to rest outside the court boundaries is removed from play.</div></div>
+        <div class="rule"><div class="rule-num">3</div><div class="rule-text"><strong>Pallino out of bounds:</strong> If the pallino is knocked out, the frame is void and replayed.</div></div>
+        <div class="rule"><div class="rule-num">4</div><div class="rule-text"><strong>Measuring:</strong> A tape measure is used to determine the closest ball when it's too close to call by eye.</div></div>
+        <div class="rule"><div class="rule-num">5</div><div class="rule-text"><strong>Next frame:</strong> The team that scored last throws the pallino to start the next frame.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Bocce Ball &mdash; Rules<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify with your local bocce league or official WBC rules.</span></footer>
+</body>
+</html>

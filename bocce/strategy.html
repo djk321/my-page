@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bocce Ball - Strategy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f14; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c97a4c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+    header { text-align: center; margin: 24px 0 32px; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #e8c9a3, #c97a4c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .content { width: 100%; max-width: 860px; display: flex; flex-direction: column; gap: 28px; }
+
+    .tip-card {
+      background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 16px; padding: 28px 32px;
+      display: flex; gap: 20px; align-items: flex-start; transition: border-color 0.18s;
+    }
+    .tip-card:hover { border-color: rgba(201,122,76,0.4); }
+    .tip-icon { font-size: 2.2rem; flex-shrink: 0; line-height: 1; padding-top: 2px; }
+    .tip-body { flex: 1; }
+    .tip-title { font-size: 1.05rem; font-weight: 700; color: #e8c9a3; margin-bottom: 8px; }
+    .tip-text { font-size: 0.9rem; color: #94a3b8; line-height: 1.7; }
+    .tip-text strong { color: #c97a4c; }
+    .tip-tag {
+      display: inline-block; margin-top: 10px; padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+      background: rgba(201, 122, 76, 0.1); color: #c97a4c; border: 1px solid rgba(201, 122, 76, 0.2);
+    }
+
+    .vs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .vs-box { background: #12121a; border: 1px solid #2a2a3a; border-radius: 12px; padding: 20px 24px; }
+    .vs-title { font-size: 0.85rem; font-weight: 700; color: #c97a4c; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+    .vs-text { font-size: 0.875rem; color: #94a3b8; line-height: 1.6; }
+    .vs-text li { margin-left: 16px; margin-bottom: 6px; }
+
+    .section-header { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #555; padding: 8px 0 4px; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; text-align: center; }
+    @media (max-width: 600px) { .vs-grid { grid-template-columns: 1fr; } .tip-card { flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="../index.html">Home</a>
+    <a href="rules.html">Rules</a>
+    <a href="strategy.html" class="active">Strategy</a>
+    <a href="helpful-terms.html">Terms</a>
+  </nav>
+
+  <header>
+    <h1>🧠 Strategy</h1>
+    <p>Play smarter, win more</p>
+  </header>
+
+  <div class="content">
+
+    <div class="section-header">The Two Shots</div>
+
+    <div style="background:#1a1a24; border:1px solid #2a2a3a; border-radius:16px; padding:28px 32px;">
+      <div class="vs-grid">
+        <div class="vs-box">
+          <div class="vs-title">🎳 Pointing (Lagging)</div>
+          <div class="vs-text">
+            <ul>
+              <li>Roll softly to land near the pallino</li>
+              <li>Best when you're already winning the frame</li>
+              <li>Lower risk — ball stays in play</li>
+              <li>Aim for the same line every time</li>
+              <li>Use a consistent underhand roll</li>
+            </ul>
+          </div>
+        </div>
+        <div class="vs-box">
+          <div class="vs-title">💥 Hitting (Spocking/Raffa)</div>
+          <div class="vs-text">
+            <ul>
+              <li>Throw hard to knock opponent balls away</li>
+              <li>Best when opponent is close to the pallino</li>
+              <li>High risk, high reward</li>
+              <li>Can also move the pallino to your advantage</li>
+              <li>Requires consistent release point</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">Key Strategy Tips</div>
+
+    <div class="tip-card">
+      <div class="tip-icon">📍</div>
+      <div class="tip-body">
+        <div class="tip-title">Control the Pallino</div>
+        <div class="tip-text">The pallino's position dictates everything. When hitting, consider <strong>where the pallino will end up</strong>, not just where the opponent's ball will go. Knocking the pallino into a cluster of your own balls can flip a losing frame into a winning one.</div>
+        <span class="tip-tag">Advanced</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-icon">🎯</div>
+      <div class="tip-body">
+        <div class="tip-title">Establish a Line Early</div>
+        <div class="tip-text">Find your <strong>delivery line</strong> — the path from your feet to the pallino — and stick to it. Most pointing errors come from inconsistent angles, not inconsistent speed. Once your line is dialed in, adjusting distance becomes easy.</div>
+        <span class="tip-tag">Fundamentals</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-icon">🛡️</div>
+      <div class="tip-body">
+        <div class="tip-title">Block with Your Own Balls</div>
+        <div class="tip-text">When you're winning the frame, roll your next ball <strong>between the pallino and the opponent's approach lane</strong>. A well-placed blocker forces your opponent to either hit through it (risky) or go around it (less accurate). Defense wins bocce.</div>
+        <span class="tip-tag">Tactics</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-icon">🏃</div>
+      <div class="tip-body">
+        <div class="tip-title">Know When to Spock</div>
+        <div class="tip-text">Hitting makes sense when the opponent has <strong>2+ balls close to the pallino</strong> and pointing can't close the gap. But if you miss a hit, you've given up a throw — so only spock when the math clearly favors it. When in doubt, point.</div>
+        <span class="tip-tag">Decision Making</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-icon">🧘</div>
+      <div class="tip-body">
+        <div class="tip-title">Manage the Score, Not the Moment</div>
+        <div class="tip-text">If you're up 10–3, don't take risks chasing a 4-point frame — play conservatively. If you're down 11–4, you need aggressive hitting. <strong>Let the score shape your risk tolerance.</strong> Bocce is a game of frames, not individual shots.</div>
+        <span class="tip-tag">Mental Game</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-icon">🌀</div>
+      <div class="tip-body">
+        <div class="tip-title">Use the Backwall (Where Legal)</div>
+        <div class="tip-text">In walled courts, the back wall is your friend. A ball <strong>cushioned off the back wall</strong> often ends up in a better position than a direct roll. Practice bank shots — they're legal and can be surprisingly accurate once you learn the rebound.</div>
+        <span class="tip-tag">Court Awareness</span>
+      </div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-icon">👀</div>
+      <div class="tip-body">
+        <div class="tip-title">Watch Your Opponents' Tendencies</div>
+        <div class="tip-text">Some players always hit, some always point. If your opponent always spocks, <strong>block their line</strong> and let them knock your blocker farther into a scoring position. If they only point, place your balls tight and trust they won't take risks to remove them.</div>
+        <span class="tip-tag">Reading Opponents</span>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Bocce Ball &mdash; Strategy<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify tips with your local bocce league or official WBC rules.</span></footer>
+</body>
+</html>
