@@ -113,7 +113,10 @@
 
 <!-- PAGE 1: INTRO -->
 <div id="introScreen">
-  <div id="introImg"><img src="Checkmage.png" alt="CheckMage"></div>
+  <div id="introImg" style="position:relative;">
+    <img src="Checkmage.png" alt="CheckMage">
+    <canvas id="crumbleCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+  </div>
   <div id="introName">CHECKMAGE</div>
   <div id="introTagline">"Chess decides where your armies move. Magic decides how the battlefield changes."</div>
   <div id="introDesc">Standard chess movement — but every piece has HP and Attack. Pieces wound each other instead of instantly dying. Cast spells from your hand to change the course of battle. Win by checkmate OR by reducing the enemy King's 20 Life Points to zero.</div>
@@ -1050,6 +1053,124 @@ function render(){
   // Log
   document.getElementById('log').innerHTML=gs.log.slice(0,12).map(l=>`<div>${l}</div>`).join('');
 }
+</script>
+
+<script>
+// ─── CRUMBLE ANIMATION ───────────────────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('crumbleCanvas');
+  const ctx = canvas.getContext('2d');
+  const SYMS = ['♔','♕','♖','♗','♘','♙','♚','♛','♜','♝','♞','♟'];
+  const CELL = 28; // grid cell size in px
+  let cols, rows, settled, falling;
+
+  function resize() {
+    const img = document.querySelector('#introImg img');
+    canvas.width  = img ? img.offsetWidth  : 520;
+    canvas.height = img ? img.offsetHeight : 320;
+    cols = Math.floor(canvas.width  / CELL);
+    rows = Math.floor(canvas.height / CELL);
+    settled = new Uint8Array(cols * rows);
+    falling = [];
+  }
+
+  function idx(col, row){ return row * cols + col; }
+
+  function spawn() {
+    const col = Math.floor(Math.random() * cols);
+    falling.push({
+      col,
+      y: -CELL,                          // start just above top
+      vy: 1.5 + Math.random() * 2.5,    // fall speed (px/frame)
+      sym: SYMS[Math.floor(Math.random() * SYMS.length)],
+      opacity: 0.12 + Math.random() * 0.18,
+      color: Math.random() < 0.3 ? '#ffd700' : (Math.random() < 0.5 ? '#c940c9' : '#6b6b9a'),
+    });
+  }
+
+  // Find the y-pixel where this col's stack top sits
+  function stackTop(col) {
+    for(let r = rows - 1; r >= 0; r--) {
+      if(!settled[idx(col, r)]) return (r + 1) * CELL; // first empty row from bottom
+    }
+    return 0; // column full
+  }
+
+  function settle(p) {
+    const row = Math.floor((p.y) / CELL);
+    if(row >= 0 && row < rows) {
+      settled[idx(p.col, row)] = 1;
+    }
+  }
+
+  function update() {
+    // Only animate on intro screen
+    const introVisible = document.getElementById('introScreen').style.display !== 'none'
+                      && !document.getElementById('introScreen').style.display.includes('none')
+                      || document.getElementById('introScreen').offsetParent !== null;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if(!canvas.offsetParent) { requestAnimationFrame(update); return; }
+
+    // Spawn new pieces
+    if(Math.random() < 0.06) spawn();
+
+    // Update falling
+    const keep = [];
+    for(const p of falling) {
+      const top = stackTop(p.col);
+      p.y += p.vy;
+      // Landed?
+      if(p.y + CELL >= top) {
+        p.y = top - CELL;
+        settle(p);
+        // draw settled piece
+        drawPiece(p);
+      } else {
+        keep.push(p);
+        drawPiece(p);
+      }
+    }
+    falling = keep;
+
+    // Draw settled pieces
+    for(let r = 0; r < rows; r++) {
+      for(let c = 0; c < cols; c++) {
+        if(settled[idx(c, r)]) {
+          // settled pieces drawn statically — pick a deterministic symbol/color
+          const seed = (c * 7 + r * 13) % SYMS.length;
+          ctx.save();
+          ctx.globalAlpha = 0.10 + (seed % 5) * 0.02;
+          ctx.fillStyle = seed % 3 === 0 ? '#ffd700' : (seed % 3 === 1 ? '#c940c9' : '#7070aa');
+          ctx.font = `${CELL - 4}px serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(SYMS[seed], c * CELL + CELL/2, r * CELL + CELL/2);
+          ctx.restore();
+        }
+      }
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  function drawPiece(p) {
+    ctx.save();
+    ctx.globalAlpha = p.opacity;
+    ctx.fillStyle = p.color;
+    ctx.font = `${CELL - 4}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.sym, p.col * CELL + CELL/2, p.y + CELL/2);
+    ctx.restore();
+  }
+
+  window.addEventListener('resize', resize);
+  const img = document.querySelector('#introImg img');
+  if(img.complete && img.naturalHeight) { resize(); update(); }
+  else { img.addEventListener('load', () => { resize(); update(); }); }
+})();
 </script>
 </body>
 </html>
