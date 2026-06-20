@@ -39,6 +39,8 @@
     #introPlayBtn:hover { transform:scale(1.04); box-shadow:0 8px 30px rgba(201,64,201,0.4); }
     #introBack { margin-top:14px; background:rgba(201,168,76,0.1); border:1px solid #c9a84c; border-radius:8px; color:#c9a84c; font-size:13px; font-weight:600; cursor:pointer; padding:8px 20px; letter-spacing:0.3px; transition:background 0.2s; }
     #introBack:hover { background:rgba(201,168,76,0.22); }
+    #introHowBtn { padding:14px 32px; font-size:16px; font-weight:700; border:2px solid #c9a84c; border-radius:50px; background:transparent; color:#c9a84c; cursor:pointer; letter-spacing:.5px; transition:all .15s; }
+    #introHowBtn:hover { background:rgba(201,168,76,0.15); transform:scale(1.04); }
 
     /* GAME */
     #gameRoot { display:none; width:100%; flex-direction:column; align-items:center; }
@@ -109,7 +111,7 @@
   <a href="../pickleball/index.html">Pickleball</a>
 </nav>
 
-<!-- INTRO -->
+<!-- PAGE 1: INTRO -->
 <div id="introScreen">
   <div id="introImg"><img src="Checkmage.png" alt="CheckMage"></div>
   <div id="introName">CHECKMAGE</div>
@@ -125,13 +127,39 @@
     <button class="faction-btn" data-f="shadow" onclick="selectFaction(this)">☠️ Shadow</button>
   </div>
 
-  <div id="introAbilities">
+  <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;justify-content:center;">
+    <button id="introPlayBtn" onclick="startGame()">▶ Play CheckMage</button>
+    <button id="introHowBtn" onclick="showRules()">📖 How to Play</button>
+  </div>
+  <button id="introBack" onclick="window.location='index.html'">← Back to Chess Mashup</button>
+</div>
+
+<!-- PAGE 2: HOW TO PLAY -->
+<div id="rulesScreen" style="display:none;flex-direction:column;align-items:center;padding:48px 24px 64px;">
+  <div id="introName" style="font-size:36px;margin-bottom:6px;">HOW TO PLAY</div>
+  <div style="font-size:13px;color:#666;margin-bottom:32px;">CheckMage — Piece Abilities &amp; Rules</div>
+
+  <div style="font-size:12px;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;align-self:flex-start;max-width:500px;width:100%;">Piece Abilities</div>
+  <div id="introAbilities" style="margin-bottom:28px;">
     <div class="iability"><div class="iability-piece">♙</div><div class="iability-name">Recruit</div><div class="iability-desc">On promotion, draw 2 cards</div></div>
     <div class="iability"><div class="iability-piece">♘</div><div class="iability-name">Blink</div><div class="iability-desc">Once per game, move like a Queen</div></div>
     <div class="iability"><div class="iability-piece">♗</div><div class="iability-name">Channel</div><div class="iability-desc">Spells cost 1 less mana</div></div>
     <div class="iability"><div class="iability-piece">♖</div><div class="iability-name">Fortress</div><div class="iability-desc">Adjacent pieces gain +1 HP</div></div>
     <div class="iability"><div class="iability-piece">♕</div><div class="iability-name">Archmage</div><div class="iability-desc">Cast one spell free per turn</div></div>
     <div class="iability"><div class="iability-piece">♔</div><div class="iability-name">Last Stand</div><div class="iability-desc">Below 5 LP: draw 3 cards &amp; gain 3 mana</div></div>
+  </div>
+
+  <div style="font-size:12px;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;align-self:flex-start;max-width:500px;width:100%;">Piece Stats</div>
+  <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px 20px;max-width:500px;width:100%;margin-bottom:28px;font-size:12px;color:#777;line-height:2.2;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;">
+      <span style="color:#bbb;font-weight:600;">Piece</span><span style="color:#bbb;font-weight:600;">ATK</span><span style="color:#bbb;font-weight:600;">HP</span>
+      <span>♙ Pawn</span><span>1</span><span>1</span>
+      <span>♘ Knight</span><span>2</span><span>2</span>
+      <span>♗ Bishop</span><span>2</span><span>2</span>
+      <span>♖ Rook</span><span>3</span><span>3</span>
+      <span>♕ Queen</span><span>4</span><span>4</span>
+      <span>♔ King</span><span>0</span><span style="color:#ff6b6b;">20 LP</span>
+    </div>
   </div>
 
   <div id="introRules">
@@ -144,8 +172,10 @@
     • You play White vs the AI. Queen can cast one spell for free per turn
   </div>
 
-  <button id="introPlayBtn" onclick="startGame()">▶ Play CheckMage</button>
-  <button id="introBack" onclick="window.location='index.html'">← Back to Chess Mashup</button>
+  <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
+    <button id="introPlayBtn" onclick="startGame()">▶ Play CheckMage</button>
+    <button id="introBack" onclick="showIntro()">← Back</button>
+  </div>
 </div>
 
 <!-- GAME -->
@@ -334,6 +364,17 @@ function initGS() {
 function shuffle(arr) {
   for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
   return arr;
+}
+
+function showRules() {
+  document.getElementById('introScreen').style.display='none';
+  document.getElementById('rulesScreen').style.display='flex';
+  window.scrollTo(0,0);
+}
+function showIntro() {
+  document.getElementById('rulesScreen').style.display='none';
+  document.getElementById('introScreen').style.display='flex';
+  window.scrollTo(0,0);
 }
 
 function selectFaction(btn) {
