@@ -86,6 +86,17 @@
     .phase-btn:disabled { opacity:0.3; cursor:default; }
     .phase-btn.primary { border-color:#c940c9; background:rgba(201,64,201,.12); color:#e080e0; }
 
+    /* Step tracker */
+    #step-tracker { display:flex; align-items:center; gap:0; }
+    .step-pip { flex:1; text-align:center; padding:6px 4px; border-radius:8px; border:1px solid #2a2a3a; background:#0e0e18; transition:all 0.2s; }
+    .step-pip.active { border-color:#ffd700; background:rgba(255,215,0,.1); }
+    .step-pip.done { border-color:#444; background:#0e0e18; opacity:0.4; }
+    .step-num { font-size:14px; font-weight:800; color:#555; line-height:1; }
+    .step-pip.active .step-num { color:#ffd700; }
+    .step-name { font-size:9px; color:#555; letter-spacing:0.5px; text-transform:uppercase; margin-top:2px; }
+    .step-pip.active .step-name { color:#aaa; }
+    .step-arrow { font-size:14px; color:#2a2a3a; padding:0 2px; flex-shrink:0; }
+
     /* HAND */
     #hand-area { width:100%; max-width:960px; margin-top:12px; }
     #hand-area h3 { font-size:11px; color:#555; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
@@ -204,20 +215,40 @@
   </div>
   <div id="panel">
     <div class="card">
-      <h3>Turn</h3>
-      <div id="status">White's turn</div>
-      <div id="phase-label">Phase: Mana</div>
-      <div id="mana-row"></div>
+      <h3>Your Turn</h3>
+      <div id="status" style="margin-bottom:10px;"></div>
+
+      <!-- Step tracker -->
+      <div id="step-tracker" style="display:flex;gap:0;margin-bottom:10px;">
+        <div class="step-pip" data-step="cast">
+          <div class="step-num">1</div>
+          <div class="step-name">Cast</div>
+        </div>
+        <div class="step-arrow">›</div>
+        <div class="step-pip" data-step="move">
+          <div class="step-num">2</div>
+          <div class="step-name">Move</div>
+        </div>
+        <div class="step-arrow">›</div>
+        <div class="step-pip" data-step="end">
+          <div class="step-num">3</div>
+          <div class="step-name">End</div>
+        </div>
+      </div>
+
+      <div id="phase-hint" style="font-size:11px;color:#888;line-height:1.6;min-height:32px;"></div>
+      <div id="mana-row" style="margin-top:8px;"></div>
     </div>
+
     <div class="card">
-      <h3>Selected</h3>
-      <div id="piece-info">Click a piece.</div>
-      <button class="phase-btn primary" id="blink-btn" style="display:none" onclick="activateBlink()">♘ Blink (Queen Move)</button>
+      <h3>Selected Piece</h3>
+      <div id="piece-info">Click any of your pieces to select it.</div>
+      <button class="phase-btn primary" id="blink-btn" style="display:none" onclick="activateBlink()">♘ Blink — move like a Queen (once per game)</button>
     </div>
+
     <div class="card">
-      <h3>Actions</h3>
-      <button class="phase-btn primary" id="end-phase-btn" onclick="advancePhase()">End Phase →</button>
-      <button class="phase-btn" id="end-turn-btn" onclick="skipToEndTurn()" style="margin-top:4px;">Skip to End Turn</button>
+      <button class="phase-btn primary" id="end-phase-btn" onclick="advancePhase()">Done — Next Step →</button>
+      <button class="phase-btn" id="end-turn-btn" onclick="skipToEndTurn()" style="margin-top:6px;">Skip My Turn</button>
     </div>
     <div class="card">
       <h3>Log</h3>
@@ -1003,8 +1034,27 @@ function render(){
 
   // Status
   document.getElementById('status').textContent = gs.gameOver ? gs.gameOverMsg : (gs.turn==='w'?'Your turn (White)':'AI thinking...');
-  const phaseNames={cast:'Cast Phase — play spells',move:'Move Phase — move a piece',end:'Resolving...',mana:'Gaining Mana'};
-  document.getElementById('phase-label').textContent = gs.gameOver?'Game Over':(gs.spellTargetMode?'Targeting spell...':phaseNames[gs.phase]||gs.phase);
+
+  // Step tracker
+  const steps=['cast','move','end'];
+  const hints={
+    cast: gs.spellTargetMode ? '🎯 Click a piece on the board to target your spell.' : '🃏 Play spell cards from your hand below, then click "Done" to move a piece.',
+    move: '♟ Click one of your pieces, then click a highlighted square to move it.',
+    end:  '⏳ Waiting for AI...',
+  };
+  const curStep = gs.gameOver ? 'end' : gs.phase;
+  document.querySelectorAll('.step-pip').forEach(el=>{
+    const s=el.dataset.step;
+    const idx=steps.indexOf(s), cur=steps.indexOf(curStep);
+    el.classList.toggle('active', s===curStep);
+    el.classList.toggle('done',   idx < cur);
+  });
+  const hintEl=document.getElementById('phase-hint');
+  if(hintEl) hintEl.textContent = gs.gameOver ? gs.gameOverMsg : (hints[curStep]||'');
+
+  // Button labels
+  const ep=document.getElementById('end-phase-btn');
+  if(ep) ep.textContent = gs.phase==='cast' ? 'Done Casting — Move a Piece →' : 'End Turn →';
 
   // Mana
   const mana=gs.mana.w, max=gs.maxMana.w;
@@ -1014,13 +1064,11 @@ function render(){
   const ml=document.createElement('span'); ml.style.fontSize='11px'; ml.style.color='#555'; ml.style.marginLeft='4px'; ml.textContent=mana+'/'+max; manaRow.appendChild(ml);
 
   // Phase buttons
-  const ep=document.getElementById('end-phase-btn');
   const et=document.getElementById('end-turn-btn');
   if(gs.gameOver){ep.disabled=true;et.disabled=true;}
   else{
     ep.disabled=gs.turn!=='w'||gs.spellTargetMode!=null;
     et.disabled=gs.turn!=='w'||gs.spellTargetMode!=null;
-    ep.textContent=gs.phase==='cast'?'Move Phase →':'End Turn →';
   }
 
   // Enemy king HP
