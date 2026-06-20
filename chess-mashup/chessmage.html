@@ -186,6 +186,7 @@
     <div class="subtitle">Chess × Magic</div>
   </div>
   <div id="faction-display" style="font-size:13px;font-weight:600;"></div>
+  <button onclick="showRules()" style="padding:6px 14px;font-size:12px;border:0.5px solid #6b46c1;border-radius:8px;background:#14141e;color:#9b7fe8;font-weight:600;letter-spacing:0.5px;cursor:pointer;">📖 How to Play</button>
   <a data-back-btn href="javascript:history.back()" style="padding:6px 14px;font-size:12px;border:0.5px solid #c9a84c;border-radius:8px;background:#14141e;color:#c9a84c;text-decoration:none;font-weight:600;letter-spacing:0.5px;">← Back</a>
   <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
 </div>
@@ -393,6 +394,7 @@ function startGame() {
   for(let i=0;i<3;i++) aiDrawCard();
 
   document.getElementById('introScreen').style.display='none';
+  document.getElementById('rulesScreen').style.display='none';
   document.getElementById('gameRoot').style.display='flex';
   document.getElementById('gameRoot').style.flexDirection='column';
   document.getElementById('faction-display').textContent = FACTION_EMOJI[faction]+' '+faction[0].toUpperCase()+faction.slice(1);
