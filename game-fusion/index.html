@@ -112,9 +112,80 @@
     }
 
     footer { margin-top: 56px; font-size: 12px; color: #333; letter-spacing: 1px; }
+
+    .construction-banner {
+      width: 100%;
+      background: repeating-linear-gradient(
+        -45deg,
+        #f5a623,
+        #f5a623 20px,
+        #1a1a24 20px,
+        #1a1a24 40px
+      );
+      padding: 3px 0;
+      position: fixed;
+      top: 57px;
+      left: 0;
+      z-index: 99;
+    }
+
+    .construction-inner {
+      background: #1a1a1a;
+      margin: 0 3px;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      text-align: center;
+    }
+
+    .construction-icon {
+      font-size: 36px;
+      animation: bounce 1s infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-6px); }
+    }
+
+    .construction-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .construction-text strong {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f5a623;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .construction-text span {
+      font-size: 12px;
+      color: #aaa;
+      letter-spacing: 0.5px;
+    }
+
+    body { padding-top: 140px; }
   </style>
 </head>
 <body>
+
+  <div class="construction-banner">
+    <div class="construction-inner">
+      <div class="construction-icon">🚧</div>
+      <div class="construction-text">
+        <strong>⚠ Area Under Construction — Enter at Your Own Risk ⚠</strong>
+        <span>Things may be broken, incomplete, or wildly experimental. You've been warned.</span>
+      </div>
+      <div class="construction-icon">🚧</div>
+    </div>
+  </div>
 
   <nav>
     <a href="../index.html">Home</a>
