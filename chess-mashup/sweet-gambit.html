@@ -38,11 +38,16 @@
       transition: opacity 0.6s ease;
     }
     #splash.vanish {
-      animation: curtain-drop 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      animation: splash-fade 0.9s ease forwards;
+      pointer-events: none;
     }
-    @keyframes curtain-drop {
-      0%   { transform: translateY(0); }
-      100% { transform: translateY(-100%); }
+    @keyframes splash-fade {
+      to { opacity: 0; }
+    }
+    #splash.vanish #splash-img-wrap { opacity: 0; }
+    #dissolve-canvas {
+      position: fixed; z-index: 1000;
+      pointer-events: none; display: none;
     }
 
     #splash-img-wrap {
@@ -198,6 +203,8 @@
   <button id="play-btn" onclick="startGame()">Play Game</button>
 </div>
 
+<canvas id="dissolve-canvas"></canvas>
+
 <!-- ── GAME SCREEN ── -->
 <div id="game">
   <div id="sg-title">
@@ -253,13 +260,80 @@
 <script>
 function startGame() {
   const splash = document.getElementById('splash');
+  const imgEl = document.querySelector('#splash-img-wrap img');
+  const canvas = document.getElementById('dissolve-canvas');
+
+  // Position canvas exactly over the box art image
+  const rect = imgEl.getBoundingClientRect();
+  const W = rect.width, H = rect.height;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  canvas.style.left = rect.left + 'px'; canvas.style.top = rect.top + 'px';
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // Draw the actual image onto the canvas, then hide the original
+  const offscreen = document.createElement('canvas');
+  offscreen.width = W * dpr; offscreen.height = H * dpr;
+  const oc = offscreen.getContext('2d');
+  oc.scale(dpr, dpr);
+  oc.drawImage(imgEl, 0, 0, W, H);
+
+  // Pre-sample particle colours
+  const N = 900;
+  const particles = Array.from({length: N}, () => {
+    const x = Math.random() * W, y = Math.random() * H;
+    const id = oc.getImageData((x * dpr) | 0, (y * dpr) | 0, 1, 1).data;
+    return {
+      ox: x, oy: y,
+      vx: (Math.random() - 0.5) * 1.8,
+      vy: -Math.random() * 1.8 - 0.5,
+      delay: Math.random() * 0.6,
+      size: 2 + Math.random() * 3.5,
+      color: `rgb(${id[0]},${id[1]},${id[2]})`
+    };
+  });
+
+  // Fade out everything except the image (handled by canvas)
   splash.classList.add('vanish');
-  setTimeout(() => {
+
+  let start = null;
+  function frame(ts) {
+    if (!start) start = ts;
+    const t = (ts - start) / 1600;
+    ctx.clearRect(0, 0, W, H);
+
+    const remain = Math.max(0, 1 - t * 1.1);
+    if (remain > 0) {
+      ctx.globalAlpha = remain;
+      ctx.drawImage(offscreen, 0, 0, W * dpr, H * dpr, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    particles.forEach(p => {
+      const pt = Math.max(0, t - p.delay) / 0.85;
+      if (pt <= 0) return;
+      const alpha = Math.max(0, 1 - pt * 1.2);
+      if (alpha <= 0) return;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.ox + p.vx * pt * 90, p.oy + p.vy * pt * 90, p.size * (1 - pt * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    if (t < 1.8) { requestAnimationFrame(frame); return; }
+    canvas.style.display = 'none';
     splash.style.display = 'none';
     const game = document.getElementById('game');
     game.classList.add('visible');
     sgInitGame();
-  }, 1100);
+  }
+
+  requestAnimationFrame(frame);
 }
 
 
