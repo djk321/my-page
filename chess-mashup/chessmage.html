@@ -173,7 +173,7 @@
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
-    <button id="introPlayBtn" onclick="startGame()">▶ Play CheckMage</button>
+    <button id="introPlayBtn" onclick="rulesPlayBtn()">▶ Play CheckMage</button>
     <button id="introBack" onclick="showIntro()">← Back</button>
   </div>
 </div>
@@ -321,7 +321,7 @@ const BASE = {
 // ─── GAME STATE ──────────────────────────────────────────────────────────────
 const CENTER = new Set(['3,3','3,4','4,3','4,4']);
 let faction = 'fire';
-let gs;
+let gs = null;
 
 function initGS() {
   const board = Array.from({length:8}, () => Array(8).fill(null));
@@ -365,6 +365,16 @@ function initGS() {
 function shuffle(arr) {
   for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
   return arr;
+}
+
+function rulesPlayBtn() {
+  if(gs) { // game already in progress — just resume
+    document.getElementById('rulesScreen').style.display='none';
+    document.getElementById('gameRoot').style.display='flex';
+    window.scrollTo(0,0);
+  } else {
+    startGame();
+  }
 }
 
 function showRules() {
