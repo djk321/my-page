@@ -142,7 +142,7 @@
   </div>
 
   <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;justify-content:center;">
-    <button id="introPlayBtn" onclick="startGame()">▶ Play CheckMage</button>
+    <button id="introPlayBtn" onclick="freezeAndCrack()">▶ Play CheckMage</button>
     <button id="introHowBtn" onclick="showRules()">📖 How to Play</button>
   </div>
   <button id="introBack" onclick="window.location='index.html'">← Back to Chess Mashup</button>
@@ -402,13 +402,125 @@ function shuffle(arr) {
 }
 
 function rulesPlayBtn() {
-  if(gs) { // game already in progress — just resume
+  if(gs) {
     document.getElementById('rulesScreen').style.display='none';
     document.getElementById('gameRoot').style.display='flex';
     window.scrollTo(0,0);
   } else {
-    startGame();
+    freezeAndCrack();
   }
+}
+
+function freezeAndCrack() {
+  const canvas = document.getElementById('crumbleCanvas');
+  const img = canvas.parentElement;
+  const W = canvas.width = img.offsetWidth;
+  const H = canvas.height = img.offsetHeight;
+  const ctx = canvas.getContext('2d');
+
+  const cracks = generateCracks(W / 2, H / 2, W, H);
+  let startTime = null;
+  const T_FREEZE = 700, T_CRACK = 600, T_FLASH = 300, T_TOTAL = T_FREEZE + T_CRACK + T_FLASH;
+
+  function frame(ts) {
+    if (!startTime) startTime = ts;
+    const el = ts - startTime;
+    ctx.clearRect(0, 0, W, H);
+
+    // Phase 1: frost spreads from centre
+    const fp = Math.min(el / T_FREEZE, 1);
+    if (fp > 0) {
+      const radius = Math.hypot(W, H) * 0.75 * fp;
+      const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, radius);
+      grad.addColorStop(0,   `rgba(210,235,255,${0.88 * fp})`);
+      grad.addColorStop(0.5, `rgba(160,205,255,${0.72 * fp})`);
+      grad.addColorStop(1,   `rgba(100,160,230,0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+      if (fp > 0.25) drawFrost(ctx, W, H, fp);
+    }
+
+    // Phase 2: cracks radiate out
+    if (el > T_FREEZE) {
+      const cp = Math.min((el - T_FREEZE) / T_CRACK, 1);
+      drawCracks(ctx, cracks, cp);
+    }
+
+    // Phase 3: white flash
+    if (el > T_FREEZE + T_CRACK) {
+      const wp = (el - T_FREEZE - T_CRACK) / T_FLASH;
+      ctx.fillStyle = `rgba(255,255,255,${Math.min(wp, 1)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    if (el < T_TOTAL) {
+      requestAnimationFrame(frame);
+    } else {
+      startGame();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function generateCracks(cx, cy, W, H) {
+  const segs = [];
+  for (let i = 0; i < 9; i++) {
+    const angle = (i / 9) * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
+    const len = Math.hypot(W, H) * (0.38 + Math.random() * 0.38);
+    crackLine(cx, cy, angle, len, 3, segs);
+  }
+  return segs;
+}
+
+function crackLine(x, y, angle, len, depth, out) {
+  if (depth === 0 || len < 25) return;
+  const steps = 3 + Math.floor(Math.random() * 3);
+  const sl = len / steps;
+  let cx = x, cy = y;
+  for (let i = 0; i < steps; i++) {
+    const jitter = (Math.random() - 0.5) * 0.45;
+    const nx = cx + Math.cos(angle + jitter) * sl;
+    const ny = cy + Math.sin(angle + jitter) * sl;
+    out.push({ x1: cx, y1: cy, x2: nx, y2: ny });
+    if (Math.random() < 0.45 && depth > 1)
+      crackLine(nx, ny, angle + (Math.random() - 0.5) * Math.PI * 0.65, sl * 0.55, depth - 1, out);
+    cx = nx; cy = ny;
+  }
+}
+
+function drawCracks(ctx, segs, progress) {
+  const n = Math.floor(segs.length * progress);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(190,225,255,0.95)';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = 'rgba(160,210,255,0.9)';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    ctx.moveTo(segs[i].x1, segs[i].y1);
+    ctx.lineTo(segs[i].x2, segs[i].y2);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFrost(ctx, W, H, progress) {
+  ctx.save();
+  ctx.strokeStyle = `rgba(220,240,255,${0.35 * progress})`;
+  ctx.lineWidth = 0.7;
+  ctx.beginPath();
+  for (let i = 0; i < 24; i++) {
+    const x = ((i * 131 + 60) % W);
+    const y = ((i * 89 + 90) % H);
+    const size = 8 + (i % 6) * 7;
+    for (let a = 0; a < 6; a++) {
+      const ang = (a / 6) * Math.PI * 2;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(ang) * size, y + Math.sin(ang) * size);
+    }
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 function showRules() {
