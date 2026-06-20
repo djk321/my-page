@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheckMage</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a10; color: #e8e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 20px 48px; }
+    nav { position:fixed; top:0; width:100%; background:#1a1a24; padding:16px 40px; display:flex; gap:28px; justify-content:center; border-bottom:1px solid #2a2a3a; z-index:100; flex-wrap:wrap; }
+    nav a { color:#c9a84c; text-decoration:none; font-size:0.92rem; font-weight:600; letter-spacing:0.05em; transition:color 0.2s; }
+    nav a:hover { color:#fff; }
+    nav a.active { color:#fff; border-bottom:2px solid #c9a84c; padding-bottom:2px; }
+
+    /* INTRO */
+    #introScreen { display:flex; flex-direction:column; align-items:center; padding:48px 24px 64px; }
+    #introImg { width:100%; max-width:520px; border-radius:16px; overflow:hidden; margin-bottom:28px; border:1px solid #2a2a3a; box-shadow:0 24px 60px rgba(0,0,0,.7); }
+    #introImg img { display:block; width:100%; }
+    #introName { font-size:48px; font-weight:900; letter-spacing:-2px; text-align:center; margin-bottom:6px; background:linear-gradient(135deg,#ffd700,#ff6b35,#c940c9); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    #introTagline { font-size:15px; font-style:italic; color:#666; margin-bottom:20px; text-align:center; }
+    #introDesc { font-size:14px; color:#aaa; line-height:1.8; max-width:500px; text-align:center; margin-bottom:24px; }
+    #factionPick { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:28px; }
+    .faction-btn { padding:10px 18px; border-radius:12px; border:1px solid #333; background:#1a1a24; color:#888; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.18s; }
+    .faction-btn:hover { border-color:#888; color:#e8e8f0; }
+    .faction-btn.selected { color:#fff; }
+    .faction-btn[data-f="fire"].selected { border-color:#ff6b35; background:rgba(255,107,53,.15); color:#ff9a6c; }
+    .faction-btn[data-f="water"].selected { border-color:#4fc3f7; background:rgba(79,195,247,.12); color:#81d4fa; }
+    .faction-btn[data-f="earth"].selected { border-color:#66bb6a; background:rgba(102,187,106,.12); color:#a5d6a7; }
+    .faction-btn[data-f="light"].selected { border-color:#ffd740; background:rgba(255,215,64,.12); color:#fff176; }
+    .faction-btn[data-f="shadow"].selected { border-color:#ce93d8; background:rgba(206,147,216,.12); color:#e1bee7; }
+    #introAbilities { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; max-width:500px; width:100%; margin-bottom:28px; }
+    .iability { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:10px 12px; }
+    .iability-piece { font-size:22px; margin-bottom:4px; }
+    .iability-name { font-size:11px; font-weight:600; color:#ffd700; margin-bottom:2px; }
+    .iability-desc { font-size:10px; color:#555; line-height:1.5; }
+    #introRules { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:16px 20px; max-width:500px; width:100%; margin-bottom:28px; font-size:12px; color:#777; line-height:2; }
+    #introRules strong { color:#bbb; }
+    #introPlayBtn { padding:14px 52px; font-size:16px; font-weight:700; border:none; border-radius:50px; background:linear-gradient(135deg,#ff6b35,#c940c9); color:#fff; cursor:pointer; letter-spacing:.5px; transition:transform .15s,box-shadow .15s; }
+    #introPlayBtn:hover { transform:scale(1.04); box-shadow:0 8px 30px rgba(201,64,201,0.4); }
+    #introBack { margin-top:14px; background:rgba(201,168,76,0.1); border:1px solid #c9a84c; border-radius:8px; color:#c9a84c; font-size:13px; font-weight:600; cursor:pointer; padding:8px 20px; letter-spacing:0.3px; transition:background 0.2s; }
+    #introBack:hover { background:rgba(201,168,76,0.22); }
+
+    /* GAME */
+    #gameRoot { display:none; width:100%; flex-direction:column; align-items:center; }
+    #topBar { display:flex; align-items:center; justify-content:space-between; width:100%; max-width:960px; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+    #topBar h1 { font-size:22px; font-weight:800; background:linear-gradient(135deg,#ffd700,#ff6b35); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .subtitle { font-size:10px; color:#555; letter-spacing:1px; text-transform:uppercase; }
+    #root { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; width:100%; max-width:960px; }
+
+    /* BOARD */
+    #board-wrap { flex:0 0 auto; }
+    #board { display:grid; grid-template-columns:repeat(8, 60px); grid-template-rows:repeat(8, 60px); border:2px solid #3a3a5a; }
+    .sq { width:60px; height:60px; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; font-size:26px; user-select:none; flex-direction:column; }
+    .sq.light { background:#3d2e1a; }
+    .sq.dark  { background:#251c10; }
+    .sq.selected { outline:3px solid #ffd700; outline-offset:-3px; }
+    .sq.valid-move::after { content:''; position:absolute; width:18px; height:18px; border-radius:50%; background:rgba(91,205,168,0.5); pointer-events:none; }
+    .sq.last-move { background:#3a3210 !important; }
+    .sq.shielded { box-shadow:0 0 0 3px #ffd700 inset; }
+    .sq.stunned-sq { opacity:0.4; }
+    .sq.center-sq { box-shadow:0 0 0 2px rgba(255,215,0,0.25) inset; }
+    .sq-hp { font-size:8px; color:#ff6b6b; font-weight:700; line-height:1; position:absolute; bottom:2px; right:3px; }
+    .sq-hp.full { color:#66bb6a; }
+    .file-labels { display:flex; padding-left:22px; }
+    .file-label { width:60px; text-align:center; font-size:10px; color:#444; }
+    #board-outer { display:flex; }
+    #rank-labels { display:flex; flex-direction:column; }
+    .row-label { width:22px; height:60px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#444; }
+
+    /* PANEL */
+    #panel { flex:1; min-width:220px; max-width:300px; display:flex; flex-direction:column; gap:10px; }
+    .card { background:#14141e; border:0.5px solid #2a2a3a; border-radius:12px; padding:12px; }
+    .card h3 { font-size:11px; font-weight:600; color:#555; letter-spacing:0.8px; margin-bottom:8px; text-transform:uppercase; }
+    #status { font-size:13px; font-weight:600; color:#e8e8f0; }
+    #phase-label { font-size:11px; color:#888; margin-top:3px; }
+    #mana-row { display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap; }
+    .mana-pip { font-size:10px; opacity:0.2; }
+    .mana-pip.full { opacity:1; }
+    #piece-info { font-size:12px; color:#777; line-height:1.7; }
+    #piece-info b { color:#e8e8f0; }
+    #log { font-size:11px; color:#555; line-height:1.9; max-height:110px; overflow-y:auto; }
+    .phase-btn { width:100%; padding:8px; font-size:12px; font-weight:600; cursor:pointer; border-radius:8px; border:1px solid #333; background:#1e1e2e; color:#bbb; margin-top:6px; transition:all 0.15s; }
+    .phase-btn:hover:not(:disabled) { border-color:#ffd700; color:#ffd700; }
+    .phase-btn:disabled { opacity:0.3; cursor:default; }
+    .phase-btn.primary { border-color:#c940c9; background:rgba(201,64,201,.12); color:#e080e0; }
+
+    /* HAND */
+    #hand-area { width:100%; max-width:960px; margin-top:12px; }
+    #hand-area h3 { font-size:11px; color:#555; letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+    #hand { display:flex; gap:8px; flex-wrap:wrap; }
+    .spell-card { background:#14141e; border:1px solid #2a2a3a; border-radius:10px; padding:10px; width:130px; cursor:pointer; transition:all 0.15s; flex-shrink:0; }
+    .spell-card:hover:not(.disabled) { border-color:#c940c9; transform:translateY(-3px); }
+    .spell-card.disabled { opacity:0.35; cursor:default; }
+    .spell-card.selected-card { border-color:#ffd700; background:rgba(255,215,0,.08); }
+    .sc-cost { font-size:10px; font-weight:700; margin-bottom:4px; }
+    .sc-name { font-size:12px; font-weight:600; color:#e8e8f0; margin-bottom:3px; }
+    .sc-type { font-size:9px; color:#555; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px; }
+    .sc-desc { font-size:10px; color:#777; line-height:1.5; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="../index.html">Home</a>
+  <a href="../about.html">About</a>
+  <a href="../chess-games/index.html">Chess Tools</a>
+  <a href="index.html" class="active">Chess Mashup</a>
+  <a href="../game-fusion/index.html">Game Fusion</a>
+  <a href="../pickleball/index.html">Pickleball</a>
+</nav>
+
+<!-- INTRO -->
+<div id="introScreen">
+  <div id="introImg"><img src="Checkmage.png" alt="CheckMage"></div>
+  <div id="introName">CHECKMAGE</div>
+  <div id="introTagline">"Chess decides where your armies move. Magic decides how the battlefield changes."</div>
+  <div id="introDesc">Standard chess movement — but every piece has HP and Attack. Pieces wound each other instead of instantly dying. Cast spells from your hand to change the course of battle. Win by checkmate OR by reducing the enemy King's 20 Life Points to zero.</div>
+
+  <div style="font-size:12px;color:#666;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Choose your faction</div>
+  <div id="factionPick">
+    <button class="faction-btn selected" data-f="fire" onclick="selectFaction(this)">🔥 Fire</button>
+    <button class="faction-btn" data-f="water" onclick="selectFaction(this)">💧 Water</button>
+    <button class="faction-btn" data-f="earth" onclick="selectFaction(this)">🌳 Earth</button>
+    <button class="faction-btn" data-f="light" onclick="selectFaction(this)">☀️ Light</button>
+    <button class="faction-btn" data-f="shadow" onclick="selectFaction(this)">☠️ Shadow</button>
+  </div>
+
+  <div id="introAbilities">
+    <div class="iability"><div class="iability-piece">♙</div><div class="iability-name">Recruit</div><div class="iability-desc">On promotion, draw 2 cards</div></div>
+    <div class="iability"><div class="iability-piece">♘</div><div class="iability-name">Blink</div><div class="iability-desc">Once per game, move like a Queen</div></div>
+    <div class="iability"><div class="iability-piece">♗</div><div class="iability-name">Channel</div><div class="iability-desc">Spells cost 1 less mana</div></div>
+    <div class="iability"><div class="iability-piece">♖</div><div class="iability-name">Fortress</div><div class="iability-desc">Adjacent pieces gain +1 HP</div></div>
+    <div class="iability"><div class="iability-piece">♕</div><div class="iability-name">Archmage</div><div class="iability-desc">Cast one spell free per turn</div></div>
+    <div class="iability"><div class="iability-piece">♔</div><div class="iability-name">Last Stand</div><div class="iability-desc">Below 5 LP: draw 3 cards &amp; gain 3 mana</div></div>
+  </div>
+
+  <div id="introRules">
+    <strong>Quick rules</strong><br>
+    • Pieces have HP — a Knight (2 ATK) vs a Rook (3 HP) wounds but doesn't kill it<br>
+    • Pieces at 0 HP are removed. The King has 20 Life Points instead of standard capture<br>
+    • Each turn: gain mana, cast spells from hand, move a piece, then resolve combat<br>
+    • Occupy d4/d5/e4/e5 for +1 bonus mana next turn (gold-tinted squares)<br>
+    • Win by capturing the King or reducing its LP to 0 — or trap it with no moves<br>
+    • You play White vs the AI. Queen can cast one spell for free per turn
+  </div>
+
+  <button id="introPlayBtn" onclick="startGame()">▶ Play CheckMage</button>
+  <button id="introBack" onclick="window.location='index.html'">← Back to Chess Mashup</button>
+</div>
+
+<!-- GAME -->
+<div id="gameRoot">
+<div id="topBar">
+  <div>
+    <h1>CHECKMAGE</h1>
+    <div class="subtitle">Chess × Magic</div>
+  </div>
+  <div id="faction-display" style="font-size:13px;font-weight:600;"></div>
+  <a data-back-btn href="javascript:history.back()" style="padding:6px 14px;font-size:12px;border:0.5px solid #c9a84c;border-radius:8px;background:#14141e;color:#c9a84c;text-decoration:none;font-weight:600;letter-spacing:0.5px;">← Back</a>
+  <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
+</div>
+
+<div id="root">
+  <div id="board-wrap">
+    <div class="file-labels" id="file-labels"></div>
+    <div id="board-outer">
+      <div id="rank-labels"></div>
+      <div id="board"></div>
+    </div>
+  </div>
+  <div id="panel">
+    <div class="card">
+      <h3>Turn</h3>
+      <div id="status">White's turn</div>
+      <div id="phase-label">Phase: Mana</div>
+      <div id="mana-row"></div>
+    </div>
+    <div class="card">
+      <h3>Selected</h3>
+      <div id="piece-info">Click a piece.</div>
+      <button class="phase-btn primary" id="blink-btn" style="display:none" onclick="activateBlink()">♘ Blink (Queen Move)</button>
+    </div>
+    <div class="card">
+      <h3>Actions</h3>
+      <button class="phase-btn primary" id="end-phase-btn" onclick="advancePhase()">End Phase →</button>
+      <button class="phase-btn" id="end-turn-btn" onclick="skipToEndTurn()" style="margin-top:4px;">Skip to End Turn</button>
+    </div>
+    <div class="card">
+      <h3>Log</h3>
+      <div id="log"></div>
+    </div>
+    <div class="card" id="enemy-king-card">
+      <h3>Enemy King HP</h3>
+      <div id="enemy-king-hp" style="font-size:20px;font-weight:700;color:#ff6b6b;">20 / 20</div>
+      <div style="margin-top:4px;background:#2a1010;border-radius:4px;height:6px;width:100%;overflow:hidden;"><div id="enemy-hp-bar" style="height:100%;background:#ff6b6b;transition:width 0.3s;width:100%"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="hand-area">
+  <h3>Your Hand — <span id="deck-count">0</span> cards remaining · <span id="free-cast-label" style="color:#c940c9;display:none">Queen: 1 free cast available</span></h3>
+  <div id="hand"></div>
+</div>
+</div><!-- end gameRoot -->
+
+<script>
+// ─── FACTIONS & SPELLS ───────────────────────────────────────────────────────
+const FACTION_EMOJI = { fire:'🔥', water:'💧', earth:'🌳', light:'☀️', shadow:'☠️' };
+const FACTION_COLOR = { fire:'#ff6b35', water:'#4fc3f7', earth:'#66bb6a', light:'#ffd740', shadow:'#ce93d8' };
+
+const SPELL_POOLS = {
+  fire: [
+    {name:'Fireball', cost:2, type:'Sorcery', desc:'Deal 2 damage to any piece.', effect:'dmg2'},
+    {name:'Fireball', cost:2, type:'Sorcery', desc:'Deal 2 damage to any piece.', effect:'dmg2'},
+    {name:'Fireball', cost:2, type:'Sorcery', desc:'Deal 2 damage to any piece.', effect:'dmg2'},
+    {name:'Ember Blast', cost:3, type:'Sorcery', desc:'Deal 3 damage to an enemy piece.', effect:'dmg3_enemy'},
+    {name:'Ember Blast', cost:3, type:'Sorcery', desc:'Deal 3 damage to an enemy piece.', effect:'dmg3_enemy'},
+    {name:'Inferno', cost:5, type:'Sorcery', desc:'Deal 5 damage to any piece.', effect:'dmg5'},
+    {name:'Flame Wall', cost:2, type:'Enchantment', desc:'Your Queen gains +2 ATK this turn.', effect:'queen_atk2'},
+    {name:'Phoenix Rise', cost:4, type:'Sorcery', desc:'Restore a captured pawn to any empty square.', effect:'revive_pawn'},
+    {name:'Scorch', cost:1, type:'Instant', desc:'Deal 1 damage to an adjacent enemy.', effect:'dmg1_adj'},
+    {name:'Meteor Strike', cost:6, type:'Sorcery', desc:'Deal 4 damage to any enemy piece.', effect:'dmg4_enemy'},
+  ],
+  water: [
+    {name:'Frost Bolt', cost:2, type:'Instant', desc:'Stun a piece for 1 turn.', effect:'stun'},
+    {name:'Frost Bolt', cost:2, type:'Instant', desc:'Stun a piece for 1 turn.', effect:'stun'},
+    {name:'Frost Bolt', cost:2, type:'Instant', desc:'Stun a piece for 1 turn.', effect:'stun'},
+    {name:'Healing Rain', cost:2, type:'Sorcery', desc:'Restore 2 HP to a friendly piece.', effect:'heal2'},
+    {name:'Healing Rain', cost:2, type:'Sorcery', desc:'Restore 2 HP to a friendly piece.', effect:'heal2'},
+    {name:'Tidal Wave', cost:4, type:'Sorcery', desc:'Stun all enemy pieces in a row.', effect:'stun_row'},
+    {name:'Aqua Shield', cost:1, type:'Instant', desc:'A piece cannot be captured this turn.', effect:'shield'},
+    {name:'Aqua Shield', cost:1, type:'Instant', desc:'A piece cannot be captured this turn.', effect:'shield'},
+    {name:'Purify', cost:2, type:'Instant', desc:'Remove stun from a friendly piece.', effect:'unstun'},
+    {name:'Blizzard', cost:5, type:'Sorcery', desc:'Stun 3 random enemy pieces.', effect:'stun3'},
+  ],
+  earth: [
+    {name:"Forest's Favor", cost:2, type:'Sorcery', desc:'A piece may move twice this turn.', effect:'extra_move'},
+    {name:"Forest's Favor", cost:2, type:'Sorcery', desc:'A piece may move twice this turn.', effect:'extra_move'},
+    {name:"Forest's Favor", cost:2, type:'Sorcery', desc:'A piece may move twice this turn.', effect:'extra_move'},
+    {name:'Stone Skin', cost:2, type:'Instant', desc:'A piece gains +3 HP permanently.', effect:'buff_hp3'},
+    {name:'Stone Skin', cost:2, type:'Instant', desc:'A piece gains +3 HP permanently.', effect:'buff_hp3'},
+    {name:'Entangle', cost:2, type:'Sorcery', desc:'Stun an enemy piece for 1 turn.', effect:'stun'},
+    {name:'Earthquake', cost:5, type:'Sorcery', desc:'Deal 2 damage to all enemy pieces.', effect:'quake'},
+    {name:'Regrowth', cost:3, type:'Sorcery', desc:'Heal a piece to full HP.', effect:'full_heal'},
+    {name:'Brambles', cost:1, type:'Enchantment', desc:'Deal 1 damage to any enemy that captures a shielded piece.', effect:'shield_thorn'},
+    {name:'Vine Grasp', cost:3, type:'Sorcery', desc:'Move an enemy piece to an adjacent square.', effect:'push'},
+  ],
+  light: [
+    {name:'Divine Barrier', cost:1, type:'Instant', desc:'A piece cannot be captured this turn.', effect:'shield'},
+    {name:'Divine Barrier', cost:1, type:'Instant', desc:'A piece cannot be captured this turn.', effect:'shield'},
+    {name:'Divine Barrier', cost:1, type:'Instant', desc:'A piece cannot be captured this turn.', effect:'shield'},
+    {name:'Holy Smite', cost:3, type:'Sorcery', desc:'Deal 3 damage to an enemy piece.', effect:'dmg3_enemy'},
+    {name:'Holy Smite', cost:3, type:'Sorcery', desc:'Deal 3 damage to an enemy piece.', effect:'dmg3_enemy'},
+    {name:'Restoration', cost:3, type:'Sorcery', desc:'Heal a friendly piece to full HP.', effect:'full_heal'},
+    {name:'Radiant Aura', cost:2, type:'Enchantment', desc:'All your pieces gain +1 HP this turn.', effect:'aura_hp1'},
+    {name:'Judgement', cost:5, type:'Sorcery', desc:'Remove any piece with 2 or fewer HP.', effect:'execute'},
+    {name:'Blessing', cost:2, type:'Instant', desc:'Heal 3 HP to a friendly piece.', effect:'heal3'},
+    {name:'Sacred Ground', cost:4, type:'Enchantment', desc:'All your pieces on center squares cannot be captured this turn.', effect:'center_shield'},
+  ],
+  shadow: [
+    {name:'Dark Exchange', cost:3, type:'Sorcery', desc:'Swap two enemy pieces.', effect:'swap_enemies'},
+    {name:'Dark Exchange', cost:3, type:'Sorcery', desc:'Swap two enemy pieces.', effect:'swap_enemies'},
+    {name:'Soul Drain', cost:2, type:'Instant', desc:'Deal 2 damage and heal your piece for 1.', effect:'drain2'},
+    {name:'Soul Drain', cost:2, type:'Instant', desc:'Deal 2 damage and heal your piece for 1.', effect:'drain2'},
+    {name:'Soul Drain', cost:2, type:'Instant', desc:'Deal 2 damage and heal your piece for 1.', effect:'drain2'},
+    {name:'Shadowstep', cost:2, type:'Instant', desc:'Teleport a friendly piece to any empty square.', effect:'teleport'},
+    {name:'Shadowstep', cost:2, type:'Instant', desc:'Teleport a friendly piece to any empty square.', effect:'teleport'},
+    {name:'Hex', cost:1, type:'Enchantment', desc:'An enemy piece loses 1 ATK this turn.', effect:'debuff_atk'},
+    {name:'Consume', cost:4, type:'Sorcery', desc:'Destroy any piece at 3 or fewer HP.', effect:'consume'},
+    {name:'Nightmare', cost:3, type:'Sorcery', desc:'Stun two enemy pieces.', effect:'stun2'},
+  ],
+};
+
+const LEGENDARY = [
+  {name:'Dragon Summoning', cost:9, type:'Legendary', desc:'Place a Dragon (Queen moves, ATK 5, HP 5) on any empty square.', effect:'dragon'},
+  {name:'Checkmate', cost:8, type:'Legendary', desc:'Force the enemy King into check. Opponent must escape next turn.', effect:'forced_check'},
+  {name:'Time Reversal', cost:7, type:'Legendary', desc:'Undo the last move and replay the turn.', effect:'time_reverse'},
+];
+
+// ─── PIECE DEFINITIONS ───────────────────────────────────────────────────────
+const BASE = {
+  P:{ sym:{w:'♙',b:'♟'}, name:'Pawn',   atk:1, hp:1, maxHp:1 },
+  N:{ sym:{w:'♘',b:'♞'}, name:'Knight', atk:2, hp:2, maxHp:2 },
+  B:{ sym:{w:'♗',b:'♝'}, name:'Bishop', atk:2, hp:2, maxHp:2 },
+  R:{ sym:{w:'♖',b:'♜'}, name:'Rook',   atk:3, hp:3, maxHp:3 },
+  Q:{ sym:{w:'♕',b:'♛'}, name:'Queen',  atk:4, hp:4, maxHp:4 },
+  K:{ sym:{w:'♔',b:'♚'}, name:'King',   atk:0, hp:20, maxHp:20 },
+};
+
+// ─── GAME STATE ──────────────────────────────────────────────────────────────
+const CENTER = new Set(['3,3','3,4','4,3','4,4']);
+let faction = 'fire';
+let gs;
+
+function initGS() {
+  const board = Array.from({length:8}, () => Array(8).fill(null));
+  const order = ['R','N','B','Q','K','B','N','R'];
+  const pieceData = {};
+  let id = 0;
+  function mkPiece(col, type) {
+    const pid = 'p'+(id++);
+    const b = BASE[type];
+    pieceData[pid] = { col, type, atk:b.atk, hp:b.hp, maxHp:b.maxHp, id:pid };
+    return pid;
+  }
+  for(let c=0;c<8;c++){board[0][c]=mkPiece('b',order[c]); board[7][c]=mkPiece('w',order[c]);}
+  for(let c=0;c<8;c++){board[1][c]=mkPiece('b','P'); board[6][c]=mkPiece('w','P');}
+
+  // Build white deck from faction pool + 2 legendaries
+  const pool = [...SPELL_POOLS[faction], ...LEGENDARY.slice(0,2)];
+  const deck = shuffle([...pool]);
+
+  return {
+    board, pieces:pieceData,
+    turn:'w', phase:'mana', // phases: mana, cast, move, end
+    mana:{w:0, b:0},
+    maxMana:{w:1, b:1},
+    turnNum:{w:0, b:0},
+    deck, hand:[], discard:[],
+    selected:null, validMoves:[],
+    stunned:new Set(), shielded:new Set(), extraMove:new Set(),
+    lastMove:null, gameOver:false, gameOverMsg:'',
+    log:[], capturedWhite:[], capturedBlack:[],
+    blinkUsed:false, blinkMode:false,
+    queenFreeCast:true, freeCastUsed:false,
+    pendingSpell:null, spellTargetMode:null,
+    spellTargetStep:0, spellTargetData:{},
+    centerBonus:false,
+    aiDeck: shuffle([...SPELL_POOLS.shadow, ...SPELL_POOLS.fire]),
+    aiHand: [],
+  };
+}
+
+function shuffle(arr) {
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+
+function selectFaction(btn) {
+  document.querySelectorAll('.faction-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  faction = btn.dataset.f;
+}
+
+function startGame() {
+  gs = initGS();
+  // Draw opening hand
+  for(let i=0;i<5;i++) drawCard();
+  // AI draws 3
+  for(let i=0;i<3;i++) aiDrawCard();
+
+  document.getElementById('introScreen').style.display='none';
+  document.getElementById('gameRoot').style.display='flex';
+  document.getElementById('gameRoot').style.flexDirection='column';
+  document.getElementById('faction-display').textContent = FACTION_EMOJI[faction]+' '+faction[0].toUpperCase()+faction.slice(1);
+  document.getElementById('faction-display').style.color = FACTION_COLOR[faction];
+
+  const fl = document.getElementById('file-labels');
+  fl.innerHTML='<div style="width:22px"></div>';
+  'abcdefgh'.split('').forEach(l=>{const d=document.createElement('div');d.className='file-label';d.textContent=l;fl.appendChild(d);});
+  const rl = document.getElementById('rank-labels');
+  for(let r=0;r<8;r++){const d=document.createElement('div');d.className='row-label';d.textContent=8-r;rl.appendChild(d);}
+
+  addLog('Game started! You are White ('+FACTION_EMOJI[faction]+' '+faction+').');
+  addLog('Pieces have HP — attack to wound, not just capture!');
+  beginTurn();
+}
+
+// ─── DECK / HAND ─────────────────────────────────────────────────────────────
+function drawCard() {
+  if(gs.deck.length===0){gs.deck=shuffle([...gs.discard]);gs.discard=[];}
+  if(gs.deck.length===0) return;
+  gs.hand.push(gs.deck.pop());
+}
+function aiDrawCard() {
+  if(gs.aiDeck.length===0) gs.aiDeck = shuffle([...SPELL_POOLS.shadow,...SPELL_POOLS.fire]);
+  if(gs.aiHand.length < 5) gs.aiHand.push(gs.aiDeck.pop());
+}
+
+// ─── TURN FLOW ───────────────────────────────────────────────────────────────
+function beginTurn() {
+  // Refresh
+  gs.stunned.clear(); gs.shielded.clear(); gs.extraMove.clear();
+  gs.queenFreeCast = true; gs.freeCastUsed = false;
+  gs.blinkMode = false;
+  gs.spellTargetMode = null; gs.pendingSpell = null;
+  gs.selected = null; gs.validMoves = [];
+
+  // Mana
+  gs.turnNum[gs.turn]++;
+  gs.maxMana[gs.turn] = Math.min(10, gs.turnNum[gs.turn]);
+  gs.mana[gs.turn] = gs.maxMana[gs.turn];
+
+  // Center bonus from last turn
+  if(gs.centerBonus){ gs.mana[gs.turn]=Math.min(10,gs.mana[gs.turn]+1); gs.centerBonus=false; }
+
+  // Draw
+  drawCard();
+
+  gs.phase = 'cast';
+  addLog('─── Your Turn ' + gs.turnNum.w + ' ─── Mana: ' + gs.mana.w + '/' + gs.maxMana.w);
+  render();
+}
+
+function advancePhase() {
+  if(gs.gameOver) return;
+  if(gs.phase === 'cast') {
+    gs.phase = 'move';
+    addLog('Movement phase — move a piece.');
+    gs.selected=null; gs.validMoves=[]; gs.spellTargetMode=null; gs.pendingSpell=null;
+    render();
+  } else if(gs.phase === 'move') {
+    endPlayerTurn();
+  }
+}
+
+function skipToEndTurn() {
+  if(gs.gameOver) return;
+  gs.phase = 'move';
+  endPlayerTurn();
+}
+
+function endPlayerTurn() {
+  // Check center control
+  const centerPieces = []; gs.board.forEach((row,r)=>row.forEach((pid,c)=>{if(pid&&CENTER.has(r+','+c)){centerPieces.push(pid);}}));
+  const wControl = centerPieces.filter(p=>gs.pieces[p].col==='w').length;
+  if(wControl > 0) { gs.centerBonus=true; addLog('Center control! +1 mana next turn.'); }
+
+  // Fortress rook bonus
+  applyFortressBonus();
+
+  gs.selected=null; gs.validMoves=[];
+  if(!gs.gameOver) { setTimeout(doAITurn, 700); }
+}
+
+function applyFortressBonus() {
+  gs.board.forEach((row,r)=>row.forEach((pid,c)=>{
+    if(!pid) return;
+    const p=gs.pieces[pid];
+    if(p.type==='R') {
+      for(const[dr,dc] of[[-1,0],[1,0],[0,-1],[0,1]]){
+        const nr=r+dr,nc=c+dc;
+        if(nr<0||nr>7||nc<0||nc>7) continue;
+        const np=gs.board[nr][nc];
+        if(np && gs.pieces[np].col===p.col && gs.pieces[np].type!=='R') {
+          gs.pieces[np].maxHp=Math.max(gs.pieces[np].maxHp, gs.pieces[np].hp+1);
+        }
+      }
+    }
+  }));
+}
+
+// ─── AI TURN ─────────────────────────────────────────────────────────────────
+function doAITurn() {
+  if(gs.gameOver) return;
+  gs.turnNum.b++;
+  gs.maxMana.b = Math.min(10, gs.turnNum.b);
+  gs.mana.b = gs.maxMana.b;
+  aiDrawCard();
+
+  // AI cast a spell occasionally
+  if(gs.aiHand.length && gs.mana.b >= 2 && Math.random() < 0.4) {
+    const castable = gs.aiHand.filter(s=>s.cost<=gs.mana.b&&s.effect!=='dragon'&&s.effect!=='time_reverse');
+    if(castable.length) {
+      const spell = castable[Math.floor(Math.random()*castable.length)];
+      gs.mana.b -= spell.cost;
+      aiHand_remove(spell);
+      applyAISpell(spell);
+    }
+  }
+
+  // AI move
+  let allMoves = [];
+  gs.board.forEach((row,r)=>row.forEach((pid,c)=>{
+    if(!pid) return;
+    const p=gs.pieces[pid];
+    if(p.col==='b'&&!gs.stunned.has(pid)) {
+      getValidMoves(r,c).forEach(([nr,nc])=>allMoves.push({r,c,nr,nc}));
+    }
+  }));
+
+  if(!allMoves.length) { addLog('Black has no moves — White wins!'); gs.gameOver=true; gs.gameOverMsg='White wins! Black has no moves.'; render(); return; }
+
+  // Prioritize attacking wounded or king
+  const scored = allMoves.map(m=>{
+    let score = Math.random();
+    const target = gs.board[m.nr][m.nc];
+    if(target) {
+      const tp=gs.pieces[target];
+      score += 5;
+      if(tp.type==='K') score += 50;
+      if(tp.hp <= 1) score += 3;
+    }
+    // prefer center
+    if(CENTER.has(m.nr+','+m.nc)) score += 1;
+    return {...m, score};
+  });
+  scored.sort((a,b)=>b.score-a.score);
+  const chosen = scored[0];
+
+  const targetPid = gs.board[chosen.nr][chosen.nc];
+  const moverPid  = gs.board[chosen.r][chosen.c];
+  const mover = gs.pieces[moverPid];
+
+  if(targetPid) {
+    const target = gs.pieces[targetPid];
+    const dmg = mover.atk;
+    target.hp -= dmg;
+    addLog(`Black ${mover.name} attacks ${target.name} for ${dmg} dmg! (${Math.max(0,target.hp)} HP left)`);
+    if(target.hp <= 0) {
+      addLog(`${target.name} destroyed!`);
+      if(target.type==='K') { gs.gameOver=true; gs.gameOverMsg='Black wins! Your King fell!'; }
+      gs.board[chosen.nr][chosen.nc] = null;
+      delete gs.pieces[targetPid];
+    }
+    if(!gs.gameOver) {
+      gs.board[chosen.nr][chosen.nc] = moverPid;
+      gs.board[chosen.r][chosen.c] = null;
+    }
+  } else {
+    gs.board[chosen.nr][chosen.nc] = moverPid;
+    gs.board[chosen.r][chosen.c] = null;
+  }
+  gs.lastMove = [[chosen.r,chosen.c],[chosen.nr,chosen.nc]];
+  if(!gs.gameOver) addLog(`Black ${mover.name} → ${String.fromCharCode(97+chosen.nc)}${8-chosen.nr}`);
+
+  checkWinConditions();
+  if(!gs.gameOver) beginTurn();
+  render();
+}
+
+function aiHand_remove(spell) {
+  const idx = gs.aiHand.findIndex(s=>s.name===spell.name);
+  if(idx>=0) gs.aiHand.splice(idx,1);
+}
+
+function applyAISpell(spell) {
+  const wPieces=[];
+  gs.board.forEach((row,r)=>row.forEach((pid,c)=>{if(pid&&gs.pieces[pid].col==='w')wPieces.push({pid,r,c});}));
+  if(!wPieces.length) return;
+  const target = wPieces[Math.floor(Math.random()*wPieces.length)];
+  const tp = gs.pieces[target.pid];
+  if(spell.effect==='stun'||spell.effect==='stun2') {
+    gs.stunned.add(target.pid);
+    addLog(`Black casts ${spell.name} — your ${tp.name} is stunned!`);
+  } else if(spell.effect.startsWith('dmg')) {
+    const dmg=parseInt(spell.effect.match(/\d+/)[0]);
+    tp.hp-=dmg; addLog(`Black casts ${spell.name} — your ${tp.name} takes ${dmg} damage!`);
+    if(tp.hp<=0){addLog(`Your ${tp.name} is destroyed!`); gs.board[target.r][target.c]=null; delete gs.pieces[target.pid]; checkWinConditions();}
+  }
+}
+
+// ─── VALID MOVES ─────────────────────────────────────────────────────────────
+function getValidMoves(r, c, queenMode) {
+  const pid = gs.board[r][c]; if(!pid) return [];
+  const p = gs.pieces[pid], col=p.col, en=col==='w'?'b':'w', moves=[];
+  const type = queenMode ? 'Q' : p.type;
+
+  function add(nr,nc){
+    if(nr<0||nr>7||nc<0||nc>7) return false;
+    const t=gs.board[nr][nc];
+    if(t&&gs.pieces[t].col===col) return false;
+    if(t&&gs.shielded.has(t)&&gs.pieces[t].col===en) return false; // shielded can't be targeted
+    moves.push([nr,nc]); return !t;
+  }
+  function slide(dr,dc){let nr=r+dr,nc=c+dc; while(nr>=0&&nr<=7&&nc>=0&&nc<=7){const had=add(nr,nc); if(!had||gs.board[nr][nc]){break;} nr+=dr;nc+=dc;}}
+
+  if(type==='P'){
+    const dir=col==='w'?-1:1, nr=r+dir;
+    if(nr>=0&&nr<=7&&!gs.board[nr][c]) moves.push([nr,c]);
+    const startRow=col==='w'?6:1;
+    if(r===startRow&&!gs.board[r+dir][c]&&!gs.board[r+2*dir]?.[c]) moves.push([r+2*dir,c]);
+    if(gs.extraMove.has(pid)&&nr+dir>=0&&nr+dir<=7&&!gs.board[nr+dir]?.[c]&&!gs.board[nr]?.[c]) moves.push([nr+dir,c]);
+    for(const dc of[-1,1]){const nc=c+dc; if(nc>=0&&nc<=7&&nr>=0&&nr<=7&&gs.board[nr][nc]&&gs.pieces[gs.board[nr][nc]].col===en) moves.push([nr,nc]);}
+  } else if(type==='R'){slide(1,0);slide(-1,0);slide(0,1);slide(0,-1);}
+  else if(type==='B'){slide(1,1);slide(1,-1);slide(-1,1);slide(-1,-1);}
+  else if(type==='Q'){slide(1,0);slide(-1,0);slide(0,1);slide(0,-1);slide(1,1);slide(1,-1);slide(-1,1);slide(-1,-1);}
+  else if(type==='N'){for(const[dr,dc] of[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]])add(r+dr,c+dc);}
+  else if(type==='K'){for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(dr||dc)add(r+dr,c+dc);}
+  return moves;
+}
+
+// ─── CLICK HANDLING ──────────────────────────────────────────────────────────
+function handleSquareClick(r, c) {
+  if(gs.gameOver||gs.turn!=='w') return;
+
+  // Spell target mode
+  if(gs.spellTargetMode) {
+    handleSpellTarget(r, c);
+    return;
+  }
+
+  // Blink mode (knight queen-move)
+  if(gs.blinkMode) {
+    const [br,bc]=gs.selected;
+    const pid=gs.board[br][bc];
+    const qMoves=getValidMoves(br,bc,true);
+    if(qMoves.some(([mr,mc])=>mr===r&&mc===c)) {
+      executeMove(br,bc,r,c);
+      gs.blinkMode=false; gs.blinkUsed=true;
+      document.getElementById('blink-btn').style.display='none';
+    }
+    gs.blinkMode=false;
+    render(); return;
+  }
+
+  const pid = gs.board[r][c];
+
+  if(gs.selected) {
+    const [sr,sc]=gs.selected;
+    const isValid=gs.validMoves.some(([mr,mc])=>mr===r&&mc===c);
+    if(isValid && gs.phase==='move') {
+      executeMove(sr,sc,r,c);
+      gs.phase='end';
+      render(); return;
+    }
+    gs.selected=null; gs.validMoves=[];
+  }
+
+  if(pid && gs.pieces[pid]?.col==='w') {
+    gs.selected=[r,c];
+    gs.validMoves = gs.phase==='move' ? getValidMoves(r,c) : [];
+    updatePieceInfo(r,c);
+  } else {
+    gs.selected=null; gs.validMoves=[];
+    document.getElementById('piece-info').textContent='Click a piece.';
+    document.getElementById('blink-btn').style.display='none';
+  }
+  render();
+}
+
+function executeMove(sr,sc,r,c) {
+  const moverPid=gs.board[sr][sc];
+  const mover=gs.pieces[moverPid];
+  const targetPid=gs.board[r][c];
+
+  if(targetPid) {
+    const target=gs.pieces[targetPid];
+    // Bishop Channel: spells cost 1 less — but this is movement, so apply ATK
+    let dmg=mover.atk;
+    target.hp-=dmg;
+    addLog(`Your ${mover.name} attacks ${target.name} for ${dmg} dmg! (${Math.max(0,target.hp)} HP left)`);
+    if(target.hp<=0) {
+      addLog(`${target.name} destroyed!`);
+      if(target.type==='K'){ gs.gameOver=true; gs.gameOverMsg='You win! Enemy King slain!'; }
+      gs.board[r][c]=null; delete gs.pieces[targetPid];
+    }
+  }
+  if(!gs.gameOver) {
+    gs.board[r][c]=moverPid; gs.board[sr][sc]=null;
+    gs.lastMove=[[sr,sc],[r,c]];
+    addLog(`Your ${mover.name} → ${String.fromCharCode(97+c)}${8-r}`);
+    // Pawn promotion
+    if(mover.type==='P'&&r===0){ mover.type='Q'; mover.atk=4; mover.maxHp=4; addLog('Pawn promoted to Queen! Drawing 2 cards (Recruit).'); drawCard(); drawCard(); }
+  }
+  gs.selected=null; gs.validMoves=[];
+  checkWinConditions();
+}
+
+function checkWinConditions() {
+  // Check if black king still alive
+  let bKing=false, wKing=false;
+  Object.values(gs.pieces).forEach(p=>{ if(p.type==='K'&&p.col==='b') bKing=true; if(p.type==='K'&&p.col==='w') wKing=true; });
+  if(!bKing&&!gs.gameOver){ gs.gameOver=true; gs.gameOverMsg='You win! Enemy King destroyed!'; }
+  if(!wKing&&!gs.gameOver){ gs.gameOver=true; gs.gameOverMsg='Black wins! Your King was destroyed!'; }
+  // Check King HP via pieces data
+  Object.values(gs.pieces).forEach(p=>{ if(p.type==='K'&&p.col==='b'&&p.hp<=0&&!gs.gameOver){ gs.gameOver=true; gs.gameOverMsg='You win! Enemy King\'s life reduced to 0!'; }});
+  Object.values(gs.pieces).forEach(p=>{ if(p.type==='K'&&p.col==='w'&&p.hp<=0&&!gs.gameOver){ gs.gameOver=true; gs.gameOverMsg='Black wins! Your King\'s life was reduced to 0!'; }});
+}
+
+// ─── SPELLS ──────────────────────────────────────────────────────────────────
+function activateBlink() {
+  if(gs.blinkUsed||!gs.selected) return;
+  gs.blinkMode=true;
+  const[r,c]=gs.selected;
+  gs.validMoves=getValidMoves(r,c,true);
+  addLog('♘ Blink activated — pick any Queen-move square.');
+  render();
+}
+
+function castSpell(cardIdx) {
+  if(gs.phase!=='cast'&&gs.phase!=='move') { addLog('Can only cast during Cast phase.'); return; }
+  const card=gs.hand[cardIdx];
+  if(!card) return;
+
+  // Bishop channel discount
+  let cost=card.cost;
+  const hasBishop=Object.values(gs.pieces).some(p=>p.col==='w'&&p.type==='B');
+  if(hasBishop) cost=Math.max(0,cost-1);
+
+  // Queen free cast
+  let free=false;
+  if(gs.queenFreeCast&&!gs.freeCastUsed){
+    const hasQueen=Object.values(gs.pieces).some(p=>p.col==='w'&&p.type==='Q');
+    if(hasQueen){ free=true; gs.freeCastUsed=true; gs.queenFreeCast=false; addLog('Queen\'s Archmage — free cast!'); }
+  }
+
+  if(!free&&gs.mana.w<cost){ addLog('Not enough mana!'); return; }
+  if(!free) gs.mana.w-=cost;
+
+  gs.pendingSpell={card, cardIdx};
+  gs.hand.splice(cardIdx,1);
+  gs.discard.push(card);
+
+  resolveSpell(card);
+  render();
+}
+
+function resolveSpell(card) {
+  const eff=card.effect;
+  if(eff==='shield'||eff==='shield_thorn') { gs.spellTargetMode='shield'; addLog(`${card.name} — click a piece to shield it.`); return; }
+  if(eff==='stun') { gs.spellTargetMode='stun'; addLog(`${card.name} — click a piece to stun.`); return; }
+  if(eff==='stun2') { gs.spellTargetMode='stun2'; gs.spellTargetStep=0; gs.spellTargetData={}; addLog(`${card.name} — click 2 enemy pieces to stun.`); return; }
+  if(eff==='dmg2'||eff==='dmg3_enemy'||eff==='dmg4_enemy'||eff==='dmg5'||eff==='dmg1_adj') {
+    const dmg=parseInt(eff.match(/\d+/)[0]);
+    gs.spellTargetMode=eff.includes('enemy')?'dmg_enemy':'dmg_any';
+    gs.spellTargetData={dmg};
+    addLog(`${card.name} — click a ${eff.includes('enemy')?'enemy ':''}piece to deal ${dmg} damage.`);
+    return;
+  }
+  if(eff==='dmg3_enemy') { gs.spellTargetMode='dmg_enemy'; gs.spellTargetData={dmg:3}; addLog(`${card.name} — click an enemy piece.`); return; }
+  if(eff==='heal2'||eff==='heal3') { const h=eff==='heal2'?2:3; gs.spellTargetMode='heal'; gs.spellTargetData={heal:h}; addLog(`${card.name} — click a friendly piece to heal ${h} HP.`); return; }
+  if(eff==='full_heal') { gs.spellTargetMode='full_heal'; addLog(`${card.name} — click a friendly piece to fully heal.`); return; }
+  if(eff==='buff_hp3') { gs.spellTargetMode='buff_hp'; gs.spellTargetData={bonus:3}; addLog(`${card.name} — click a friendly piece to gain +3 HP.`); return; }
+  if(eff==='extra_move') { gs.spellTargetMode='extra_move'; addLog(`${card.name} — click a friendly piece to give it an extra move.`); return; }
+  if(eff==='teleport') { gs.spellTargetMode='teleport_pick'; gs.spellTargetData={}; addLog(`${card.name} — click a friendly piece to teleport.`); return; }
+  if(eff==='swap_enemies') { gs.spellTargetMode='swap1'; gs.spellTargetData={}; addLog(`${card.name} — click first enemy piece.`); return; }
+  if(eff==='drain2') { gs.spellTargetMode='drain'; gs.spellTargetData={dmg:2,heal:1}; addLog(`${card.name} — click an enemy piece to drain.`); return; }
+  if(eff==='consume') { gs.spellTargetMode='consume'; addLog(`${card.name} — click an enemy piece with ≤3 HP to destroy it.`); return; }
+  if(eff==='execute') { gs.spellTargetMode='execute'; addLog(`${card.name} — click any piece with ≤2 HP to destroy it.`); return; }
+  if(eff==='debuff_atk') { gs.spellTargetMode='debuff'; addLog(`${card.name} — click an enemy piece to reduce its ATK by 1.`); return; }
+  if(eff==='queen_atk2') {
+    const qp=Object.values(gs.pieces).find(p=>p.col==='w'&&p.type==='Q');
+    if(qp){qp.atk+=2; addLog('Flame Wall! Queen gains +2 ATK this turn.');} else addLog('No Queen on board.');
+    return;
+  }
+  if(eff==='aura_hp1') {
+    Object.values(gs.pieces).forEach(p=>{if(p.col==='w'){p.hp=Math.min(p.maxHp,p.hp+1);}}); addLog('Radiant Aura! All your pieces healed 1 HP.'); return;
+  }
+  if(eff==='center_shield') {
+    gs.board.forEach((row,r)=>row.forEach((pid,c)=>{if(pid&&CENTER.has(r+','+c)&&gs.pieces[pid].col==='w')gs.shielded.add(pid);}));
+    addLog('Sacred Ground! Center pieces shielded.'); return;
+  }
+  if(eff==='quake') {
+    let killed=0;
+    gs.board.forEach((row,r)=>row.forEach((pid,c)=>{
+      if(!pid) return; const p=gs.pieces[pid]; if(p.col!=='b') return;
+      p.hp-=2; addLog(`Earthquake: ${p.name} takes 2 dmg (${Math.max(0,p.hp)} HP left)`);
+      if(p.hp<=0){delete gs.pieces[pid]; gs.board[r][c]=null; killed++;}
+    }));
+    if(killed) addLog(`Earthquake destroys ${killed} piece(s)!`);
+    checkWinConditions(); return;
+  }
+  if(eff==='stun_row') { gs.spellTargetMode='stun_row'; addLog('Tidal Wave — click any piece to stun that entire row.'); return; }
+  if(eff==='stun3') {
+    const bPieces=Object.values(gs.pieces).filter(p=>p.col==='b');
+    const picks=shuffle([...bPieces]).slice(0,3);
+    picks.forEach(p=>{gs.stunned.add(p.id); addLog(`Blizzard stuns ${p.name}!`);});
+    return;
+  }
+  if(eff==='revive_pawn') {
+    gs.spellTargetMode='revive_pawn'; addLog('Phoenix Rise — click any empty square to place a Pawn.');
+    return;
+  }
+  if(eff==='push') { gs.spellTargetMode='push'; addLog('Vine Grasp — click an enemy piece to push it.'); return; }
+  if(eff==='unstun') {
+    gs.spellTargetMode='unstun'; addLog('Purify — click a friendly stunned piece.'); return;
+  }
+  if(eff==='dragon') {
+    gs.spellTargetMode='dragon'; addLog('Dragon Summoning — click an empty square to place the Dragon!'); return;
+  }
+  if(eff==='forced_check') {
+    addLog('Checkmate spell! Enemy King is forced into check — they must escape next turn or lose!');
+    return;
+  }
+  if(eff==='time_reverse') {
+    if(gs.lastMove){
+      const[[fr,fc],[tr,tc]]=gs.lastMove;
+      gs.board[fr][fc]=gs.board[tr][tc]; gs.board[tr][tc]=null; gs.lastMove=null;
+      addLog('Time Reversal! Last move undone.');
+    } else addLog('No move to reverse.');
+    return;
+  }
+}
+
+function handleSpellTarget(r, c) {
+  const mode=gs.spellTargetMode;
+  const pid=gs.board[r][c];
+  const p=pid?gs.pieces[pid]:null;
+
+  if(mode==='shield') {
+    if(!pid){addLog('No piece there.');return;}
+    gs.shielded.add(pid); addLog(`${p.name} is now shielded!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='stun') {
+    if(!pid){addLog('No piece there.');return;}
+    gs.stunned.add(pid); addLog(`${p.name} stunned!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='stun2') {
+    if(!pid||p.col!=='b'){addLog('Pick an enemy piece.');return;}
+    gs.stunned.add(pid); addLog(`${p.name} stunned!`);
+    gs.spellTargetStep++;
+    if(gs.spellTargetStep>=2) gs.spellTargetMode=null;
+    else addLog('Click second enemy piece to stun.');
+  } else if(mode==='stun_row') {
+    if(!pid){addLog('No piece there.');return;}
+    gs.board[r].forEach(ep=>{if(ep&&gs.pieces[ep].col==='b'){gs.stunned.add(ep); addLog(`${gs.pieces[ep].name} stunned!`);}});
+    gs.spellTargetMode=null;
+  } else if(mode==='dmg_any'||mode==='dmg_enemy') {
+    if(!pid){addLog('No piece there.');return;}
+    if(mode==='dmg_enemy'&&p.col!=='b'){addLog('Target an enemy piece.');return;}
+    const dmg=gs.spellTargetData.dmg;
+    p.hp-=dmg; addLog(`${p.name} takes ${dmg} damage! (${Math.max(0,p.hp)} HP left)`);
+    if(p.hp<=0){addLog(`${p.name} destroyed!`); gs.board[r][c]=null; delete gs.pieces[pid]; checkWinConditions();}
+    gs.spellTargetMode=null;
+  } else if(mode==='heal') {
+    if(!pid||p.col!=='w'){addLog('Pick a friendly piece.');return;}
+    const h=gs.spellTargetData.heal;
+    p.hp=Math.min(p.maxHp,p.hp+h); addLog(`${p.name} healed ${h} HP! (${p.hp}/${p.maxHp})`);
+    gs.spellTargetMode=null;
+  } else if(mode==='full_heal') {
+    if(!pid||p.col!=='w'){addLog('Pick a friendly piece.');return;}
+    p.hp=p.maxHp; addLog(`${p.name} fully healed!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='buff_hp') {
+    if(!pid||p.col!=='w'){addLog('Pick a friendly piece.');return;}
+    const b=gs.spellTargetData.bonus;
+    p.hp+=b; p.maxHp+=b; addLog(`${p.name} gains +${b} HP permanently! (${p.hp}/${p.maxHp})`);
+    gs.spellTargetMode=null;
+  } else if(mode==='extra_move') {
+    if(!pid||p.col!=='w'){addLog('Pick a friendly piece.');return;}
+    gs.extraMove.add(pid); addLog(`${p.name} can move twice this turn!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='teleport_pick') {
+    if(!pid||p.col!=='w'){addLog('Pick a friendly piece to teleport.');return;}
+    gs.spellTargetData.pid=pid; gs.spellTargetData.from=[r,c];
+    gs.spellTargetMode='teleport_dest'; addLog('Now click an empty square to teleport to.');
+  } else if(mode==='teleport_dest') {
+    if(pid){addLog('Must be empty.');return;}
+    const{pid:tp,from:[fr,fc]}=gs.spellTargetData;
+    gs.board[r][c]=tp; gs.board[fr][fc]=null;
+    addLog(`${gs.pieces[tp].name} teleported to ${String.fromCharCode(97+c)}${8-r}!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='swap1') {
+    if(!pid||p.col!=='b'){addLog('Pick an enemy piece.');return;}
+    gs.spellTargetData.first={pid,r,c}; gs.spellTargetMode='swap2'; addLog('Click second enemy piece to swap with.');
+  } else if(mode==='swap2') {
+    if(!pid||p.col!=='b'){addLog('Pick an enemy piece.');return;}
+    const{first}=gs.spellTargetData;
+    gs.board[first.r][first.c]=pid; gs.board[r][c]=first.pid;
+    addLog(`Dark Exchange! ${gs.pieces[first.pid].name} and ${p.name} swapped!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='drain') {
+    if(!pid||p.col!=='b'){addLog('Pick an enemy piece.');return;}
+    const {dmg,heal}=gs.spellTargetData;
+    p.hp-=dmg; addLog(`Soul Drain! ${p.name} takes ${dmg} dmg!`);
+    if(p.hp<=0){addLog(`${p.name} destroyed!`); gs.board[r][c]=null; delete gs.pieces[pid]; checkWinConditions();}
+    // Find first friendly piece to heal
+    const friendly=Object.values(gs.pieces).find(fp=>fp.col==='w');
+    if(friendly){friendly.hp=Math.min(friendly.maxHp,friendly.hp+heal); addLog(`Your ${friendly.name} healed ${heal} HP.`);}
+    gs.spellTargetMode=null;
+  } else if(mode==='consume') {
+    if(!pid||p.col!=='b'||p.hp>3){addLog('Pick an enemy piece with ≤3 HP.');return;}
+    addLog(`Consume destroys ${p.name}!`); gs.board[r][c]=null; delete gs.pieces[pid]; checkWinConditions();
+    gs.spellTargetMode=null;
+  } else if(mode==='execute') {
+    if(!pid||p.hp>2){addLog('Pick any piece with ≤2 HP.');return;}
+    addLog(`Judgement strikes down ${p.name}!`); gs.board[r][c]=null; delete gs.pieces[pid]; checkWinConditions();
+    gs.spellTargetMode=null;
+  } else if(mode==='debuff') {
+    if(!pid||p.col!=='b'){addLog('Pick an enemy piece.');return;}
+    p.atk=Math.max(0,p.atk-1); addLog(`${p.name} loses 1 ATK! (now ${p.atk})`);
+    gs.spellTargetMode=null;
+  } else if(mode==='push') {
+    if(!pid||p.col!=='b'){addLog('Pick an enemy piece.');return;}
+    // Push up one square (toward black's side)
+    const nr=Math.max(0,r-1);
+    if(nr!==r&&!gs.board[nr][c]){gs.board[nr][c]=pid; gs.board[r][c]=null; addLog(`Vine Grasp pushes ${p.name} to ${String.fromCharCode(97+c)}${8-nr}!`);}
+    else addLog(`Cannot push ${p.name} — blocked.`);
+    gs.spellTargetMode=null;
+  } else if(mode==='unstun') {
+    if(!pid||p.col!=='w'){addLog('Pick a friendly piece.');return;}
+    gs.stunned.delete(pid); addLog(`${p.name} is purified — no longer stunned!`);
+    gs.spellTargetMode=null;
+  } else if(mode==='dragon') {
+    if(pid){addLog('Must be empty.');return;}
+    let did='dragon_'+(Date.now());
+    gs.pieces[did]={col:'w',type:'Q',atk:5,hp:5,maxHp:5,id:did,name:'Dragon'};
+    gs.board[r][c]=did; addLog(`Dragon summoned at ${String.fromCharCode(97+c)}${8-r}! (ATK 5, HP 5, moves like Queen)`);
+    gs.spellTargetMode=null;
+  } else if(mode==='revive_pawn') {
+    if(pid){addLog('Must be empty.');return;}
+    let did='pawn_'+(Date.now());
+    gs.pieces[did]={col:'w',type:'P',atk:1,hp:1,maxHp:1,id:did};
+    gs.board[r][c]=did; addLog(`Pawn revived at ${String.fromCharCode(97+c)}${8-r}!`);
+    gs.spellTargetMode=null;
+  }
+
+  render();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function addLog(msg){gs.log.unshift(msg);if(gs.log.length>40)gs.log.pop();}
+
+function updatePieceInfo(r,c){
+  const pid=gs.board[r][c]; if(!pid) return;
+  const p=gs.pieces[pid];
+  const name=p.name||(BASE[p.type]?.name||p.type);
+  const stunned=gs.stunned.has(pid);
+  const shielded=gs.shielded.has(pid);
+  document.getElementById('piece-info').innerHTML=
+    `<b>${name}</b> (${p.col==='w'?'White':'Black'})<br>ATK: ${p.atk} &nbsp; HP: ${p.hp}/${p.maxHp}${stunned?'<br><span style="color:#ff8a65">STUNNED</span>':''}${shielded?'<br><span style="color:#ffd700">SHIELDED</span>':''}`;
+  const blinkBtn=document.getElementById('blink-btn');
+  if(p.col==='w'&&p.type==='N'&&!gs.blinkUsed&&gs.phase==='move'){blinkBtn.style.display='block';}
+  else{blinkBtn.style.display='none';}
+}
+
+function render(){
+  const board=document.getElementById('board'); board.innerHTML='';
+  const lm=gs.lastMove;
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const sq=document.createElement('div'), key=r+','+c, pid=gs.board[r][c];
+      sq.className='sq '+((r+c)%2===0?'light':'dark');
+      if(CENTER.has(key)) sq.classList.add('center-sq');
+      if(lm&&((lm[0][0]===r&&lm[0][1]===c)||(lm[1][0]===r&&lm[1][1]===c))) sq.classList.add('last-move');
+      if(gs.selected&&gs.selected[0]===r&&gs.selected[1]===c) sq.classList.add('selected');
+      if(gs.validMoves.some(([mr,mc])=>mr===r&&mc===c)) sq.classList.add('valid-move');
+      if(pid){
+        const p=gs.pieces[pid];
+        if(gs.stunned.has(pid)) sq.classList.add('stunned-sq');
+        if(gs.shielded.has(pid)) sq.classList.add('shielded');
+        const ptype=p.type==='Q'&&p.name==='Dragon'?'Q':p.type;
+        const sym=p.name==='Dragon'?'🐉':(BASE[ptype]?.sym[p.col]||'?');
+        sq.textContent=sym;
+        if(p.type!=='K') {
+          const hpEl=document.createElement('div'); hpEl.className='sq-hp'+(p.hp>=p.maxHp?' full':'');
+          hpEl.textContent=p.hp+'/'+p.maxHp; sq.appendChild(hpEl);
+        }
+      }
+      sq.onclick=()=>handleSquareClick(r,c);
+      board.appendChild(sq);
+    }
+  }
+
+  // Status
+  document.getElementById('status').textContent = gs.gameOver ? gs.gameOverMsg : (gs.turn==='w'?'Your turn (White)':'AI thinking...');
+  const phaseNames={cast:'Cast Phase — play spells',move:'Move Phase — move a piece',end:'Resolving...',mana:'Gaining Mana'};
+  document.getElementById('phase-label').textContent = gs.gameOver?'Game Over':(gs.spellTargetMode?'Targeting spell...':phaseNames[gs.phase]||gs.phase);
+
+  // Mana
+  const mana=gs.mana.w, max=gs.maxMana.w;
+  const manaRow=document.getElementById('mana-row'); manaRow.innerHTML='';
+  const fc=FACTION_COLOR[faction];
+  for(let i=0;i<max;i++){const pip=document.createElement('span');pip.className='mana-pip'+(i<mana?' full':'');pip.textContent=FACTION_EMOJI[faction];pip.style.color=fc;manaRow.appendChild(pip);}
+  const ml=document.createElement('span'); ml.style.fontSize='11px'; ml.style.color='#555'; ml.style.marginLeft='4px'; ml.textContent=mana+'/'+max; manaRow.appendChild(ml);
+
+  // Phase buttons
+  const ep=document.getElementById('end-phase-btn');
+  const et=document.getElementById('end-turn-btn');
+  if(gs.gameOver){ep.disabled=true;et.disabled=true;}
+  else{
+    ep.disabled=gs.turn!=='w'||gs.spellTargetMode!=null;
+    et.disabled=gs.turn!=='w'||gs.spellTargetMode!=null;
+    ep.textContent=gs.phase==='cast'?'Move Phase →':'End Turn →';
+  }
+
+  // Enemy king HP
+  const bKingPiece=Object.values(gs.pieces).find(p=>p.type==='K'&&p.col==='b');
+  if(bKingPiece){
+    document.getElementById('enemy-king-hp').textContent=Math.max(0,bKingPiece.hp)+' / 20';
+    document.getElementById('enemy-hp-bar').style.width=Math.max(0,bKingPiece.hp/20*100)+'%';
+  }
+
+  // Free cast label
+  const fcLabel=document.getElementById('free-cast-label');
+  const hasQueen=Object.values(gs.pieces).some(p=>p.col==='w'&&p.type==='Q');
+  fcLabel.style.display=(hasQueen&&gs.queenFreeCast&&!gs.freeCastUsed)?'inline':'none';
+
+  // Hand
+  document.getElementById('deck-count').textContent=gs.deck.length;
+  const handEl=document.getElementById('hand'); handEl.innerHTML='';
+  gs.hand.forEach((card,i)=>{
+    let cost=card.cost;
+    const hasBishop=Object.values(gs.pieces).some(p=>p.col==='w'&&p.type==='B');
+    if(hasBishop) cost=Math.max(0,cost-1);
+    const canCast=(gs.phase==='cast'||gs.phase==='move')&&gs.turn==='w'&&(gs.mana.w>=cost||(!gs.freeCastUsed&&gs.queenFreeCast&&Object.values(gs.pieces).some(p=>p.col==='w'&&p.type==='Q')));
+    const div=document.createElement('div');
+    div.className='spell-card'+(canCast?'':' disabled');
+    div.innerHTML=`<div class="sc-cost" style="color:${FACTION_COLOR[faction]}">${FACTION_EMOJI[faction]} ${cost} mana</div><div class="sc-name">${card.name}</div><div class="sc-type">${card.type}</div><div class="sc-desc">${card.desc}</div>`;
+    if(canCast) div.onclick=()=>castSpell(i);
+    handEl.appendChild(div);
+  });
+
+  // Log
+  document.getElementById('log').innerHTML=gs.log.slice(0,12).map(l=>`<div>${l}</div>`).join('');
+}
+</script>
+</body>
+</html>
