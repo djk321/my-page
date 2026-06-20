@@ -228,6 +228,12 @@
           <button id="mode-2p" onclick="setMode('2p')" style="font-size:13px;padding:5px 16px;background:#2e7d32;">👥 2 Player</button>
           <button id="mode-ai" onclick="setMode('ai')" style="font-size:13px;padding:5px 16px;background:#37474f;">🤖 vs AI</button>
         </div>
+        <div id="diff-row" style="display:none;align-items:center;justify-content:center;gap:8px;margin-top:6px;">
+          <span style="font-size:12px;color:#90a4ae;">Difficulty:</span>
+          <button id="diff-easy"   onclick="setDiff('easy')"   style="font-size:12px;padding:4px 12px;background:#37474f;">Easy</button>
+          <button id="diff-medium" onclick="setDiff('medium')" style="font-size:12px;padding:4px 12px;background:#2e7d32;">Medium</button>
+          <button id="diff-hard"   onclick="setDiff('hard')"   style="font-size:12px;padding:4px 12px;background:#37474f;">Hard</button>
+        </div>
       </div>
       <div class="game-layout">
         <!-- Left: White player -->
@@ -249,30 +255,25 @@
             <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div> Green</div>
             <div class="legend-item"><div class="legend-dot" style="background:#3f51b5"></div> Blue</div>
           </div>
-          <span class="rules-toggle" onclick="toggleRules()">📜 How to Play</span>
-          <div class="rules-box" id="rules-box">
-            <b style="color:#81c784;">♟ Chess Rules</b><br>
-            • All standard chess moves apply<br>
-            • En passant &amp; castling supported<br>
-            • Pawns promote to Queens<br>
-            • Checkmate = instant loss<br>
-            • Stalemate = draw<br><br>
-            <b style="color:#81c784;">🏠 Property Rules</b><br>
-            • Each square is a Monopoly property<br>
-            • Land on unowned → Buy or Pass<br>
-            • Land on yours → Safe, no cost<br>
-            • Land on opponent's → Pay rent!<br>
-            • Rent: $20–$200 by color group<br><br>
-            <b style="color:#81c784;">⚔️ Capture Bonus</b><br>
-            • Capturing a piece also seizes their single most expensive property<br>
-            • Seized property changes ownership immediately<br><br>
-            <b style="color:#81c784;">💸 Bankruptcy</b><br>
-            • Dropping to $0 or below = instant loss<br>
-            • Buying a property that leaves you broke is risky!<br>
-            • Passing on a buy is always safe<br><br>
-            <b style="color:#81c784;">🎯 Win Conditions</b><br>
-            • Checkmate the enemy King, OR<br>
-            • Bankrupt your opponent with rent
+          <div class="rules-box open" id="rules-box">
+            <b style="color:#81c784;">🏠 Land on property:</b> Buy or pay rent<br>
+            <b style="color:#81c784;">⚔️ Capture a piece:</b> Steal their best property<br>
+            <b style="color:#81c784;">🎯 Win by:</b> Checkmate OR Bankruptcy<br>
+            <span class="rules-toggle" onclick="toggleRules()" id="rules-toggle-btn">📜 More rules ▼</span>
+            <div id="rules-extra" style="display:none;margin-top:6px;border-top:1px solid #37474f;padding-top:6px;">
+              <b style="color:#81c784;">♟ Chess Rules</b><br>
+              • All standard moves apply<br>
+              • En passant &amp; castling supported<br>
+              • Pawns promote to Queens<br><br>
+              <b style="color:#81c784;">🏠 Property Details</b><br>
+              • Unowned → Buy or Pass<br>
+              • Yours → Safe, no cost<br>
+              • Opponent's → Pay rent!<br>
+              • Rent: $20–$200 by color group<br><br>
+              <b style="color:#81c784;">💸 Bankruptcy</b><br>
+              • $0 or below = instant loss<br>
+              • Passing on a buy is always safe
+            </div>
           </div>
         </div>
 
@@ -336,12 +337,21 @@
 
 <script>
 let gameMode = '2p'; // '2p' or 'ai'
+let aiDiff = 'medium'; // 'easy' | 'medium' | 'hard'
 
 function setMode(mode) {
   gameMode = mode;
   document.getElementById('mode-2p').style.background = mode==='2p' ? '#2e7d32' : '#37474f';
   document.getElementById('mode-ai').style.background = mode==='ai' ? '#2e7d32' : '#37474f';
+  document.getElementById('diff-row').style.display = mode==='ai' ? 'flex' : 'none';
   initGame();
+}
+
+function setDiff(d) {
+  aiDiff = d;
+  ['easy','medium','hard'].forEach(x => {
+    document.getElementById('diff-'+x).style.background = x===d ? '#2e7d32' : '#37474f';
+  });
 }
 
 // ============ CRUMBLE ANIMATION ============
@@ -857,31 +867,77 @@ function scoreAiMove(fromRow, fromCol, toRow, toCol) {
   return score;
 }
 
+function allAiMoves() {
+  const moves = [];
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++)
+      if (state.board[r][c] && state.board[r][c][0] === 'b')
+        for (const [tr, tc] of getValidMoves(r, c))
+          moves.push([r, c, tr, tc]);
+  return moves;
+}
+
+function executeAiChoice(move) {
+  if (!move) return;
+  state.lastMove = {from:[move[0],move[1]], to:[move[2],move[3]]};
+  renderBoard();
+  setTimeout(() => {
+    executeMove(move[0], move[1], move[2], move[3]);
+    if (state.pendingBuy) {
+      const {player, prop} = state.pendingBuy;
+      const buy = state.money[player] >= prop.price && (aiDiff === 'hard' ? prop.price > 100 : prop.price > 150);
+      setTimeout(() => doBuy(buy), 400);
+    }
+  }, aiDiff === 'easy' ? 300 : 500);
+}
+
 function doAiMove() {
   if (state.gameOver || state.turn !== 'b') return;
-  let bestScore = -Infinity, bestMove = null;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      if (!state.board[r][c] || state.board[r][c][0] !== 'b') continue;
-      for (const [tr, tc] of getValidMoves(r, c)) {
-        const s = scoreAiMove(r, c, tr, tc);
-        if (s > bestScore) { bestScore = s; bestMove = [r, c, tr, tc]; }
+  if (aiDiff === 'easy') doAiEasy();
+  else if (aiDiff === 'medium') doAiMedium();
+  else doAiHard();
+}
+
+function doAiEasy() {
+  const moves = allAiMoves();
+  executeAiChoice(moves[Math.floor(Math.random() * moves.length)] || null);
+}
+
+function doAiMedium() {
+  const moves = allAiMoves();
+  let best = -Infinity, bestMove = null;
+  for (const m of moves) {
+    const s = scoreAiMove(m[0], m[1], m[2], m[3]);
+    if (s > best) { best = s; bestMove = m; }
+  }
+  executeAiChoice(bestMove);
+}
+
+function doAiHard() {
+  // Score each AI move minus the best white counter-response
+  const moves = allAiMoves();
+  let best = -Infinity, bestMove = null;
+  for (const [fr, fc, tr, tc] of moves) {
+    const piece = state.board[fr][fc];
+    const sv = state.board[tr][tc];
+    state.board[tr][tc] = piece; state.board[fr][fc] = null;
+    const myScore = scoreAiMove(fr, fc, tr, tc);
+    // look at white's best counter
+    let worstCounter = Infinity;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (!state.board[r][c] || state.board[r][c][0] !== 'w') continue;
+        for (const [wr, wc] of getValidMoves(r, c)) {
+          const ws = scoreAiMove(r, c, wr, wc) * -1; // from black's perspective
+          if (ws < worstCounter) worstCounter = ws;
+        }
       }
     }
+    state.board[fr][fc] = piece; state.board[tr][tc] = sv;
+    const net = myScore + (isFinite(worstCounter) ? worstCounter * 0.6 : 0);
+    if (net > best) { best = net; bestMove = [fr, fc, tr, tc]; }
   }
-  if (bestMove) {
-    state.lastMove = {from:[bestMove[0],bestMove[1]], to:[bestMove[2],bestMove[3]]};
-    renderBoard();
-    setTimeout(() => {
-      executeMove(bestMove[0], bestMove[1], bestMove[2], bestMove[3]);
-      // AI auto-decides on property purchase
-      if (state.pendingBuy) {
-        const {player, prop} = state.pendingBuy;
-        const buy = state.money[player] >= prop.price && prop.price > 150;
-        setTimeout(() => doBuy(buy), 400);
-      }
-    }, 500);
-  }
+  executeAiChoice(bestMove);
 }
 
 function findKing(color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(state.board[r][c]===color+'K')return[r,c];return null;}
@@ -889,7 +945,13 @@ function isInCheck(color){const king=findKing(color);if(!king)return false;const
 function hasAnyMoves(color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(state.board[r][c]&&state.board[r][c][0]===color&&getValidMoves(r,c).length>0)return true;return false;}
 function addLog(msg,type){state.log.unshift({msg,type});const el=document.getElementById('log-entries');const e=document.createElement('div');e.className='log-entry '+(type||'normal');e.textContent=msg;el.insertBefore(e,el.firstChild);if(el.children.length>40)el.removeChild(el.lastChild);}
 function updateStatus(msg){document.getElementById('status').textContent=msg;}
-function toggleRules(){document.getElementById('rules-box').classList.toggle('open');}
+function toggleRules(){
+  const extra=document.getElementById('rules-extra');
+  const btn=document.getElementById('rules-toggle-btn');
+  const open=extra.style.display==='none';
+  extra.style.display=open?'block':'none';
+  btn.textContent=open?'📜 Less rules ▲':'📜 More rules ▼';
+}
 </script>
 </body>
 </html>
