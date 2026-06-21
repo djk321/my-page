@@ -57,8 +57,8 @@
     }
 
     /* ── GAME SCREEN ── */
-    #gameScreen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 48px; background: #0f0f14; color: #e8e8f0; min-height: 100vh; }
-    #topBar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 820px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    #gameScreen { display: none; flex-direction: column; align-items: center; padding: 10px 20px 16px; background: #0f0f14; color: #e8e8f0; min-height: 100vh; }
+    #topBar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 900px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
     h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
     .subtitle { font-size: 11px; color: #888; letter-spacing: 1px; }
     #controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -1312,8 +1312,8 @@ function startTowerTycoon(a, b) {
   const log = [];
 
   // Canvas constants (matching Tower Tactics proportions)
-  const BW=114, BH=38, DX=16, DY=9, PX=5, PY=3;
-  const CV_W=430, CV_H=560;
+  const BW=100, BH=28, DX=14, DY=8, PX=4, PY=2;
+  const CV_W=380, CV_H=420;
   const TTX = Math.floor((CV_W - (COLS*(BW+PX)+DX)) / 2);
   const TTY = CV_H - 22;
 
@@ -1431,7 +1431,7 @@ function startTowerTycoon(a, b) {
     root.innerHTML = `
       <style>
         #tt { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; padding:8px 0; }
-        #tt-tower-col { flex:1; min-width:${CV_W}px; }
+        #tt-tower-col { flex:0 0 auto; }
         #tt-side { flex:1; min-width:220px; display:flex; flex-direction:column; gap:12px; }
         .tt-card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:12px; padding:14px 16px; }
         .tt-card h3 { font-size:11px; letter-spacing:1px; color:#555; margin-bottom:8px; }
