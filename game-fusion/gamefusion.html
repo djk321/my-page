@@ -40,6 +40,9 @@
     #revealArt { width: 100%; max-width: 580px; border-radius: 16px; overflow: hidden; border: 1px solid #2a2a3a; box-shadow: 0 24px 60px rgba(0,0,0,.6); transform-origin: bottom center; }
     #revealArt svg { display: block; width: 100%; }
     #revealName { font-size: 42px; font-weight: 800; letter-spacing: -1px; text-align: center; margin-top: 24px; color: #f0f0f8; }
+    #revealMeta { display: flex; gap: 24px; margin-top: 12px; margin-bottom: 4px; font-size: 13px; color: #666; letter-spacing: .5px; }
+    #revealMeta span { display: flex; align-items: center; gap: 6px; }
+    #revealMeta span::before { font-size: 15px; }
     #playBtn { margin-top: 20px; padding: 16px 56px; font-size: 17px; font-weight: 700; border: none; border-radius: 50px; color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
     #playBtn:hover { transform: scale(1.05); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
     #playBtn:disabled { opacity: .5; cursor: default; transform: none; }
@@ -183,6 +186,7 @@
 <div id="revealScreen">
   <div id="revealArt"></div>
   <div id="revealName"></div>
+  <div id="revealMeta"></div>
   <button id="playBtn" onclick="beginWithAnimation()">▶ Begin</button>
   <button id="backBtn" onclick="goToSelect()">← Pick different games</button>
 </div>
@@ -1129,6 +1133,9 @@ function doReveal() {
 function buildRevealScreen(a, b) {
   loadRevealArt(a, b);
   document.getElementById('revealName').textContent = hybridName(a, b);
+  const story = buildStory(a, b);
+  document.getElementById('revealMeta').innerHTML =
+    `<span>👥 ${story.players} players</span><span>⏱ ${story.time}</span><span>🎯 Ages ${story.age}</span>`;
   const btn = document.getElementById('playBtn');
   btn.disabled = false;
   btn.style.background = a.bg;
