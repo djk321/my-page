@@ -48,12 +48,12 @@
     #playBtn:disabled { opacity: .5; cursor: default; transform: none; }
     #backBtn { margin-top: 14px; background: none; border: none; color: #444; font-size: 13px; cursor: pointer; padding: 6px 12px; }
     #backBtn:hover { color: #777; }
-    @keyframes art-collapse {
-      0%   { transform: scaleY(1) translateY(0);    opacity: 1; }
-      25%  { transform: scaleY(1.05) translateY(-8px); opacity: 1; }
-      60%  { transform: scaleY(0.05) translateY(42px); opacity: 1; }
-      85%  { transform: scaleY(0.02) translateY(46px); opacity: .3; }
-      100% { transform: scaleY(0)   translateY(50px); opacity: 0; }
+    @keyframes art-shake {
+      0%,100% { transform: translate(0,0) rotate(0deg); }
+      20%     { transform: translate(-6px,-2px) rotate(-1.2deg); }
+      40%     { transform: translate(6px,2px) rotate(1.2deg); }
+      60%     { transform: translate(-4px,-3px) rotate(-0.8deg); }
+      80%     { transform: translate(5px,1px) rotate(0.8deg); }
     }
 
     /* ── GAME SCREEN ── */
@@ -1145,9 +1145,86 @@ function buildRevealScreen(a, b) {
 function beginWithAnimation() {
   const artEl = document.getElementById('revealArt');
   const btn = document.getElementById('playBtn');
+  const nameEl = document.getElementById('revealName');
+  const metaEl = document.getElementById('revealMeta');
   btn.disabled = true;
-  artEl.style.animation = 'art-collapse 0.55s cubic-bezier(0.4,0,1,1) forwards';
-  artEl.addEventListener('animationend', () => startGame(), { once: true });
+  if (nameEl) nameEl.style.transition = 'opacity 0.2s'; nameEl && (nameEl.style.opacity = '0');
+  if (metaEl) metaEl.style.transition = 'opacity 0.2s'; metaEl && (metaEl.style.opacity = '0');
+  btn.style.transition = 'opacity 0.2s'; btn.style.opacity = '0';
+
+  // Phase 1: shake the art
+  const img = artEl.querySelector('img') || artEl.querySelector('svg');
+  if (!img) { startGame(); return; }
+  artEl.style.animation = 'art-shake 0.32s ease-in-out';
+
+  setTimeout(() => {
+    const rect = artEl.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+
+    // Canvas overlay sits exactly over the art element
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    cv.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;z-index:1001;pointer-events:none;border-radius:16px;`;
+    document.body.appendChild(cv);
+    const ctx = cv.getContext('2d');
+
+    // Draw the art element into an offscreen canvas so we can slice it
+    const offscreen = document.createElement('canvas');
+    offscreen.width = W; offscreen.height = H;
+    const oCtx = offscreen.getContext('2d');
+
+    const source = artEl.querySelector('img');
+    if (source) {
+      oCtx.drawImage(source, 0, 0, W, H);
+    } else {
+      // SVG fallback: just fade out normally
+      artEl.style.transition = 'opacity 0.4s';
+      artEl.style.opacity = '0';
+      cv.remove();
+      setTimeout(startGame, 420);
+      return;
+    }
+
+    artEl.style.visibility = 'hidden';
+
+    const N = 13;
+    const stripH = H / N;
+    const floors = Array.from({ length: N }, (_, i) => {
+      const dir = i % 2 === 0 ? 1 : -1;
+      return {
+        srcY: i * stripH, y: i * stripH, x: 0,
+        vy: 0, vx: dir * (0.6 + Math.random() * 1.2),
+        rot: 0, rv: dir * (0.022 + Math.random() * 0.022),
+        op: 1, falling: false,
+        delay: (N - 1 - i) * 58,
+      };
+    });
+
+    let elapsed = 0, last = null;
+    function animate(ts) {
+      if (!last) last = ts;
+      elapsed += ts - last; last = ts;
+      ctx.clearRect(0, 0, W, H);
+      let alive = 0;
+      floors.forEach(f => {
+        if (f.op <= 0) return;
+        alive++;
+        if (!f.falling && elapsed >= f.delay) { f.falling = true; f.vy = 1.2; }
+        if (f.falling) {
+          f.vy += 0.52; f.y += f.vy; f.x += f.vx; f.rot += f.rv;
+          if (f.y > H * 0.55) f.op -= 0.045;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, f.op);
+        ctx.translate(W / 2 + f.x, f.y + stripH / 2);
+        ctx.rotate(f.rot);
+        ctx.drawImage(offscreen, 0, f.srcY, W, stripH, -W / 2, -stripH / 2, W, stripH);
+        ctx.restore();
+      });
+      alive > 0 ? requestAnimationFrame(animate) : (cv.remove(), startGame());
+    }
+    requestAnimationFrame(animate);
+  }, 340);
 }
 
 // ══════════════════════════════════════════════════════════════════════
