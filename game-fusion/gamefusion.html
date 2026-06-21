@@ -18,7 +18,7 @@
     #selectSub { font-size: 14px; color: #666; margin-bottom: 32px; letter-spacing: 1px; }
     #selStatus { font-size: 13px; color: #888; margin-bottom: 20px; min-height: 20px; transition: color .2s; }
     #selStatus.ready { color: #a78bfa; font-weight: 500; }
-    #gameGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 700px; margin-bottom: 28px; }
+    #gameGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; width: 100%; max-width: 640px; margin-bottom: 28px; }
     .gcard { background: #1a1a24; border: 1.5px solid #2a2a38; border-radius: 12px; padding: 16px 10px; text-align: center; cursor: pointer; transition: all .18s; user-select: none; }
     .gcard:hover { border-color: #4a4a6a; background: #22223a; transform: translateY(-2px); }
     .gcard.selA { border-color: #a78bfa; background: #1e1a3a; box-shadow: 0 0 0 2px #a78bfa40; }
@@ -309,66 +309,36 @@
 // Capture rules by role: 0=diag-adj, 1=knight-L, 2=diag-ray, 3=straight-ray, 4=all-rays, 5=adj-win
 // ══════════════════════════════════════════════════════════════════════
 const GAMES = [
-  { id:'chess', name:'Chess', icon:'♟', tag:'The royal game of strategy',
-    accent:'#26215C', accentB:'#7F77DD', bg:'linear-gradient(135deg,#1a1a2e,#26215C)',
-    units:[{s:'♟',n:'Pawn'},{s:'♞',n:'Knight'},{s:'♝',n:'Bishop'},{s:'♜',n:'Rook'},{s:'♛',n:'Queen'},{s:'♚',n:'King'}]},
   { id:'dominoes', name:'Dominoes', icon:'⊟', tag:'Match pips, place tiles',
-    accent:'#2c2c2c', accentB:'#555', bg:'linear-gradient(135deg,#111,#333)',
+    accent:'#2c2c2c', accentB:'#888', bg:'linear-gradient(135deg,#111,#333)',
     units:[{s:'①',n:'One'},{s:'③',n:'Three'},{s:'④',n:'Four'},{s:'⑤',n:'Five'},{s:'⑥',n:'Six'},{s:'○',n:'Blank'}]},
   { id:'poker', name:'Poker', icon:'♠', tag:'High stakes, higher rewards',
     accent:'#8B0000', accentB:'#c0392b', bg:'linear-gradient(135deg,#4a0000,#8B0000)',
     units:[{s:'♣',n:'Deuce'},{s:'♦',n:'Jack'},{s:'♥',n:'Queen'},{s:'♠',n:'King'},{s:'★',n:'Ace'},{s:'☆',n:'Joker'}]},
-  { id:'scrabble', name:'Scrabble', icon:'S', tag:'Every letter scores',
-    accent:'#5D4037', accentB:'#8D6E63', bg:'linear-gradient(135deg,#3E2723,#795548)',
-    units:[{s:'A',n:'Vowel'},{s:'N',n:'Common'},{s:'X',n:'X-tile'},{s:'B',n:'B-tile'},{s:'Q',n:'Q-tile'},{s:'Z',n:'Z-tile'}]},
   { id:'monopoly', name:'Monopoly', icon:'$', tag:'Buy, build, bankrupt',
     accent:'#1B5E20', accentB:'#4CAF50', bg:'linear-gradient(135deg,#0a3012,#1B5E20)',
     units:[{s:'$',n:'Land'},{s:'R',n:'Railroad'},{s:'U',n:'Utility'},{s:'H',n:'Hotel'},{s:'B',n:'Boardwalk'},{s:'¢',n:'Bank'}]},
   { id:'battleship', name:'Battleship', icon:'⚓', tag:'Fire! Sink or be sunk',
     accent:'#0D47A1', accentB:'#1976D2', bg:'linear-gradient(135deg,#051a5c,#0D47A1)',
     units:[{s:'P',n:'Patrol'},{s:'S',n:'Sub'},{s:'D',n:'Destroyer'},{s:'C',n:'Cruiser'},{s:'B',n:'Battleship'},{s:'A',n:'Carrier'}]},
-  { id:'dnd', name:'D&D', icon:'⚔', tag:'Roll for initiative',
-    accent:'#4A148C', accentB:'#7B1FA2', bg:'linear-gradient(135deg,#1a0040,#4A148C)',
-    units:[{s:'G',n:'Goblin'},{s:'F',n:'Fighter'},{s:'W',n:'Wizard'},{s:'D',n:'Dragon'},{s:'L',n:'Lich'},{s:'✦',n:'Deity'}]},
-  { id:'risk', name:'Risk', icon:'⚑', tag:'Conquer every square',
-    accent:'#B71C1C', accentB:'#E53935', bg:'linear-gradient(135deg,#5a0000,#B71C1C)',
-    units:[{s:'I',n:'Infantry'},{s:'C',n:'Cavalry'},{s:'A',n:'Artillery'},{s:'G',n:'General'},{s:'M',n:'Marshal'},{s:'E',n:'Emperor'}]},
   { id:'go', name:'Go', icon:'●', tag:'Ancient stones, modern mind',
-    accent:'#1B1B1B', accentB:'#666', bg:'linear-gradient(135deg,#111,#2c2c2c)',
+    accent:'#3d2b00', accentB:'#c8960c', bg:'linear-gradient(135deg,#1a1000,#3d2b00)',
     units:[{s:'●',n:'Stone'},{s:'○',n:'Eye'},{s:'◎',n:'Liberty'},{s:'◉',n:'Influence'},{s:'⬤',n:'Territory'},{s:'✦',n:'Tengen'}]},
-  { id:'mahjong', name:'Mahjong', icon:'牌', tag:'Ancient tiles, fierce draws',
-    accent:'#880000', accentB:'#c62828', bg:'linear-gradient(135deg,#400000,#880000)',
-    units:[{s:'字',n:'Character'},{s:'○',n:'Circle'},{s:'竹',n:'Bamboo'},{s:'風',n:'Wind'},{s:'龍',n:'Dragon'},{s:'花',n:'Flower'}]},
-  { id:'clue', name:'Clue', icon:'?', tag:'Every move is a clue',
-    accent:'#37474F', accentB:'#607D8B', bg:'linear-gradient(135deg,#1a2530,#37474F)',
-    units:[{s:'K',n:'Knife'},{s:'L',n:'Lead Pipe'},{s:'R',n:'Revolver'},{s:'P',n:'Poison'},{s:'W',n:'Wrench'},{s:'C',n:'Candlestick'}]},
-  { id:'uno', name:'Uno', icon:'U', tag:'Draw four regrets',
-    accent:'#E65100', accentB:'#FF6D00', bg:'linear-gradient(135deg,#7a2000,#E65100)',
-    units:[{s:'S',n:'Skip'},{s:'2',n:'Draw 2'},{s:'R',n:'Reverse'},{s:'4',n:'Draw 4'},{s:'W',n:'Wild'},{s:'X',n:'Swap'}]},
-  { id:'tetris', name:'Tetris', icon:'▦', tag:'Stack, clear, capture',
-    accent:'#1A237E', accentB:'#3949AB', bg:'linear-gradient(135deg,#0a0f40,#1A237E)',
-    units:[{s:'I',n:'I-piece'},{s:'S',n:'S-piece'},{s:'Z',n:'Z-piece'},{s:'T',n:'T-piece'},{s:'L',n:'L-piece'},{s:'O',n:'O-piece'}]},
-  { id:'pacman', name:'Pac-Man', icon:'◔', tag:'Eat or be eaten',
-    accent:'#F9A825', accentB:'#FFD600', bg:'linear-gradient(135deg,#111,#3a3000)',
-    units:[{s:'·',n:'Pellet'},{s:'G',n:'Ghost'},{s:'F',n:'Fruit'},{s:'P',n:'Power'},{s:'◔',n:'Pac-Man'},{s:'★',n:'Star'}]},
   { id:'checkers', name:'Checkers', icon:'◉', tag:'Jump to victory',
     accent:'#BF360C', accentB:'#E64A19', bg:'linear-gradient(135deg,#5c1500,#BF360C)',
     units:[{s:'●',n:'Man'},{s:'◎',n:'Jumper'},{s:'◉',n:'Leaper'},{s:'⬤',n:'Ranger'},{s:'✦',n:'Champion'},{s:'♛',n:'King'}]},
   { id:'backgammon', name:'Backgammon', icon:'▲', tag:'Bear off to glory',
     accent:'#004D40', accentB:'#00796B', bg:'linear-gradient(135deg,#001a18,#004D40)',
     units:[{s:'△',n:'Single'},{s:'▲',n:'Pair'},{s:'◈',n:'Stack'},{s:'■',n:'Block'},{s:'◆',n:'Prime'},{s:'⌂',n:'Home'}]},
-  { id:'connect4', name:'Connect Four', icon:'○', tag:'Drop, connect, dominate',
-    accent:'#1565C0', accentB:'#1976D2', bg:'linear-gradient(135deg,#051040,#1565C0)',
-    units:[{s:'○',n:'Disc'},{s:'◎',n:'Double'},{s:'◉',n:'Triple'},{s:'⬤',n:'Block'},{s:'★',n:'Power'},{s:'✦',n:'Anchor'}]},
-  { id:'minesweeper', name:'Minesweeper', icon:'✸', tag:'Click carefully',
-    accent:'#37474F', accentB:'#78909C', bg:'linear-gradient(135deg,#1a2530,#455A64)',
-    units:[{s:'1',n:'One'},{s:'3',n:'Three'},{s:'F',n:'Flag'},{s:'5',n:'Five'},{s:'✸',n:'Mine'},{s:'S',n:'Safe'}]},
+  { id:'uno', name:'Uno', icon:'U', tag:'Draw four regrets',
+    accent:'#E65100', accentB:'#FF6D00', bg:'linear-gradient(135deg,#7a2000,#E65100)',
+    units:[{s:'S',n:'Skip'},{s:'2',n:'Draw 2'},{s:'R',n:'Reverse'},{s:'4',n:'Draw 4'},{s:'W',n:'Wild'},{s:'X',n:'Swap'}]},
+  { id:'candyland', name:'Candy Land', icon:'🍭', tag:'Follow the sweetest path',
+    accent:'#AD1457', accentB:'#F06292', bg:'linear-gradient(135deg,#6a0030,#AD1457)',
+    units:[{s:'🍬',n:'Candy'},{s:'🍭',n:'Lolly'},{s:'🍫',n:'Choco'},{s:'🍰',n:'Cake'},{s:'🌈',n:'Rainbow'},{s:'👑',n:'King Kandy'}]},
   { id:'mtg', name:'Magic', icon:'✦', tag:'Tap, cast, dominate',
     accent:'#1A237E', accentB:'#512DA8', bg:'linear-gradient(135deg,#0a0040,#4527A0)',
     units:[{s:'C',n:'Creature'},{s:'S',n:'Sorcery'},{s:'E',n:'Enchant'},{s:'A',n:'Artifact'},{s:'P',n:'Planeswalker'},{s:'G',n:'God'}]},
-  { id:'minecraft', name:'Minecraft', icon:'⛏', tag:'Mine, craft, capture',
-    accent:'#1B5E20', accentB:'#388E3C', bg:'linear-gradient(135deg,#0a2010,#2E7D32)',
-    units:[{s:'D',n:'Dirt'},{s:'I',n:'Iron'},{s:'G',n:'Gold'},{s:'O',n:'Obsidian'},{s:'N',n:'Netherite'},{s:'B',n:'Bedrock'}]},
 ];
 
 const VALS = [1, 3, 3, 5, 9, 0];
@@ -396,6 +366,7 @@ const BOARD_CONFIGS = {
   minesweeper: { screenBg:'#c0c0c0', screenColor:'#000',   cellBg:'#d0d0d0', cellBorder:'#808080', cellColor:'#000',    label:'#404040' },
   mtg:         { screenBg:'#080028', screenColor:'#c8b8ff', cellBg:'#160050', cellBorder:'#4020a0', cellColor:'#c8b8ff', label:'#8060d0' },
   minecraft:   { screenBg:'#2a1808', screenColor:'#e0d0b8', cellBg:'#8b7355', cellBorder:'#6a5a3e', cellColor:'#e0d0b8', label:'#c0a880' },
+  candyland:   { screenBg:'#fff0f8', screenColor:'#6a0030', cellBg:'#ffd6eb', cellBorder:'#f06292', cellColor:'#6a0030', label:'#AD1457' },
 };
 
 // Curated hybrid names
@@ -458,6 +429,7 @@ const GAME_FLAVOR = {
   minesweeper: { theme:'risk and deduction',    setting:'a minefield',               tone:'tense and methodical' },
   mtg:         { theme:'spell casting',         setting:'a magical realm',           tone:'complex and strategic' },
   minecraft:   { theme:'building and survival', setting:'a blocky wilderness',       tone:'creative and resourceful' },
+  candyland:   { theme:'sweet path racing',    setting:'a sugary wonderland',        tone:'colorful and whimsical' },
 };
 
 // ── Curated stories for popular combos ───────────────────────────────
@@ -809,6 +781,21 @@ function gameScene(g, cx, cy, pc, lc) {
     return `<rect x="${cx-60}" y="${cy-56}" width="120" height="116" fill="none" stroke="${lc}" stroke-width="1" opacity=".3"/>
       ${row1.map(([l,p],i)=>mkTile(l,p,cx-58+i*30,cy-20)).join('')}
       ${row2.map(([l,p],i)=>mkTile(l,p,cx-44+i*30,cy+16)).join('')}`;
+  }
+  if (id==='candyland') {
+    const colors=['#e53935','#f9a825','#43a047','#1e88e5','#8e24aa'];
+    let path='';
+    const pts=[[cx-60,cy+40],[cx-40,cy+10],[cx-10,cy+30],[cx+20,cy],[cx+50,cy+20],[cx+70,cy-10]];
+    path+=`<polyline points="${pts.map(([x,y])=>`${x},${y}`).join(' ')}" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".25"/>`;
+    path+=`<polyline points="${pts.map(([x,y])=>`${x},${y}`).join(' ')}" fill="none" stroke="${lc}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="14 10" opacity=".8"/>`;
+    pts.forEach(([x,y],i)=>{
+      path+=`<circle cx="${x}" cy="${y}" r="13" fill="${colors[i%colors.length]}" opacity=".85"/>`;
+      path+=`<circle cx="${x}" cy="${y}" r="7" fill="#fff" opacity=".35"/>`;
+    });
+    path+=`<text x="${cx-50}" y="${cy-40}" font-size="28" text-anchor="middle" fill="${lc}" opacity=".9">🍭</text>`;
+    path+=`<text x="${cx+10}" y="${cy-50}" font-size="22" text-anchor="middle" fill="${lc}" opacity=".75">🍬</text>`;
+    path+=`<text x="${cx+60}" y="${cy-30}" font-size="24" text-anchor="middle" fill="${lc}" opacity=".8">🍰</text>`;
+    return path;
   }
   // Default fallback
   return `<text x="${cx}" y="${cy+16}" font-size="96" text-anchor="middle" fill="${lc}"${op(.85)}>${g.icon}</text>`;
