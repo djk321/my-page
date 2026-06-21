@@ -1391,14 +1391,13 @@ function startTowerTycoon(a, b) {
     if (!ttCtx) return;
     const ctx = ttCtx;
     const bg = ctx.createLinearGradient(0,0,0,CV_H);
-    bg.addColorStop(0,'#07101f'); bg.addColorStop(1,'#0d1a36');
+    bg.addColorStop(0,'#0e2a4a'); bg.addColorStop(1,'#1a3a60');
     ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
     drawTowerCanvas(ctx);
-    // Risk label overlay at top
-    ctx.fillStyle='rgba(255,255,255,0.12)';
-    ctx.font='10px system-ui'; ctx.textAlign='center';
-    ctx.fillText('⬆ RISKIER · HIGHER VALUE', CV_W/2, 14);
-    ctx.fillText('⬇ SAFER · LOWER VALUE', CV_W/2, CV_H-8);
+    // Risk labels
+    ctx.font='bold 11px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle='#f44336'; ctx.fillText('⬆ RISKIER · HIGHER VALUE', CV_W/2, 16);
+    ctx.fillStyle='#4CAF50'; ctx.fillText('⬇ SAFER · LOWER VALUE', CV_W/2, CV_H-8);
   }
 
   function addLog(msg) {
@@ -1452,7 +1451,7 @@ function startTowerTycoon(a, b) {
             <button class="${ttMode==='ai'?'active':''}" onclick="ttSetMode('ai')">vs AI</button>
             <button class="${ttMode==='2p'?'active':''}" onclick="ttSetMode('2p')">2 Player</button>
           </div>
-          <canvas id="tt-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #2a2a3a;cursor:pointer;display:block;"></canvas>
+          <canvas id="tt-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #3a6090;cursor:pointer;display:block;box-shadow:0 8px 40px rgba(14,42,74,0.7);"></canvas>
         </div>
         <div id="tt-side">
           <div class="tt-card" id="tt-card0" style="border-color:${currentPlayer===0?COLORS[0]:'#2a2a3a'}">
@@ -1561,7 +1560,7 @@ function startTowerTycoon(a, b) {
 
     function wobbleStep() {
       const bg=ctx.createLinearGradient(0,0,0,CV_H);
-      bg.addColorStop(0,'#07101f'); bg.addColorStop(1,'#0d1a36');
+      bg.addColorStop(0,'#0e2a4a'); bg.addColorStop(1,'#1a3a60');
       ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
       const angle=wobbleAngles[Math.floor(wobbleFrame/4%wobbleAngles.length)];
       drawTowerCanvas(ctx, 0, angle);
@@ -1573,7 +1572,7 @@ function startTowerTycoon(a, b) {
     // Phase 2: scatter
     function scatterStep() {
       const bg=ctx.createLinearGradient(0,0,0,CV_H);
-      bg.addColorStop(0,'#07101f'); bg.addColorStop(1,'#0d1a36');
+      bg.addColorStop(0,'#0e2a4a'); bg.addColorStop(1,'#1a3a60');
       ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
       // Base
       ctx.fillStyle='#221508'; ctx.fillRect(TTX-8,TTY+2,COLS*(BW+PX)+DX+4,10);
