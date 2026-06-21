@@ -921,72 +921,30 @@ function buildBoxArtSVG(a, b) {
 </svg>`;
 }
 
-function getGeminiKey() {
-  let k = localStorage.getItem('gemini_key');
-  if (!k) {
-    k = prompt('Enter your Google Gemini API key to enable AI box art generation:');
-    if (k) localStorage.setItem('gemini_key', k.trim());
-  }
-  return k ? k.trim() : null;
-}
-
-async function geminiBoxPrompt(a, b, name) {
-  const cacheKey = `boxprompt_${[a.id, b.id].sort().join('_')}`;
-  const cached = localStorage.getItem(cacheKey);
-  if (cached) { console.log('Box art prompt (cached):', cached); return cached; }
-
-  const key = getGeminiKey();
-  if (!key) return null;
-
-  const fa = GAME_FLAVOR[a.id] || {};
-  const fb = GAME_FLAVOR[b.id] || {};
-  const userMsg = `You are a game box art director. Write a single vivid sentence (max 30 words) describing the illustration for a board game called "${name}" — a mashup of ${a.name} (${fa.theme || a.tag}, set in ${fa.setting || 'an arena'}, ${fa.tone || 'strategic'} tone) and ${b.name} (${fb.theme || b.tag}, set in ${fb.setting || 'another realm'}, ${fb.tone || 'unpredictable'} tone). Focus on the visual scene only — no text, no titles. Evocative and specific.`;
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: userMsg }] }] }),
-    }
-  );
-
-  if (!res.ok) {
-    const errJson = await res.json().catch(() => ({}));
-    console.error('Gemini error:', errJson);
-    throw new Error(`Gemini ${res.status}: ${errJson?.error?.message || 'unknown'}`);
-  }
-  const json = await res.json();
-  const prompt = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
-  if (prompt) localStorage.setItem(cacheKey, prompt);
-  return prompt;
+function buildImagePrompt(a, b, name) {
+  const fa = GAME_FLAVOR[a.id] || { theme: a.tag, setting: 'an arena', tone: 'strategic' };
+  const fb = GAME_FLAVOR[b.id] || { theme: b.tag, setting: 'another realm', tone: 'unpredictable' };
+  return `Vintage tabletop board-game box art for "${name}". ${fa.setting} meets ${fb.setting}. ` +
+    `${fa.theme} clashes with ${fb.theme}. ${fa.tone} and ${fb.tone} atmosphere. ` +
+    `Dramatic painted illustration, rich colors, cinematic lighting, no text or letters.`;
 }
 
 async function loadRevealArt(a, b) {
   const artEl = document.getElementById('revealArt');
   const name = hybridName(a, b);
 
-  const setStatus = (msg) => {
-    artEl.innerHTML = `
-      <div style="width:100%;aspect-ratio:560/400;background:#1a1a24;border-radius:12px;border:1px solid #2a2a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
-        <div style="width:48px;height:48px;border:3px solid #2a2a3a;border-top-color:#c9a84c;border-radius:50%;animation:spin 0.9s linear infinite;"></div>
-        <div style="font-size:13px;color:#888;letter-spacing:1px;">${msg}</div>
-      </div>`;
-  };
+  artEl.innerHTML = `
+    <div style="width:100%;aspect-ratio:560/400;background:#1a1a24;border-radius:12px;border:1px solid #2a2a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+      <div style="width:48px;height:48px;border:3px solid #2a2a3a;border-top-color:#c9a84c;border-radius:50%;animation:spin 0.9s linear infinite;"></div>
+      <div style="font-size:13px;color:#888;letter-spacing:1px;">Generating box art…</div>
+    </div>`;
+
+  const imagePrompt = buildImagePrompt(a, b, name);
+  console.log('Box art prompt:', imagePrompt);
 
   try {
-    setStatus('Writing box art concept…');
-    const aiPrompt = await geminiBoxPrompt(a, b, name);
-    const imagePrompt = aiPrompt
-      ? `Vintage tabletop board-game box art. ${aiPrompt} Rich painted illustration, dramatic lighting, no text or letters.`
-      : `Vintage tabletop board-game box art for "${name}", a mashup of ${a.name} and ${b.name}. Rich painted illustration, dramatic lighting, no text or letters.`;
-
-    console.log('Box art prompt:', imagePrompt);
-    setStatus('Generating image…');
-
     const seed = Math.floor(Math.random() * 999999);
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=500&model=flux&seed=${seed}&nologo=true`;
-
     const img = new Image();
     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
     artEl.innerHTML = `<img src="${url}" style="width:100%;display:block;border-radius:12px;" alt="${name} box art"/>`;
