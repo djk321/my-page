@@ -380,6 +380,7 @@ const HYBRID_NAMES = {
   'jenga+uno':'Toppling Colors','uno+jenga':'Toppling Colors',
   'candyland+jenga':'Toffee Tower','jenga+candyland':'Toffee Tower',
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
+  'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
 };
 
 function hybridName(a, b) {
@@ -918,6 +919,7 @@ const CUSTOM_ART = {
   'jenga+uno':       'TopplingColors.png',
   'candyland+jenga': 'ToffeeTower.png',
   'jenga+sorry':     'ToweringTreachery.png',
+  'checkers+jenga':  'TowerTactics.png',
 };
 
 function customArtUrl(a, b) {
@@ -1241,6 +1243,7 @@ const COMBO_GAMES = {
   'jenga+uno':       startTopplingColors,
   'candyland+jenga': startToffeeTower,
   'jenga+sorry':     startToweringTreachery,
+  'checkers+jenga':  startTowerTactics,
 };
 
 function startGame() {
@@ -1659,6 +1662,431 @@ function startTowerTycoon(a, b) {
     const pick = sorted[Math.floor(Math.random() * Math.min(3, sorted.length))];
     doPull(pick, pick.row);
   }
+
+  render();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TOWER TACTICS (Jenga × Checkers)
+// ══════════════════════════════════════════════════════════════════════
+function startTowerTactics(a, b) {
+  const TROWS=12, TCOLS=3;
+  const BW=100, BH=28, DX=14, DY=8, PX=4, PY=2;
+  const CV_W=380, CV_H=420;
+  const TTX=Math.floor((CV_W-(TCOLS*(BW+PX)+DX))/2);
+  const TTY=CV_H-22;
+  const BS=6; // board size 6×6
+
+  // Colorful tower blocks (4-color cycling like TC)
+  const BCOLS=[
+    {fc:'#e53935',tc:'#ef5350',sc:'#b71c1c'},
+    {fc:'#1e88e5',tc:'#42a5f5',sc:'#0d47a1'},
+    {fc:'#43a047',tc:'#66bb6a',sc:'#1b5e20'},
+    {fc:'#fdd835',tc:'#ffee58',sc:'#f57f17'},
+  ];
+  const COL_SEQ=[[0,1,2],[3,0,1],[2,3,0],[1,2,3]];
+
+  const tower=[];
+  for(let r=0;r<TROWS;r++) for(let c=0;c<TCOLS;c++)
+    tower.push({row:r,col:c,removed:false,ci:COL_SEQ[r%4][c]});
+
+  // board[r][c] = null | {p:0|1, king:bool}  p0=human(bottom→up), p1=AI(top→down)
+  const board=Array.from({length:BS},()=>Array(BS).fill(null));
+  function initBoard(){
+    for(let r=0;r<BS;r++) for(let c=0;c<BS;c++) board[r][c]=null;
+    for(let r=0;r<2;r++) for(let c=0;c<BS;c++) if((r+c)%2===1) board[r][c]={p:1,king:false};
+    for(let r=4;r<BS;r++) for(let c=0;c<BS;c++) if((r+c)%2===1) board[r][c]={p:0,king:false};
+  }
+  initBoard();
+
+  // Phase: 'select' | 'dest' | 'pull'
+  let phase='select', currentPlayer=0, gameOver=false, ttMode='ai';
+  let selPiece=null, validDests=[], pendingMove=null;
+  let ttCtx=null, hovTower=null, animRaf=null;
+  const log=[];
+  const COLORS_P=['#c9a84c','#7F77DD'];
+  const PIECE=['🔴','🔵'];
+  function LABELS(){return ttMode==='2p'?['Player 1','Player 2']:['You','AI'];}
+
+  // ── Checkers logic ──
+  function getMoves(pr,pc){
+    const piece=board[pr][pc]; if(!piece||piece.p!==currentPlayer) return [];
+    const moves=[], dirs=[];
+    if(piece.p===0||piece.king) dirs.push(-1);
+    if(piece.p===1||piece.king) dirs.push(1);
+    for(const dr of dirs) for(const dc of[-1,1]){
+      const nr=pr+dr,nc=pc+dc;
+      if(nr<0||nr>=BS||nc<0||nc>=BS) continue;
+      if(!board[nr][nc]){
+        moves.push({fr:pr,fc:pc,tr:nr,tc:nc,cr:null,cc:null,jump:false});
+      } else if(board[nr][nc].p!==piece.p){
+        const jr=pr+2*dr,jc=pc+2*dc;
+        if(jr>=0&&jr<BS&&jc>=0&&jc<BS&&!board[jr][jc])
+          moves.push({fr:pr,fc:pc,tr:jr,tc:jc,cr:nr,cc:nc,jump:true});
+      }
+    }
+    return moves;
+  }
+
+  function getAllMoves(player){
+    const all=[];
+    for(let r=0;r<BS;r++) for(let c=0;c<BS;c++)
+      if(board[r][c]&&board[r][c].p===player){
+        const old=currentPlayer; currentPlayer=player;
+        getMoves(r,c).forEach(m=>all.push(m));
+        currentPlayer=old;
+      }
+    return all;
+  }
+
+  function execMove(m){
+    const piece=board[m.fr][m.fc];
+    board[m.tr][m.tc]=piece; board[m.fr][m.fc]=null;
+    if(m.cr!==null) board[m.cr][m.cc]=null;
+    // King if reaching back row
+    if(piece.p===0&&m.tr===0) piece.king=true;
+    if(piece.p===1&&m.tr===BS-1) piece.king=true;
+  }
+
+  function countPieces(player){
+    let n=0;
+    for(let r=0;r<BS;r++) for(let c=0;c<BS;c++) if(board[r][c]&&board[r][c].p===player) n++;
+    return n;
+  }
+
+  // ── Canvas ──
+  function tPos(r,c){return{x:TTX+c*(BW+PX),y:TTY-(r+1)*(BH+PY)};}
+
+  function drawTBlock(ctx,x,y,ci,highlight){
+    const t=BCOLS[ci];
+    const fc=highlight?lighten(t.fc,55):t.fc;
+    const tc=highlight?lighten(t.tc,35):t.tc;
+    const sc=highlight?lighten(t.sc,35):t.sc;
+    ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=0.8;
+    ctx.fillStyle=fc; ctx.beginPath(); ctx.rect(x,y,BW,BH); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=tc; ctx.beginPath();
+    ctx.moveTo(x,y); ctx.lineTo(x+DX,y-DY); ctx.lineTo(x+BW+DX,y-DY); ctx.lineTo(x+BW,y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=sc; ctx.beginPath();
+    ctx.moveTo(x+BW,y); ctx.lineTo(x+BW+DX,y-DY);
+    ctx.lineTo(x+BW+DX,y-DY+BH); ctx.lineTo(x+BW,y+BH);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  function lighten(hex,amt){
+    const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return `rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+  }
+
+  function fullDraw(){
+    if(!ttCtx) return;
+    const ctx=ttCtx;
+    const bg=ctx.createLinearGradient(0,0,0,CV_H);
+    bg.addColorStop(0,'#0a1a0a'); bg.addColorStop(1,'#1a3a1a');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+    ctx.fillStyle='#0a1a08'; ctx.fillRect(TTX-8,TTY+2,TCOLS*(BW+PX)+DX+4,10);
+    ctx.fillStyle='#1a3010'; ctx.fillRect(TTX-8,TTY-2,TCOLS*(BW+PX)+DX+4,4);
+
+    const pullPhase=phase==='pull';
+    for(let r=0;r<TROWS;r++) for(let c=0;c<TCOLS;c++){
+      const blk=tower[r*TCOLS+c]; if(blk.removed) continue;
+      const isHov=hovTower&&hovTower.row===r&&hovTower.col===c;
+      drawTBlock(ctx,...Object.values(tPos(r,c)),blk.ci,pullPhase&&isHov);
+      if(!pullPhase){ctx.fillStyle='rgba(0,0,0,0.35)';const{x,y}=tPos(r,c);ctx.fillRect(x,y,BW,BH);}
+    }
+    ctx.font='bold 11px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle='#4CAF50'; ctx.fillText('⬆ SAFER',CV_W/2,16);
+    ctx.fillStyle='#f44336'; ctx.fillText('⬇ RISKIER',CV_W/2,CV_H-8);
+  }
+
+  function addLog(msg){
+    log.unshift(msg);
+    const el=document.getElementById('ttac-log');
+    if(el) el.innerHTML=log.slice(0,10).join('<br>');
+  }
+
+  // ── Board HTML ──
+  function boardHTML(){
+    const CELL=32;
+    let html=`<div style="display:inline-grid;grid-template-columns:repeat(${BS},${CELL}px);gap:1px;background:#111;padding:2px;border-radius:6px;">`;
+    for(let r=0;r<BS;r++) for(let c=0;c<BS;c++){
+      const isDark=(r+c)%2===1;
+      const piece=board[r][c];
+      const isSelected=selPiece&&selPiece.r===r&&selPiece.c===c;
+      const isDest=validDests.some(m=>m.tr===r&&m.tc===c);
+      const canSelect=phase==='select'&&isDark&&piece&&piece.p===currentPlayer&&(ttMode==='2p'||currentPlayer===0);
+      let bg=isDark?'#2d4a1e':'#8b6914';
+      if(isSelected) bg='#c9a84c';
+      else if(isDest) bg='#6aaa3a';
+      const cursor=canSelect||isDest?'pointer':'default';
+      const pieceIcon=piece?(piece.king?`<span style="font-size:${CELL*0.55}px;line-height:1;">${piece.p===0?'🔴':'🔵'}<span style="font-size:10px;position:absolute;top:0;right:1px;">♛</span></span>`:`<span style="font-size:${CELL*0.6}px;line-height:1;">${piece.p===0?'🔴':'🔵'}</span>`):'';
+      html+=`<div onclick="ttacClick(${r},${c})" style="width:${CELL}px;height:${CELL}px;background:${bg};display:flex;align-items:center;justify-content:center;cursor:${cursor};position:relative;border-radius:2px;">${pieceIcon}</div>`;
+    }
+    html+='</div>';
+    return html;
+  }
+
+  function updateSidebar(){
+    const lbl=LABELS(); const is2p=ttMode==='2p';
+    const p0=countPieces(0), p1=countPieces(1);
+    const statusMsg=gameOver?'Game over!'
+      :phase==='pull'?`${lbl[currentPlayer]}: pull a block from the tower to execute your move!`
+      :phase==='dest'?`${lbl[currentPlayer]}: choose your destination (highlighted in green)`
+      :is2p?`${lbl[currentPlayer]}'s turn — select a piece`
+      :currentPlayer===0?'Select one of your 🔴 pieces':'AI is thinking…';
+
+    document.getElementById('ttac-side').innerHTML=`
+      <div style="display:flex;gap:10px;">
+        <div class="tt-card" style="flex:1;border-color:${currentPlayer===0?COLORS_P[0]:'#2a2a3a'}">
+          <h3>${is2p?lbl[0]:'YOU'} 🔴</h3>
+          <div style="font-size:22px;font-weight:700;color:${COLORS_P[0]}">${p0}</div>
+          <div style="font-size:10px;color:#555;">pieces left</div>
+        </div>
+        <div class="tt-card" style="flex:1;border-color:${currentPlayer===1?COLORS_P[1]:'#2a2a3a'}">
+          <h3>${is2p?lbl[1]:'AI'} 🔵</h3>
+          <div style="font-size:22px;font-weight:700;color:${COLORS_P[1]}">${p1}</div>
+          <div style="font-size:10px;color:#555;">pieces left</div>
+        </div>
+      </div>
+      <div class="tt-card">
+        <h3>STATUS</h3>
+        <div class="tt-msg" style="font-size:12px;color:#aaa;line-height:1.6;">${statusMsg}</div>
+      </div>
+      <div class="tt-card">
+        <h3>BOARD</h3>
+        ${boardHTML()}
+      </div>
+      <div class="tt-card">
+        <h3>EVENT LOG</h3>
+        <div id="ttac-log" style="font-size:11px;color:#666;line-height:1.9;max-height:90px;overflow-y:auto;">${log.slice(0,10).join('<br>')}</div>
+      </div>
+      <div class="tt-card">
+        <h3>HOW TO PLAY</h3>
+        <div style="font-size:11px;color:#888;line-height:1.7;">
+          <b style="color:#c9a84c;">Goal:</b> Capture all opponent pieces (🔵 = AI).<br><br>
+          <b style="color:#c9a84c;">Turn:</b><br>
+          1. Click a 🔴 piece to select it<br>
+          2. Click a green square to move<br>
+          3. Pull a block from the tower<br><br>
+          <b style="color:#c9a84c;">Jumps:</b> Land beyond an opponent piece to capture it. You must still pull a block!<br><br>
+          <b style="color:#c9a84c;">Kings ♛:</b> Reach the far back row to become a king — can move in both directions.<br><br>
+          <b style="color:#f44336;">Collapse:</b> Tower falls = instant loss. Choose wisely!
+        </div>
+      </div>`;
+  }
+
+  function collapseRisk(row){
+    const removed=tower.filter(b=>b.removed).length;
+    const stability=removed/(TROWS*TCOLS);
+    const rowFactor=(TROWS-1-row)/TROWS;
+    return Math.min(0.85,stability*0.45+rowFactor*stability*0.45);
+  }
+
+  // ── Board clicks (from onclick) ──
+  window.ttacClick=function(r,c){
+    if(gameOver||phase==='pull') return;
+    if(ttMode==='ai'&&currentPlayer!==0) return;
+    if(phase==='select'){
+      const piece=board[r][c];
+      if(!piece||piece.p!==currentPlayer) return;
+      const moves=getMoves(r,c);
+      if(!moves.length) return;
+      selPiece={r,c}; validDests=moves; phase='dest';
+      fullDraw(); updateSidebar();
+    } else if(phase==='dest'){
+      const move=validDests.find(m=>m.tr===r&&m.tc===c);
+      if(!move){ // re-select another piece
+        selPiece=null; validDests=[]; phase='select';
+        const piece=board[r][c];
+        if(piece&&piece.p===currentPlayer){
+          const moves=getMoves(r,c);
+          if(moves.length){selPiece={r,c};validDests=moves;phase='dest';}
+        }
+        fullDraw(); updateSidebar(); return;
+      }
+      pendingMove=move; selPiece=null; validDests=[]; phase='pull';
+      addLog(`${LABELS()[currentPlayer]} moving → pull a block to confirm!`);
+      fullDraw(); updateSidebar();
+    }
+  };
+
+  function animateCollapse(done){
+    if(!ttCtx){done();return;}
+    if(animRaf){cancelAnimationFrame(animRaf);animRaf=null;}
+    const ctx=ttCtx;
+    const flying=[];
+    for(let r=0;r<TROWS;r++) for(let c=0;c<TCOLS;c++){
+      const blk=tower[r*TCOLS+c]; if(blk.removed) continue;
+      const{x,y}=tPos(r,c);
+      flying.push({x,y,ci:blk.ci,vx:(Math.random()-.5)*14,vy:-(Math.random()*6+2),vr:(Math.random()-.5)*8,rot:0,alpha:1});
+    }
+    const wAngles=[0,-4,5,-5,4,-3,2,0]; let wf=0;
+    function wobble(){
+      const bg=ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#0a1a0a'); bg.addColorStop(1,'#1a3a1a');
+      ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+      const ang=wAngles[Math.floor(wf/4%wAngles.length)];
+      ctx.save();
+      ctx.translate(TTX+TCOLS*(BW+PX)/2,TTY); ctx.rotate(ang*Math.PI/180);
+      ctx.translate(-(TTX+TCOLS*(BW+PX)/2),-TTY);
+      for(let r=0;r<TROWS;r++) for(let c=0;c<TCOLS;c++){
+        const b=tower[r*TCOLS+c]; if(b.removed) continue;
+        drawTBlock(ctx,...Object.values(tPos(r,c)),b.ci,false);
+      }
+      ctx.restore();
+      animRaf=++wf<33?requestAnimationFrame(wobble):requestAnimationFrame(scatter);
+    }
+    function scatter(){
+      const bg=ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#0a1a0a'); bg.addColorStop(1,'#1a3a1a');
+      ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+      let any=false;
+      for(const f of flying){
+        f.vy+=0.5;f.x+=f.vx;f.y+=f.vy;f.rot+=f.vr;
+        f.alpha=Math.max(0,f.alpha-.025);
+        if(f.alpha<=0) continue; any=true;
+        ctx.save(); ctx.globalAlpha=f.alpha;
+        ctx.translate(f.x+BW/2,f.y+BH/2); ctx.rotate(f.rot*Math.PI/180); ctx.translate(-BW/2,-BH/2);
+        drawTBlock(ctx,0,0,f.ci,false);
+        ctx.restore(); ctx.globalAlpha=1;
+      }
+      animRaf=any?requestAnimationFrame(scatter):(animRaf=null,done(),null);
+    }
+    animRaf=requestAnimationFrame(wobble);
+  }
+
+  // ── Tower pull (canvas click) ──
+  function doPull(blk){
+    blk.removed=true;
+    const risk=collapseRisk(blk.row);
+    if(Math.random()<risk){
+      const opp=1-currentPlayer;
+      addLog(`💥 Tower collapsed! ${LABELS()[opp]} wins!`);
+      fullDraw(); updateSidebar();
+      animateCollapse(()=>ttacEnd(opp,true));
+      return;
+    }
+    // Execute board move
+    const m=pendingMove;
+    const wasJump=m.jump;
+    execMove(m);
+    pendingMove=null; phase='select';
+    const lbl=LABELS()[currentPlayer];
+    if(wasJump) addLog(`⚔️ ${lbl} captures a piece!`);
+    else addLog(`▶ ${lbl} moves.`);
+    // Check win
+    const opp=1-currentPlayer;
+    if(countPieces(opp)===0){fullDraw();updateSidebar();setTimeout(()=>ttacEnd(currentPlayer,false),400);return;}
+    // Check opponent has no moves
+    const oppMoves=getAllMoves(opp);
+    if(!oppMoves.length){fullDraw();updateSidebar();setTimeout(()=>ttacEnd(currentPlayer,false),400);return;}
+    // Next turn
+    while(tower.filter(b=>!b.removed).length===0) tower.forEach(b=>b.removed=false); // reset if empty
+    currentPlayer=opp;
+    fullDraw(); updateSidebar();
+    if(ttMode==='ai'&&currentPlayer===1) setTimeout(aiTurn,900);
+  }
+
+  function ttacEnd(winnerIdx,byCollapse){
+    gameOver=true;
+    const lbl=LABELS();
+    document.getElementById('game-root').insertAdjacentHTML('beforeend',`
+      <div class="tt-card tt-gameover" style="margin-top:16px;animation:ttf-rise .4s ease both;">
+        <h2>${PIECE[winnerIdx]} ${lbl[winnerIdx]} wins!</h2>
+        <p style="color:#888;margin-bottom:16px;">${byCollapse?'Tower collapsed!':lbl[winnerIdx]+' captured all pieces!'}</p>
+        <button class="btn primary" onclick="startTowerTactics(activeGameA,activeGameB)">Play Again</button>
+        <button class="btn" onclick="goToSelect()">Pick New Games</button>
+      </div>`);
+  }
+
+  // ── AI ──
+  function aiTurn(){
+    if(gameOver||ttMode==='2p'||currentPlayer!==1) return;
+    const moves=getAllMoves(1);
+    if(!moves.length){ttacEnd(0,false);return;}
+    // Prefer jumps, else random
+    const jumps=moves.filter(m=>m.jump);
+    const pick=jumps.length?jumps[Math.floor(Math.random()*jumps.length)]:moves[Math.floor(Math.random()*moves.length)];
+    selPiece=null; validDests=[]; pendingMove=pick; phase='pull';
+    fullDraw(); updateSidebar();
+    // Pull safest block
+    const avail=tower.filter(b=>!b.removed);
+    if(!avail.length){currentPlayer=0;phase='select';fullDraw();updateSidebar();return;}
+    const safest=avail.slice().sort((x,y)=>collapseRisk(x.row)-collapseRisk(y.row))[0];
+    setTimeout(()=>{hovTower={row:safest.row,col:safest.col};fullDraw();
+      setTimeout(()=>{hovTower=null;doPull(safest);},500);
+    },400);
+  }
+
+  // ── Render ──
+  function render(){
+    if(animRaf){cancelAnimationFrame(animRaf);animRaf=null;}
+    const root=document.getElementById('game-root');
+    root.innerHTML=`
+      <style>
+        #ttac{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+        #ttac-tower-col{flex:0 0 auto;}
+        #ttac-side{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px;}
+        .tt-card{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:12px 14px;}
+        .tt-card h3{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+        .tt-score{font-size:26px;font-weight:700;}
+        .tt-msg{font-size:13px;color:#aaa;}
+        .tt-gameover{text-align:center;padding:20px;}
+        .tt-gameover h2{font-size:24px;font-weight:700;color:#c9a84c;margin-bottom:8px;}
+        .tt-mode-seg{display:flex;border:1px solid #2a2a3a;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+        .tt-mode-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a1a24;color:#888;cursor:pointer;font-family:inherit;}
+        .tt-mode-seg button.active{background:#c9a84c;color:#000;font-weight:700;}
+        @keyframes ttf-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+      </style>
+      <div id="ttac">
+        <div id="ttac-tower-col">
+          <div class="tt-mode-seg">
+            <button class="${ttMode==='ai'?'active':''}" onclick="ttacSetMode('ai')">vs AI</button>
+            <button class="${ttMode==='2p'?'active':''}" onclick="ttacSetMode('2p')">2 Player</button>
+          </div>
+          <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:6px;">TOWER — PULL A BLOCK TO CONFIRM YOUR MOVE</div>
+          <canvas id="ttac-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #1a5c1a;cursor:pointer;display:block;box-shadow:0 8px 40px rgba(10,40,10,0.7);"></canvas>
+        </div>
+        <div id="ttac-side"></div>
+      </div>`;
+
+    const cv=document.getElementById('ttac-canvas');
+    ttCtx=cv.getContext('2d'); fullDraw(); updateSidebar();
+
+    cv.addEventListener('mousemove',e=>{
+      if(phase!=='pull'){if(hovTower){hovTower=null;fullDraw();}return;}
+      const rect=cv.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(CV_W/rect.width);
+      const my=(e.clientY-rect.top)*(CV_H/rect.height);
+      let found=null;
+      for(let r=TROWS-1;r>=0;r--) for(let c=TCOLS-1;c>=0;c--){
+        const b=tower[r*TCOLS+c]; if(b.removed) continue;
+        const{x,y}=tPos(r,c);
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH){found={row:r,col:c};break;}
+        if(found) break;
+      }
+      if(JSON.stringify(found)!==JSON.stringify(hovTower)){hovTower=found;fullDraw();}
+    });
+    cv.addEventListener('mouseleave',()=>{hovTower=null;fullDraw();});
+    cv.addEventListener('click',e=>{
+      if(gameOver||phase!=='pull') return;
+      if(ttMode==='ai'&&currentPlayer!==0) return;
+      const rect=cv.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(CV_W/rect.width);
+      const my=(e.clientY-rect.top)*(CV_H/rect.height);
+      for(let r=TROWS-1;r>=0;r--) for(let c=TCOLS-1;c>=0;c--){
+        const b=tower[r*TCOLS+c]; if(b.removed) continue;
+        const{x,y}=tPos(r,c);
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH){hovTower=null;doPull(b);return;}
+      }
+    });
+  }
+
+  window.ttacSetMode=function(mode){
+    ttMode=mode; gameOver=false; phase='select'; currentPlayer=0;
+    selPiece=null; validDests=[]; pendingMove=null; hovTower=null;
+    log.length=0; tower.forEach(b=>b.removed=false); initBoard(); render();
+  };
 
   render();
 }
