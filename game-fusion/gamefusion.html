@@ -377,6 +377,7 @@ const HYBRID_NAMES = {
   'tetris+dominoes':'Tetrinoes','dominoes+tetris':'Dominotris',
   'pokemon+chess':'Pokechess',
   'jenga+monopoly':'Tower Tycoon','monopoly+jenga':'Tower Tycoon',
+  'jenga+uno':'Toppling Colors','uno+jenga':'Toppling Colors',
 };
 
 function hybridName(a, b) {
@@ -912,6 +913,7 @@ function buildBoxArtSVG(a, b) {
 // Custom art for specific combos — key is sorted game IDs joined by '+'
 const CUSTOM_ART = {
   'jenga+monopoly': 'TowerTycoon.png',
+  'jenga+uno':      'TopplingColors.png',
 };
 
 function customArtUrl(a, b) {
@@ -1232,6 +1234,7 @@ function beginWithAnimation() {
 // ══════════════════════════════════════════════════════════════════════
 const COMBO_GAMES = {
   'jenga+monopoly': startTowerTycoon,
+  'jenga+uno':      startTopplingColors,
 };
 
 function startGame() {
@@ -1650,6 +1653,409 @@ function startTowerTycoon(a, b) {
     doPull(pick, pick.row);
   }
 
+  render();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TOPPLING COLORS (Jenga × Uno)
+// ══════════════════════════════════════════════════════════════════════
+function startTopplingColors(a, b) {
+  const ROWS = 12, COLS = 3;
+  const BW=100, BH=28, DX=14, DY=8, PX=4, PY=2;
+  const CV_W=380, CV_H=420;
+  const TTX = Math.floor((CV_W - (COLS*(BW+PX)+DX)) / 2);
+  const TTY = CV_H - 22;
+
+  const UNO = {
+    red:    { fc:'#e53935', tc:'#ef5350', sc:'#b71c1c', label:'🔴' },
+    blue:   { fc:'#1e88e5', tc:'#42a5f5', sc:'#0d47a1', label:'🔵' },
+    green:  { fc:'#43a047', tc:'#66bb6a', sc:'#1b5e20', label:'🟢' },
+    yellow: { fc:'#fdd835', tc:'#ffee58', sc:'#f57f17', label:'🟡' },
+  };
+  const COLOR_NAMES = ['red','blue','green','yellow'];
+  const COLOR_SEQ = [ // each row gets a mix; pattern repeats every 4 rows
+    ['red','blue','green'],['yellow','red','blue'],
+    ['green','yellow','red'],['blue','green','yellow'],
+  ];
+
+  // Build blocks
+  const blocks = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      blocks.push({ row: r, col: c, color: COLOR_SEQ[r % 4][c], removed: false });
+    }
+  }
+
+  // Build deck
+  function makeDeck() {
+    const deck = [];
+    COLOR_NAMES.forEach(col => {
+      for (let n = 1; n <= 9; n++) deck.push({ color: col, type: 'number', value: n });
+      deck.push({ color: col, type: 'skip',    value: null });
+      deck.push({ color: col, type: 'reverse', value: null });
+      deck.push({ color: col, type: 'draw2',   value: null });
+    });
+    for (let i = 0; i < 4; i++) deck.push({ color: 'wild', type: 'wild',  value: null });
+    for (let i = 0; i < 4; i++) deck.push({ color: 'wild', type: 'draw4', value: null });
+    // shuffle
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    return deck;
+  }
+
+  let deck = makeDeck();
+  let hands = [[], []];
+  let scores = [0, 0];
+  let currentPlayer = 0;
+  let gameOver = false;
+  let selectedCardIdx = null;
+  let chosenWildColor = null;
+  let pendingExtra = 0;   // extra pulls owed to next player
+  let skipNext = false;
+  let tcCtx = null, hovBlock = null, animRaf = null;
+  const log = [];
+  const LABELS = ['You', 'AI'];
+  const COLORS_P = ['#c9a84c', '#7F77DD'];
+  const WIN_SCORE = 500;
+
+  function drawCard() {
+    if (deck.length === 0) deck = makeDeck();
+    return deck.pop();
+  }
+  function dealHands() {
+    hands[0] = [drawCard(), drawCard(), drawCard(), drawCard()];
+    hands[1] = [drawCard(), drawCard(), drawCard(), drawCard()];
+  }
+
+  function ttPos(r, c) { return { x: TTX + c*(BW+PX), y: TTY - (r+1)*(BH+PY) }; }
+
+  function drawOneBlock(ctx, x, y, col, alpha, highlight) {
+    const theme = UNO[col] || UNO.red;
+    ctx.globalAlpha = alpha ?? 1;
+    const fc = highlight ? lighten(theme.fc, 60) : theme.fc;
+    const tc = highlight ? lighten(theme.tc, 40) : theme.tc;
+    const sc = highlight ? lighten(theme.sc, 40) : theme.sc;
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 0.8;
+    ctx.fillStyle = fc; ctx.beginPath(); ctx.rect(x, y, BW, BH); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = tc; ctx.beginPath();
+    ctx.moveTo(x,y); ctx.lineTo(x+DX,y-DY); ctx.lineTo(x+BW+DX,y-DY); ctx.lineTo(x+BW,y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = sc; ctx.beginPath();
+    ctx.moveTo(x+BW,y); ctx.lineTo(x+BW+DX,y-DY);
+    ctx.lineTo(x+BW+DX,y-DY+BH); ctx.lineTo(x+BW,y+BH);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function lighten(hex, amt) {
+    const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+    return `rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+  }
+
+  function validColors() {
+    if (selectedCardIdx === null) return new Set();
+    const card = hands[currentPlayer][selectedCardIdx];
+    if (!card) return new Set();
+    if (card.type === 'wild' || card.type === 'draw4') {
+      if (chosenWildColor) return new Set([chosenWildColor]);
+      return new Set(COLOR_NAMES); // highlight all until color chosen
+    }
+    return new Set([card.color]);
+  }
+
+  function fullDraw() {
+    if (!tcCtx) return;
+    const ctx = tcCtx;
+    const bg = ctx.createLinearGradient(0,0,0,CV_H);
+    bg.addColorStop(0,'#0e2a4a'); bg.addColorStop(1,'#1a3a60');
+    ctx.fillStyle = bg; ctx.fillRect(0,0,CV_W,CV_H);
+
+    ctx.fillStyle = '#221508';
+    ctx.fillRect(TTX-8, TTY+2, COLS*(BW+PX)+DX+4, 10);
+    ctx.fillStyle = '#3a2210';
+    ctx.fillRect(TTX-8, TTY-2, COLS*(BW+PX)+DX+4, 4);
+
+    const valid = validColors();
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const blk = blocks[r*COLS+c];
+        if (blk.removed) continue;
+        const isHov = hovBlock && hovBlock.row===r && hovBlock.col===c;
+        const isValid = valid.has(blk.color);
+        drawOneBlock(ctx, ...Object.values(ttPos(r,c)), blk.color, 1, isHov && isValid);
+        if (!isValid && selectedCardIdx !== null) {
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
+          const {x,y} = ttPos(r,c);
+          ctx.fillRect(x,y,BW,BH);
+        }
+      }
+    }
+
+    ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#f44336'; ctx.fillText('⬆ RISKIER · HIGHER VALUE', CV_W/2, 16);
+    ctx.fillStyle = '#4CAF50'; ctx.fillText('⬇ SAFER · LOWER VALUE', CV_W/2, CV_H-8);
+  }
+
+  function addLog(msg) {
+    log.unshift(msg);
+    const el = document.getElementById('tc-log');
+    if (el) el.innerHTML = log.slice(0,10).join('<br>');
+  }
+
+  function cardHTML(card, idx, isPlayable) {
+    const col = card.color === 'wild' ? '#333' : UNO[card.color].fc;
+    const border = idx === selectedCardIdx ? '3px solid #fff' : '2px solid rgba(255,255,255,0.2)';
+    const dim = isPlayable ? '' : 'opacity:0.4;';
+    let label = card.type === 'number' ? card.value
+      : card.type === 'skip' ? '⊘' : card.type === 'reverse' ? '↺'
+      : card.type === 'draw2' ? '+2' : card.type === 'wild' ? '★' : '+4';
+    return `<div onclick="tcPlayCard(${idx})" style="
+      width:44px;height:62px;border-radius:8px;background:${col};
+      border:${border};display:inline-flex;align-items:center;justify-content:center;
+      font-size:18px;font-weight:800;color:#fff;cursor:${isPlayable?'pointer':'default'};
+      text-shadow:0 1px 4px rgba(0,0,0,0.5);flex-shrink:0;${dim}
+      transition:transform .1s,border .1s;
+      ${idx===selectedCardIdx?'transform:translateY(-8px);':''}
+    ">${label}</div>`;
+  }
+
+  function updateSidebar() {
+    const myCard = hands[currentPlayer];
+    const isMyTurn = currentPlayer === 0;
+
+    // Wild color picker (only when wild/draw4 selected and no color chosen yet)
+    const card = selectedCardIdx !== null ? hands[currentPlayer][selectedCardIdx] : null;
+    const needsColor = card && (card.type==='wild'||card.type==='draw4') && !chosenWildColor;
+    const wildPicker = needsColor && isMyTurn ? `
+      <div style="margin-top:8px;">
+        <div style="font-size:10px;color:#888;margin-bottom:6px;letter-spacing:1px;">CHOOSE COLOR</div>
+        <div style="display:flex;gap:6px;">
+          ${COLOR_NAMES.map(c=>`<div onclick="tcChooseWild('${c}')" style="width:28px;height:28px;border-radius:50%;background:${UNO[c].fc};cursor:pointer;border:2px solid rgba(255,255,255,0.3);"></div>`).join('')}
+        </div>
+      </div>` : '';
+
+    document.getElementById('tc-side').innerHTML = `
+      <div class="tt-card" id="tc-card0" style="border-color:${currentPlayer===0?COLORS_P[0]:'#2a2a3a'}">
+        <h3>YOUR SCORE</h3>
+        <div class="tt-score" style="color:${COLORS_P[0]}">${scores[0]}</div>
+      </div>
+      <div class="tt-card" id="tc-card1" style="border-color:${currentPlayer===1?COLORS_P[1]:'#2a2a3a'}">
+        <h3>AI SCORE &nbsp;<span style="font-size:10px;color:#555;">(${hands[1].length} cards)</span></h3>
+        <div class="tt-score" style="color:${COLORS_P[1]}">${scores[1]}</div>
+      </div>
+      <div class="tt-card">
+        <h3>STATUS</h3>
+        <div class="tt-msg" style="font-size:13px;color:#aaa;line-height:1.6;">${gameOver ? 'Game over!' : isMyTurn ? (selectedCardIdx!==null?(needsColor?'Choose a color':'Now click a matching block'):'Play a card from your hand') : 'AI is thinking…'}</div>
+      </div>
+      <div class="tt-card">
+        <h3>YOUR HAND</h3>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+          ${hands[0].map((c,i)=>cardHTML(c,i,isMyTurn&&!gameOver)).join('')}
+        </div>
+        ${wildPicker}
+      </div>
+      <div class="tt-card">
+        <h3>PULL LOG</h3>
+        <div id="tc-log" style="font-size:11px;color:#666;line-height:1.9;max-height:100px;overflow-y:auto;">${log.slice(0,10).join('<br>')}</div>
+      </div>`;
+  }
+
+  function render() {
+    if (animRaf) { cancelAnimationFrame(animRaf); animRaf = null; }
+    const root = document.getElementById('game-root');
+    root.innerHTML = `
+      <style>
+        #tc { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; padding:4px 0; }
+        #tc-tower-col { flex:0 0 auto; }
+        #tc-side { flex:1; min-width:220px; display:flex; flex-direction:column; gap:10px; }
+        .tt-card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:12px; padding:12px 14px; }
+        .tt-card h3 { font-size:11px; letter-spacing:1px; color:#555; margin-bottom:8px; }
+        .tt-score { font-size:26px; font-weight:700; }
+        .tt-msg { font-size:13px; color:#aaa; }
+        .tt-gameover { text-align:center; padding:20px; }
+        .tt-gameover h2 { font-size:26px; font-weight:700; color:#c9a84c; margin-bottom:8px; }
+        @keyframes tc-rise { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+      </style>
+      <div id="tc">
+        <div id="tc-tower-col">
+          <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:6px;">TOWER — SELECT A CARD, THEN PULL A BLOCK</div>
+          <canvas id="tc-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #3a6090;cursor:pointer;display:block;box-shadow:0 8px 40px rgba(14,42,74,0.7);"></canvas>
+        </div>
+        <div id="tc-side"></div>
+      </div>`;
+
+    const cv = document.getElementById('tc-canvas');
+    tcCtx = cv.getContext('2d');
+    fullDraw();
+    updateSidebar();
+
+    cv.addEventListener('mousemove', e => {
+      const rect = cv.getBoundingClientRect();
+      const mx = (e.clientX-rect.left)*(CV_W/rect.width);
+      const my = (e.clientY-rect.top)*(CV_H/rect.height);
+      const valid = validColors();
+      let found = null;
+      for (let r=ROWS-1;r>=0;r--) for (let c=COLS-1;c>=0;c--) {
+        const blk=blocks[r*COLS+c]; if(blk.removed) continue;
+        const {x,y}=ttPos(r,c);
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH&&valid.has(blk.color)){found={row:r,col:c};break;}
+        if(found) break;
+      }
+      if(JSON.stringify(found)!==JSON.stringify(hovBlock)){hovBlock=found;fullDraw();}
+    });
+    cv.addEventListener('mouseleave',()=>{hovBlock=null;fullDraw();});
+    cv.addEventListener('click', e => {
+      if(gameOver||currentPlayer!==0||selectedCardIdx===null) return;
+      const card = hands[0][selectedCardIdx];
+      if((card.type==='wild'||card.type==='draw4')&&!chosenWildColor) return;
+      const rect=cv.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(CV_W/rect.width);
+      const my=(e.clientY-rect.top)*(CV_H/rect.height);
+      const valid=validColors();
+      for(let r=ROWS-1;r>=0;r--) for(let c=COLS-1;c>=0;c--){
+        const blk=blocks[r*COLS+c]; if(blk.removed) continue;
+        const {x,y}=ttPos(r,c);
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH&&valid.has(blk.color)){
+          doPlayerPull(blk,r); return;
+        }
+      }
+    });
+  }
+
+  // Expose globals for onclick handlers
+  window.tcPlayCard = function(idx) {
+    if(gameOver||currentPlayer!==0) return;
+    selectedCardIdx = selectedCardIdx===idx ? null : idx;
+    chosenWildColor = null;
+    hovBlock = null;
+    fullDraw(); updateSidebar();
+  };
+  window.tcChooseWild = function(color) {
+    chosenWildColor = color;
+    fullDraw(); updateSidebar();
+  };
+
+  function collapseRisk(row) {
+    const removed = blocks.filter(b=>b.removed).length;
+    return Math.min(0.85, 0.05 + (row/ROWS)*0.4 + (removed/(ROWS*COLS))*0.3);
+  }
+
+  function doPlayerPull(blk, row) {
+    const card = hands[0][selectedCardIdx];
+    applyCard(card, 0, blk, row);
+  }
+
+  function applyCard(card, playerIdx, blk, row) {
+    // Remove card from hand
+    hands[playerIdx].splice(selectedCardIdx !== null && playerIdx === 0 ? selectedCardIdx : hands[playerIdx].indexOf(card), 1);
+    hands[playerIdx].push(drawCard()); // draw replacement
+    selectedCardIdx = null; chosenWildColor = null; hovBlock = null;
+
+    const name = LABELS[playerIdx];
+    const opponent = 1 - playerIdx;
+
+    // Apply action effects before pulling
+    let extraOpponent = 0;
+    if (card.type === 'skip' || card.type === 'reverse') {
+      skipNext = true;
+      addLog(`${name} played ${card.type==='skip'?'Skip':'Reverse'} — ${LABELS[opponent]} loses a turn!`);
+    } else if (card.type === 'draw2') {
+      extraOpponent = 2;
+      addLog(`${name} played Draw 2 — ${LABELS[opponent]} must pull 2 extra!`);
+    } else if (card.type === 'draw4') {
+      extraOpponent = 2;
+      addLog(`${name} played Draw 4 — ${LABELS[opponent]} pulls 2 extra!`);
+    }
+
+    // Pull the block
+    blk.removed = true;
+    const risk = collapseRisk(row);
+    const collapsed = Math.random() < risk;
+    const pts = (row + 1) * 10;
+
+    if (collapsed) {
+      addLog(`💥 Tower collapsed on ${name}'s pull! ${LABELS[opponent]} wins!`);
+      fullDraw(); updateSidebar();
+      setTimeout(() => tcEndGame(opponent, true), 400);
+      return;
+    }
+
+    scores[playerIdx] += pts;
+    addLog(`✅ ${name} pulled ${card.color==='wild'?chosenWildColor||'wild':card.color} block (+${pts})`);
+
+    const remaining = blocks.filter(b=>!b.removed).length;
+    if (remaining === 0 || scores[playerIdx] >= WIN_SCORE) {
+      fullDraw(); updateSidebar();
+      setTimeout(() => tcEndGame(playerIdx, false), 400);
+      return;
+    }
+
+    pendingExtra = extraOpponent;
+    currentPlayer = opponent;
+    fullDraw(); updateSidebar();
+
+    if (skipNext) {
+      skipNext = false;
+      addLog(`${LABELS[currentPlayer]} is skipped!`);
+      currentPlayer = playerIdx;
+      fullDraw(); updateSidebar();
+      if (currentPlayer === 1) setTimeout(aiTurn, 800);
+      return;
+    }
+    if (currentPlayer === 1) setTimeout(aiTurn, 900);
+  }
+
+  function aiTurn() {
+    if (gameOver || currentPlayer !== 1) return;
+    const pulls = 1 + pendingExtra;
+    pendingExtra = 0;
+    for (let p = 0; p < pulls; p++) {
+      const available = blocks.filter(b=>!b.removed);
+      if (!available.length) { tcEndGame(0, false); return; }
+      // Choose best card: prefer number cards matching available colors
+      const availColors = new Set(available.map(b=>b.color));
+      let bestCard = null, bestIdx = -1;
+      // Prefer action cards last, prefer colors that exist
+      for (let i = 0; i < hands[1].length; i++) {
+        const c = hands[1][i];
+        if (c.type==='wild'||c.type==='draw4') { if(!bestCard){bestCard=c;bestIdx=i;} continue; }
+        if (availColors.has(c.color)) { bestCard=c; bestIdx=i; break; }
+      }
+      if (!bestCard) { bestCard=hands[1][0]; bestIdx=0; }
+      // Choose color for wild
+      const pullColor = (bestCard.color==='wild')
+        ? [...availColors][Math.floor(Math.random()*availColors.size)]
+        : bestCard.color;
+      // Pick a block — prefer higher rows (more points) but not too risky
+      const candidates = available.filter(b=>b.color===pullColor);
+      if (!candidates.length) { hands[1].splice(bestIdx,1); hands[1].push(drawCard()); continue; }
+      const pick = candidates.slice().sort((x,y)=>{
+        const sx=((x.row+1)*10)*(1-collapseRisk(x.row));
+        const sy=((y.row+1)*10)*(1-collapseRisk(y.row));
+        return sy-sx;
+      })[0];
+      selectedCardIdx = bestIdx;
+      if(bestCard.color==='wild'||bestCard.type==='draw4') chosenWildColor=pullColor;
+      applyCard(bestCard, 1, pick, pick.row);
+      if (gameOver) return;
+    }
+  }
+
+  function tcEndGame(winnerIdx, byCollapse) {
+    gameOver = true;
+    const winner = LABELS[winnerIdx];
+    document.getElementById('game-root').insertAdjacentHTML('beforeend', `
+      <div class="tt-card tt-gameover" style="animation:tc-rise .4s ease both;margin-top:16px;">
+        <h2>${winner} wins!</h2>
+        <p style="color:#888;margin-bottom:16px;">You: ${scores[0]} pts &nbsp;·&nbsp; AI: ${scores[1]} pts${byCollapse?' · Tower collapsed!':''}</p>
+        <button class="btn primary" onclick="startTopplingColors(activeGameA,activeGameB)">Play Again</button>
+        <button class="btn" onclick="goToSelect()">Pick New Games</button>
+      </div>`);
+  }
+
+  dealHands();
   render();
 }
 
