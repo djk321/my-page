@@ -1247,7 +1247,6 @@ function startTowerTycoon(a, b) {
   let removedCount = 0;
   let currentPlayer = 0; // 0 = P1/You, 1 = P2/AI
   let gameOver = false;
-  let awaitingPass = false;
 
   function collapseRisk(row) {
     // Higher row = more risky. More removed blocks = more risky.
@@ -1267,8 +1266,10 @@ function startTowerTycoon(a, b) {
   }
 
   function statusMsg() {
-    const name = LABELS[ttMode][currentPlayer];
-    return ttMode === 'ai' && currentPlayer === 1 ? 'AI is thinking…' : `${name}'s turn — pull a block!`;
+    if (ttMode === 'ai') {
+      return currentPlayer === 0 ? 'Your move — pull a block!' : 'AI is thinking…';
+    }
+    return `${LABELS['2p'][currentPlayer]}'s move — pull a block!`;
   }
 
   function render() {
@@ -1302,20 +1303,7 @@ function startTowerTycoon(a, b) {
         .tt-mode-seg { display:flex; border:1px solid #2a2a3a; border-radius:8px; overflow:hidden; margin-bottom:14px; width:fit-content; }
         .tt-mode-seg button { padding:6px 18px; font-size:12px; border:none; background:#1a1a24; color:#888; cursor:pointer; }
         .tt-mode-seg button.active { background:#c9a84c; color:#000; font-weight:700; }
-        #tt-pass-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:200; align-items:center; justify-content:center; }
-        #tt-pass-overlay.show { display:flex; }
-        #tt-pass-box { background:#1a1a24; border:1px solid #2a2a3a; border-radius:18px; padding:40px 48px; text-align:center; max-width:360px; }
-        #tt-pass-box h2 { font-size:22px; font-weight:700; margin-bottom:8px; }
-        #tt-pass-box p  { font-size:14px; color:#666; margin-bottom:24px; }
       </style>
-
-      <div id="tt-pass-overlay">
-        <div id="tt-pass-box">
-          <h2 id="tt-pass-title"></h2>
-          <p>Hand the screen to the next player, then tap when ready.</p>
-          <button class="btn primary" onclick="ttDismissPass()">I'm ready — show my turn</button>
-        </div>
-      </div>
 
       <div id="tt">
         <div>
@@ -1359,7 +1347,7 @@ function startTowerTycoon(a, b) {
     // Build tower
     const towerEl = document.getElementById('tt-tower');
     const myTurn = currentPlayer === 0 || ttMode === 'ai' ? false : false; // set per-player below
-    const canClick = !gameOver && !awaitingPass && (ttMode === '2p' ? currentPlayer === 0 || currentPlayer === 1 : currentPlayer === 0);
+    const canClick = !gameOver;
     for (let r = 0; r < ROWS; r++) {
       const rowEl = document.createElement('div');
       rowEl.className = 'tt-row';
@@ -1375,7 +1363,7 @@ function startTowerTycoon(a, b) {
           el.title = `$${blk.value} · ${Math.round(risk*100)}% collapse risk`;
           el.textContent = `$${blk.value}`;
           const isMyTurn = (ttMode === 'ai' && currentPlayer === 0) || ttMode === '2p';
-          if (isMyTurn && !gameOver && !awaitingPass) {
+          if (isMyTurn && !gameOver) {
             el.addEventListener('click', () => doPull(blk, r));
           }
         }
@@ -1466,7 +1454,7 @@ function startTowerTycoon(a, b) {
   }
 
   function doPull(blk, row) {
-    if (gameOver || awaitingPass || blk.removed) return;
+    if (gameOver || blk.removed) return;
     blk.removed = true;
     removedCount++;
 
@@ -1490,32 +1478,14 @@ function startTowerTycoon(a, b) {
     const next = 1 - currentPlayer;
     currentPlayer = next;
 
-    if (ttMode === '2p') {
-      awaitingPass = true;
-      render();
-      const passEl = document.getElementById('tt-pass-overlay');
-      const passTitle = document.getElementById('tt-pass-title');
-      if (passEl && passTitle) {
-        passTitle.textContent = `${LABELS['2p'][next]}'s turn`;
-        passEl.classList.add('show');
-      }
-    } else {
-      render();
-      if (currentPlayer === 1) setTimeout(aiTurn, 900);
-    }
-  }
-
-  window.ttDismissPass = function() {
-    awaitingPass = false;
-    document.getElementById('tt-pass-overlay').classList.remove('show');
     render();
-  };
+    if (ttMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 900);
+  }
 
   window.ttSetMode = function(mode) {
     ttMode = mode;
-    // Reset game
     money = [0, 0]; collapses = 0; removedCount = 0;
-    currentPlayer = 0; gameOver = false; awaitingPass = false;
+    currentPlayer = 0; gameOver = false;
     log.length = 0;
     blocks.forEach(b => b.removed = false);
     render();
