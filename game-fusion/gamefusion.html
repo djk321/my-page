@@ -1234,6 +1234,96 @@ function startTowerTycoon(a, b) {
   const COLORS = ['#c9a84c','#7F77DD'];
   const log = [];
 
+  // Canvas constants (matching Tower Tactics proportions)
+  const BW=114, BH=38, DX=16, DY=9, PX=5, PY=3;
+  const CV_W=430, CV_H=560;
+  const TTX = Math.floor((CV_W - (COLS*(BW+PX)+DX)) / 2);
+  const TTY = CV_H - 22;
+
+  let ttCtx = null, hovBlock = null, animRaf = null;
+
+  function ttPos(r,c) { return { x: TTX+c*(BW+PX), y: TTY-(r+1)*(BH+PY) }; }
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return [r,g,b];
+  }
+  function lightenHex(hex, amt) {
+    const [r,g,b] = hexToRgb(hex);
+    return `rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
+  }
+  function darkenHex(hex, amt) {
+    const [r,g,b] = hexToRgb(hex);
+    return `rgb(${Math.max(0,r-amt)},${Math.max(0,g-amt)},${Math.max(0,b-amt)})`;
+  }
+
+  function drawOneBlock(ctx, x, y, fc, tc, sc, label, alpha) {
+    ctx.globalAlpha = alpha ?? 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 0.8;
+    // Front face
+    ctx.fillStyle = fc; ctx.beginPath(); ctx.rect(x,y,BW,BH); ctx.fill(); ctx.stroke();
+    // Top face
+    ctx.fillStyle = tc; ctx.beginPath();
+    ctx.moveTo(x,y); ctx.lineTo(x+DX,y-DY); ctx.lineTo(x+BW+DX,y-DY); ctx.lineTo(x+BW,y);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Right side face
+    ctx.fillStyle = sc; ctx.beginPath();
+    ctx.moveTo(x+BW,y); ctx.lineTo(x+BW+DX,y-DY);
+    ctx.lineTo(x+BW+DX,y-DY+BH); ctx.lineTo(x+BW,y+BH);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // Label
+    if (label) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.font = 'bold 11px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(label, x+BW/2, y+BH/2);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawTowerCanvas(ctx, offsetX=0, offsetAngle=0) {
+    ctx.save();
+    if (offsetAngle) {
+      ctx.translate(TTX + COLS*(BW+PX)/2, TTY);
+      ctx.rotate(offsetAngle * Math.PI/180);
+      ctx.translate(-(TTX + COLS*(BW+PX)/2), -TTY);
+    }
+    if (offsetX) ctx.translate(offsetX, 0);
+
+    // Base plank
+    ctx.fillStyle = '#221508';
+    ctx.fillRect(TTX-8, TTY+2, COLS*(BW+PX)+DX+4, 10);
+    ctx.fillStyle = '#3a2210';
+    ctx.fillRect(TTX-8, TTY-2, COLS*(BW+PX)+DX+4, 4);
+
+    for (let r=0; r<ROWS; r++) {
+      for (let c=0; c<COLS; c++) {
+        const blk = blocks[r*COLS+c];
+        if (blk.removed) continue;
+        const {x,y} = ttPos(r,c);
+        const isHov = hovBlock && hovBlock.row===r && hovBlock.col===c;
+        const fc = isHov ? lightenHex(blk.group.bg, 60) : blk.group.bg;
+        const tc = isHov ? lightenHex(blk.group.bg, 90) : lightenHex(blk.group.bg, 30);
+        const sc = isHov ? darkenHex(blk.group.bg, 20)  : blk.group.color;
+        drawOneBlock(ctx, x, y, fc, tc, sc, `$${blk.value}`);
+      }
+    }
+    ctx.restore();
+  }
+
+  function fullDraw() {
+    if (!ttCtx) return;
+    const ctx = ttCtx;
+    const bg = ctx.createLinearGradient(0,0,0,CV_H);
+    bg.addColorStop(0,'#07101f'); bg.addColorStop(1,'#0d1a36');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+    drawTowerCanvas(ctx);
+    // Risk label overlay at top
+    ctx.fillStyle='rgba(255,255,255,0.12)';
+    ctx.font='10px system-ui'; ctx.textAlign='center';
+    ctx.fillText('⬆ RISKIER · HIGHER VALUE', CV_W/2, 14);
+    ctx.fillText('⬇ SAFER · LOWER VALUE', CV_W/2, CV_H-8);
+  }
+
   function addLog(msg) {
     log.unshift(msg);
     const el = document.getElementById('tt-log');
@@ -1241,33 +1331,31 @@ function startTowerTycoon(a, b) {
   }
 
   function statusMsg() {
-    if (ttMode === 'ai') {
-      return currentPlayer === 0 ? 'Your move — pull a block!' : 'AI is thinking…';
-    }
+    if (ttMode === 'ai') return currentPlayer===0 ? 'Your move — pull a block!' : 'AI is thinking…';
     return `${LABELS['2p'][currentPlayer]}'s move — pull a block!`;
   }
 
+  function updateSidebar() {
+    const p1El=document.getElementById('tt-m0'), p2El=document.getElementById('tt-m1');
+    const msgEl=document.getElementById('tt-msg'), logEl=document.getElementById('tt-log');
+    if (p1El) p1El.textContent=`$${money[0]}`;
+    if (p2El) p2El.textContent=`$${money[1]}`;
+    if (msgEl) msgEl.textContent=statusMsg();
+    if (logEl) logEl.innerHTML=log.slice(0,12).join('<br>');
+    // Update active border
+    const c0=document.getElementById('tt-card0'), c1=document.getElementById('tt-card1');
+    if (c0) c0.style.borderColor = currentPlayer===0 ? COLORS[0] : '#2a2a3a';
+    if (c1) c1.style.borderColor = currentPlayer===1 ? COLORS[1] : '#2a2a3a';
+  }
+
   function render() {
+    if (animRaf) { cancelAnimationFrame(animRaf); animRaf=null; }
     const root = document.getElementById('game-root');
-    const p1name = LABELS[ttMode][0], p2name = LABELS[ttMode][1];
+    const p1name=LABELS[ttMode][0], p2name=LABELS[ttMode][1];
     root.innerHTML = `
       <style>
         #tt { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; padding:8px 0; }
-        #tt-tower-col { flex:1; min-width:320px; }
-        #tt-tower { display:flex; flex-direction:column-reverse; gap:4px; }
-        .tt-row { display:flex; gap:4px; }
-        .tt-block {
-          width:110px; height:36px; border-radius:6px; cursor:pointer;
-          display:flex; align-items:center; justify-content:center;
-          font-size:13px; font-weight:700;
-          border:2px solid rgba(0,0,0,.25);
-          transition:transform .12s, box-shadow .12s;
-          text-shadow:0 1px 2px rgba(0,0,0,.4);
-          user-select:none;
-        }
-        .tt-block:hover { transform:translateX(6px); box-shadow:6px 0 16px rgba(0,0,0,.4); }
-        .tt-block.removed { background:#1a1a24 !important; border-color:#2a2a3a !important; cursor:default; }
-        .tt-block.removed:hover { transform:none; box-shadow:none; }
+        #tt-tower-col { flex:1; min-width:${CV_W}px; }
         #tt-side { flex:1; min-width:220px; display:flex; flex-direction:column; gap:12px; }
         .tt-card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:12px; padding:14px 16px; }
         .tt-card h3 { font-size:11px; letter-spacing:1px; color:#555; margin-bottom:8px; }
@@ -1276,27 +1364,25 @@ function startTowerTycoon(a, b) {
         #tt-log { font-size:11px; color:#666; line-height:1.9; max-height:120px; overflow-y:auto; }
         .tt-gameover { text-align:center; padding:20px; }
         .tt-gameover h2 { font-size:28px; font-weight:700; color:#c9a84c; margin-bottom:8px; }
-        .tt-mode-seg { display:flex; border:1px solid #2a2a3a; border-radius:8px; overflow:hidden; margin-bottom:14px; width:fit-content; }
-        .tt-mode-seg button { padding:6px 18px; font-size:12px; border:none; background:#1a1a24; color:#888; cursor:pointer; }
+        .tt-mode-seg { display:flex; border:1px solid #2a2a3a; border-radius:8px; overflow:hidden; margin-bottom:12px; width:fit-content; }
+        .tt-mode-seg button { padding:6px 18px; font-size:12px; border:none; background:#1a1a24; color:#888; cursor:pointer; font-family:inherit; }
         .tt-mode-seg button.active { background:#c9a84c; color:#000; font-weight:700; }
+        @keyframes tt-rise { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
       </style>
-
       <div id="tt">
         <div id="tt-tower-col">
           <div class="tt-mode-seg">
-            <button id="tt-btn-ai" class="${ttMode==='ai'?'active':''}" onclick="ttSetMode('ai')">vs AI</button>
-            <button id="tt-btn-2p" class="${ttMode==='2p'?'active':''}" onclick="ttSetMode('2p')">2 Player</button>
+            <button class="${ttMode==='ai'?'active':''}" onclick="ttSetMode('ai')">vs AI</button>
+            <button class="${ttMode==='2p'?'active':''}" onclick="ttSetMode('2p')">2 Player</button>
           </div>
-          <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:8px;">TOWER — CLICK A BLOCK TO PULL IT</div>
-          <div id="tt-tower"></div>
-          <div style="font-size:10px;color:#444;margin-top:10px;">⬆ Riskier · Higher value &nbsp;&nbsp; ⬇ Safer · Lower value</div>
+          <canvas id="tt-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #2a2a3a;cursor:pointer;display:block;"></canvas>
         </div>
         <div id="tt-side">
-          <div class="tt-card" style="border-color:${currentPlayer===0?COLORS[0]:'#2a2a3a'}">
+          <div class="tt-card" id="tt-card0" style="border-color:${currentPlayer===0?COLORS[0]:'#2a2a3a'}">
             <h3>${p1name.toUpperCase()}</h3>
             <div class="tt-score" style="color:${COLORS[0]}" id="tt-m0">$${money[0]}</div>
           </div>
-          <div class="tt-card" style="border-color:${currentPlayer===1?COLORS[1]:'#2a2a3a'}">
+          <div class="tt-card" id="tt-card1" style="border-color:${currentPlayer===1?COLORS[1]:'#2a2a3a'}">
             <h3>${p2name.toUpperCase()}</h3>
             <div class="tt-score" style="color:${COLORS[1]}" id="tt-m1">$${money[1]}</div>
           </div>
@@ -1306,59 +1392,60 @@ function startTowerTycoon(a, b) {
           </div>
           <div class="tt-card">
             <h3>PULL LOG</h3>
-            <div id="tt-log">${log.slice(0,12).join('<br>')}</div>
+            <div id="tt-log"></div>
           </div>
           <div class="tt-card">
             <h3>HOW TO PLAY</h3>
             <div style="font-size:12px;color:#888;line-height:1.8;">
               <b style="color:#c9a84c;">Goal:</b> Earn the most money pulling blocks. First to <b style="color:#fff;">$2,000</b> wins — or most money when the tower runs out.<br><br>
               <b style="color:#c9a84c;">Risk:</b> <span style="color:#4CAF50;">■ Bottom rows</span> are safe but low value. <span style="color:#f44336;">■ Top rows</span> are risky but worth more.<br><br>
-              <b style="color:#c9a84c;">Collapse:</b> If the tower wobbles you earn nothing that turn. After <b style="color:#fff;">3 collapses</b> the game ends.<br><br>
-              <b style="color:#c9a84c;">2 Player:</b> Pass the screen between turns — each player sees only their own pulls.
+              <b style="color:#c9a84c;">Collapse:</b> If the tower wobbles you earn nothing that turn. After <b style="color:#fff;">3 collapses</b> the game ends.
             </div>
           </div>
         </div>
       </div>`;
 
-    // Build tower
-    const towerEl = document.getElementById('tt-tower');
-    const myTurn = currentPlayer === 0 || ttMode === 'ai' ? false : false; // set per-player below
-    const canClick = !gameOver;
-    for (let r = 0; r < ROWS; r++) {
-      const rowEl = document.createElement('div');
-      rowEl.className = 'tt-row';
-      for (let c = 0; c < COLS; c++) {
-        const blk = blocks[r * COLS + c];
-        const el = document.createElement('div');
-        el.className = 'tt-block' + (blk.removed ? ' removed' : '');
-        if (!blk.removed) {
-          el.style.background = blk.group.bg;
-          el.style.borderColor = blk.group.color;
-          el.style.color = '#333';
-          const risk = collapseRisk(r);
-          el.title = `$${blk.value} · ${Math.round(risk*100)}% collapse risk`;
-          el.textContent = `$${blk.value}`;
-          const isMyTurn = (ttMode === 'ai' && currentPlayer === 0) || ttMode === '2p';
-          if (isMyTurn && !gameOver) {
-            el.addEventListener('click', () => doPull(blk, r));
-          }
-        }
-        rowEl.appendChild(el);
+    const cv = document.getElementById('tt-canvas');
+    ttCtx = cv.getContext('2d');
+    fullDraw();
+
+    // Mouse events
+    cv.addEventListener('mousemove', e => {
+      const rect=cv.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(CV_W/rect.width);
+      const my=(e.clientY-rect.top)*(CV_H/rect.height);
+      let found=null;
+      for (let r=ROWS-1;r>=0;r--) for (let c=COLS-1;c>=0;c--) {
+        const blk=blocks[r*COLS+c]; if(blk.removed) continue;
+        const {x,y}=ttPos(r,c);
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH){found={row:r,col:c};break;}
+        if(found) break;
       }
-      towerEl.appendChild(rowEl);
-    }
+      if(JSON.stringify(found)!==JSON.stringify(hovBlock)){hovBlock=found;fullDraw();}
+    });
+    cv.addEventListener('mouseleave',()=>{hovBlock=null;fullDraw();});
+
+    cv.addEventListener('click', e => {
+      if(gameOver) return;
+      const isMyTurn=(ttMode==='ai'&&currentPlayer===0)||ttMode==='2p';
+      if(!isMyTurn) return;
+      const rect=cv.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(CV_W/rect.width);
+      const my=(e.clientY-rect.top)*(CV_H/rect.height);
+      for(let r=ROWS-1;r>=0;r--) for(let c=COLS-1;c>=0;c--){
+        const blk=blocks[r*COLS+c]; if(blk.removed) continue;
+        const {x,y}=ttPos(r,c);
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH){ doPull(blk,r); return; }
+      }
+    });
   }
 
   function endGame(collapsed) {
     gameOver = true;
-    const p1 = LABELS[ttMode][0], p2 = LABELS[ttMode][1];
-    const winner = money[0] > money[1] ? `${p1} wins!` : money[1] > money[0] ? `${p2} wins!` : 'Tie game!';
-
-    if (collapsed) {
-      animateCollapse(() => showEndCard(winner, p1, p2));
-    } else {
-      showEndCard(winner, p1, p2);
-    }
+    const p1=LABELS[ttMode][0], p2=LABELS[ttMode][1];
+    const winner=money[0]>money[1]?`${p1} wins!`:money[1]>money[0]?`${p2} wins!`:'Tie game!';
+    if (collapsed) animateCollapse(()=>showEndCard(winner,p1,p2));
+    else showEndCard(winner,p1,p2);
   }
 
   function showEndCard(winner, p1, p2) {
@@ -1372,61 +1459,65 @@ function startTowerTycoon(a, b) {
   }
 
   function animateCollapse(done) {
-    // Inject keyframes once
-    if (!document.getElementById('tt-collapse-kf')) {
-      const s = document.createElement('style');
-      s.id = 'tt-collapse-kf';
-      s.textContent = `
-        @keyframes tt-wobble {
-          0%   { transform: rotate(0deg); }
-          15%  { transform: rotate(-4deg); }
-          30%  { transform: rotate(5deg); }
-          45%  { transform: rotate(-5deg); }
-          60%  { transform: rotate(4deg); }
-          75%  { transform: rotate(-3deg); }
-          90%  { transform: rotate(2deg); }
-          100% { transform: rotate(0deg); }
-        }
-        @keyframes tt-fall {
-          0%   { transform: translateY(0) rotate(0deg) scale(1); opacity:1; }
-          100% { transform: translateY(220px) rotate(var(--rot)) scale(0.6); opacity:0; }
-        }
-        @keyframes tt-rise {
-          from { opacity:0; transform:translateY(20px); }
-          to   { opacity:1; transform:translateY(0); }
-        }
-      `;
-      document.head.appendChild(s);
+    if (!ttCtx) { done(); return; }
+    const ctx = ttCtx;
+
+    // Build list of live blocks with physics state
+    const flying = [];
+    for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+      const blk=blocks[r*COLS+c]; if(blk.removed) continue;
+      const {x,y}=ttPos(r,c);
+      flying.push({
+        blk, x, y,
+        vx: (Math.random()-0.5)*14,
+        vy: -(Math.random()*6+2),
+        vr: (Math.random()-0.5)*8,
+        rot: 0, alpha: 1,
+        fc: blk.group.bg, tc: lightenHex(blk.group.bg,30), sc: blk.group.color
+      });
     }
 
-    const towerEl = document.getElementById('tt-tower');
-    if (!towerEl) { done(); return; }
+    // Phase 1: wobble (~550ms, ~33 frames)
+    let wobbleFrame=0;
+    const WOBBLE_FRAMES=33;
+    const wobbleAngles=[0,-4,5,-5,4,-3,2,0];
 
-    // Phase 1: whole tower wobbles
-    towerEl.style.transformOrigin = 'bottom center';
-    towerEl.style.animation = 'tt-wobble 0.55s ease';
+    function wobbleStep() {
+      const bg=ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#07101f'); bg.addColorStop(1,'#0d1a36');
+      ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+      const angle=wobbleAngles[Math.floor(wobbleFrame/4%wobbleAngles.length)];
+      drawTowerCanvas(ctx, 0, angle);
+      wobbleFrame++;
+      if(wobbleFrame<WOBBLE_FRAMES) { animRaf=requestAnimationFrame(wobbleStep); }
+      else { animRaf=requestAnimationFrame(scatterStep); }
+    }
 
-    towerEl.addEventListener('animationend', () => {
-      towerEl.style.animation = '';
+    // Phase 2: scatter
+    function scatterStep() {
+      const bg=ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#07101f'); bg.addColorStop(1,'#0d1a36');
+      ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+      // Base
+      ctx.fillStyle='#221508'; ctx.fillRect(TTX-8,TTY+2,COLS*(BW+PX)+DX+4,10);
+      ctx.fillStyle='#3a2210'; ctx.fillRect(TTX-8,TTY-2,COLS*(BW+PX)+DX+4,4);
 
-      // Instantly hide the empty (removed) slots
-      towerEl.querySelectorAll('.tt-block.removed').forEach(el => { el.style.visibility = 'hidden'; });
+      let anyVisible=false;
+      for(const f of flying) {
+        f.vy+=0.5; f.x+=f.vx; f.y+=f.vy; f.rot+=f.vr; f.alpha=Math.max(0,f.alpha-0.025);
+        if(f.alpha<=0) continue; anyVisible=true;
+        ctx.save();
+        ctx.translate(f.x+BW/2, f.y+BH/2);
+        ctx.rotate(f.rot*Math.PI/180);
+        ctx.translate(-BW/2,-BH/2);
+        drawOneBlock(ctx,0,0,f.fc,f.tc,f.sc,`$${f.blk.value}`,f.alpha);
+        ctx.restore();
+      }
+      if(anyVisible) { animRaf=requestAnimationFrame(scatterStep); }
+      else { animRaf=null; done(); }
+    }
 
-      // Phase 2: each remaining block flies out with a staggered delay
-      const allBlocks = towerEl.querySelectorAll('.tt-block:not(.removed)');
-      const total = allBlocks.length;
-      allBlocks.forEach((el, i) => {
-        const rot = (Math.random() * 160 - 80).toFixed(1) + 'deg';
-        el.style.setProperty('--rot', rot);
-        el.style.position = 'relative';
-        el.style.animationDelay = `${i * 28}ms`;
-        el.style.animation = `tt-fall 0.45s ease-in both`;
-      });
-
-      // Wait for all blocks to finish falling, then call done
-      const delay = total * 28 + 480;
-      setTimeout(done, delay);
-    }, { once: true });
+    animRaf=requestAnimationFrame(wobbleStep);
   }
 
   function doPull(blk, row) {
@@ -1441,20 +1532,24 @@ function startTowerTycoon(a, b) {
     if (collapsed) {
       collapses++;
       addLog(`💥 Tower wobbled on ${name}'s pull!`);
-      if (collapses >= 3) { render(); setTimeout(() => endGame(true), 300); return; }
+      if (collapses >= 3) {
+        fullDraw(); updateSidebar();
+        setTimeout(() => endGame(true), 300); return;
+      }
     } else {
       money[currentPlayer] += blk.value;
       addLog(`✅ ${name} pulled $${blk.value} (${blk.group.name})`);
     }
 
     const remaining = blocks.filter(b => !b.removed).length;
-    if (remaining === 0 || money[0] >= 2000 || money[1] >= 2000) { render(); setTimeout(() => endGame(false), 600); return; }
+    if (remaining === 0 || money[0] >= 2000 || money[1] >= 2000) {
+      fullDraw(); updateSidebar();
+      setTimeout(() => endGame(false), 600); return;
+    }
 
-    // Next turn
-    const next = 1 - currentPlayer;
-    currentPlayer = next;
-
-    render();
+    currentPlayer = 1 - currentPlayer;
+    hovBlock = null;
+    fullDraw(); updateSidebar();
     if (ttMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 900);
   }
 
