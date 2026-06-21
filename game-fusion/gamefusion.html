@@ -1977,7 +1977,9 @@ function startTopplingColors(a, b) {
 
   function collapseRisk(row) {
     const removed = blocks.filter(b=>b.removed).length;
-    return Math.min(0.85, 0.05 + (row/ROWS)*0.4 + (removed/(ROWS*COLS))*0.3);
+    const stability = removed / (ROWS * COLS); // 0 when fresh, 1 when empty
+    // Risk stays very low early, ramps up as tower destabilizes
+    return Math.min(0.85, stability * 0.55 + (row / ROWS) * stability * 0.35);
   }
 
   function doPlayerPull(blk, row) {
