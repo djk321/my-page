@@ -1780,6 +1780,7 @@ function startToffeeTower(a, b) {
   }
 
   function validFilter() {
+    if (pendingPulls > 0) return () => true; // Fudge second pull: any block
     if (selectedCardIdx === null) return () => false;
     const card = hands[currentPlayer][selectedCardIdx];
     if (!card) return () => false;
@@ -2113,10 +2114,13 @@ function startToffeeTower(a, b) {
     });
     cv.addEventListener('mouseleave',()=>{hovBlock=null;fullDraw();});
     cv.addEventListener('click', e => {
-      if (gameOver||selectedCardIdx===null) return;
+      if (gameOver) return;
       if (ttMode==='ai'&&currentPlayer!==0) return;
-      const card = hands[currentPlayer][selectedCardIdx];
-      if (!card || card.type==='cotton_candy'||card.type==='gingerbread') return;
+      if (pendingPulls === 0 && selectedCardIdx === null) return;
+      if (pendingPulls === 0) {
+        const card = hands[currentPlayer][selectedCardIdx];
+        if (!card || card.type==='cotton_candy'||card.type==='gingerbread') return;
+      }
       const rect=cv.getBoundingClientRect();
       const mx=(e.clientX-rect.left)*(CV_W/rect.width);
       const my=(e.clientY-rect.top)*(CV_H/rect.height);
@@ -2132,15 +2136,23 @@ function startToffeeTower(a, b) {
   }
 
   function doPlayerPull(blk) {
+    hovBlock = null;
+    if (pendingPulls > 0) {
+      pendingPulls = 0;
+      const ok = doPull(currentPlayer, blk, false);
+      if (!ok) return;
+      fullDraw(); updateSidebar();
+      setTimeout(endTurn, 300);
+      return;
+    }
     const card = hands[currentPlayer][selectedCardIdx];
     const isDouble = card.type === 'candy_cane';
     hands[currentPlayer].splice(selectedCardIdx, 1);
-    selectedCardIdx = null; hovBlock = null;
+    selectedCardIdx = null;
     const ok = doPull(currentPlayer, blk, isDouble);
     if (!ok) return;
 
-    // Fudge: pull a 2nd block automatically (prompt user or AI picks)
-    if (card.type === 'fudge' && pendingPulls === 0) {
+    if (card.type === 'fudge') {
       pendingPulls = 1;
       addLog(`🍫 Fudge Block! Pull one more block.`);
       fullDraw(); updateSidebar();
