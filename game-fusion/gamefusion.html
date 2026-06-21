@@ -943,7 +943,8 @@ async function loadRevealArt(a, b) {
   console.log('Box art prompt:', imagePrompt);
 
   try {
-    const seed = Math.floor(Math.random() * 999999);
+    const key = a.id + b.id;
+    const seed = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0) % 999999;
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=800&height=500&model=flux&seed=${seed}&nologo=true`;
     const img = new Image();
     await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
