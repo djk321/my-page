@@ -1705,6 +1705,7 @@ function startTopplingColors(a, b) {
     return deck;
   }
 
+  let tcMode = 'ai'; // 'ai' or '2p'
   let deck = makeDeck();
   let hands = [[], []];
   let scores = [0, 0];
@@ -1712,12 +1713,12 @@ function startTopplingColors(a, b) {
   let gameOver = false;
   let selectedCardIdx = null;
   let chosenWildColor = null;
-  let pendingExtra = 0;   // extra pulls owed to next player
+  let pendingExtra = 0;
   let skipNext = false;
   let tcCtx = null, hovBlock = null, animRaf = null;
   const log = [];
-  const LABELS = ['You', 'AI'];
   const COLORS_P = ['#c9a84c', '#7F77DD'];
+  function LABELS() { return tcMode === '2p' ? ['Player 1','Player 2'] : ['You','AI']; }
   const WIN_SCORE = 500;
 
   function drawCard() {
@@ -1822,13 +1823,14 @@ function startTopplingColors(a, b) {
   }
 
   function updateSidebar() {
-    const myCard = hands[currentPlayer];
-    const isMyTurn = currentPlayer === 0;
+    const lbl = LABELS();
+    const is2p = tcMode === '2p';
+    const isActive = is2p ? true : currentPlayer === 0; // in 2p both players interact
 
-    // Wild color picker (only when wild/draw4 selected and no color chosen yet)
+    // Wild color picker
     const card = selectedCardIdx !== null ? hands[currentPlayer][selectedCardIdx] : null;
     const needsColor = card && (card.type==='wild'||card.type==='draw4') && !chosenWildColor;
-    const wildPicker = needsColor && isMyTurn ? `
+    const wildPicker = needsColor ? `
       <div style="margin-top:8px;">
         <div style="font-size:10px;color:#888;margin-bottom:6px;letter-spacing:1px;">CHOOSE COLOR</div>
         <div style="display:flex;gap:6px;">
@@ -1836,23 +1838,34 @@ function startTopplingColors(a, b) {
         </div>
       </div>` : '';
 
+    const statusMsg = gameOver ? 'Game over!'
+      : selectedCardIdx !== null ? (needsColor ? 'Choose a color' : 'Now click a matching block')
+      : is2p ? `${lbl[currentPlayer]}'s turn — play a card`
+      : currentPlayer === 0 ? 'Play a card from your hand' : 'AI is thinking…';
+
+    const p1label = is2p ? lbl[0] : 'YOU';
+    const p2label = is2p ? lbl[1] : 'AI';
+    const p2extra = is2p ? '' : `&nbsp;<span style="font-size:10px;color:#555;">(${hands[1].length} cards)</span>`;
+    const handLabel = is2p ? `${lbl[currentPlayer].toUpperCase()} HAND` : 'YOUR HAND';
+    const activeHand = hands[currentPlayer];
+
     document.getElementById('tc-side').innerHTML = `
       <div class="tt-card" id="tc-card0" style="border-color:${currentPlayer===0?COLORS_P[0]:'#2a2a3a'}">
-        <h3>YOUR SCORE</h3>
+        <h3>${p1label} SCORE</h3>
         <div class="tt-score" style="color:${COLORS_P[0]}">${scores[0]}</div>
       </div>
       <div class="tt-card" id="tc-card1" style="border-color:${currentPlayer===1?COLORS_P[1]:'#2a2a3a'}">
-        <h3>AI SCORE &nbsp;<span style="font-size:10px;color:#555;">(${hands[1].length} cards)</span></h3>
+        <h3>${p2label} SCORE${p2extra}</h3>
         <div class="tt-score" style="color:${COLORS_P[1]}">${scores[1]}</div>
       </div>
       <div class="tt-card">
         <h3>STATUS</h3>
-        <div class="tt-msg" style="font-size:13px;color:#aaa;line-height:1.6;">${gameOver ? 'Game over!' : isMyTurn ? (selectedCardIdx!==null?(needsColor?'Choose a color':'Now click a matching block'):'Play a card from your hand') : 'AI is thinking…'}</div>
+        <div class="tt-msg" style="font-size:13px;color:#aaa;line-height:1.6;">${statusMsg}</div>
       </div>
       <div class="tt-card">
-        <h3>YOUR HAND</h3>
+        <h3>${handLabel}</h3>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
-          ${hands[0].map((c,i)=>cardHTML(c,i,isMyTurn&&!gameOver)).join('')}
+          ${activeHand.map((c,i)=>cardHTML(c,i,!gameOver)).join('')}
         </div>
         ${wildPicker}
       </div>
@@ -1892,6 +1905,10 @@ function startTopplingColors(a, b) {
       </style>
       <div id="tc">
         <div id="tc-tower-col">
+          <div class="tt-mode-seg" style="margin-bottom:10px;">
+            <button class="${tcMode==='ai'?'active':''}" onclick="tcSetMode('ai')">vs AI</button>
+            <button class="${tcMode==='2p'?'active':''}" onclick="tcSetMode('2p')">2 Player</button>
+          </div>
           <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:6px;">TOWER — SELECT A CARD, THEN PULL A BLOCK</div>
           <canvas id="tc-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #3a6090;cursor:pointer;display:block;box-shadow:0 8px 40px rgba(14,42,74,0.7);"></canvas>
         </div>
@@ -1919,7 +1936,7 @@ function startTopplingColors(a, b) {
     });
     cv.addEventListener('mouseleave',()=>{hovBlock=null;fullDraw();});
     cv.addEventListener('click', e => {
-      if(gameOver||currentPlayer!==0||selectedCardIdx===null) return;
+      if(gameOver||(tcMode==='ai'&&currentPlayer!==0)||selectedCardIdx===null) return;
       const card = hands[0][selectedCardIdx];
       if((card.type==='wild'||card.type==='draw4')&&!chosenWildColor) return;
       const rect=cv.getBoundingClientRect();
@@ -1938,7 +1955,8 @@ function startTopplingColors(a, b) {
 
   // Expose globals for onclick handlers
   window.tcPlayCard = function(idx) {
-    if(gameOver||currentPlayer!==0) return;
+    if(gameOver) return;
+    if(tcMode==='ai' && currentPlayer!==0) return;
     selectedCardIdx = selectedCardIdx===idx ? null : idx;
     chosenWildColor = null;
     hovBlock = null;
@@ -1948,6 +1966,14 @@ function startTopplingColors(a, b) {
     chosenWildColor = color;
     fullDraw(); updateSidebar();
   };
+  window.tcSetMode = function(mode) {
+    tcMode = mode;
+    deck = makeDeck(); hands=[[], []]; scores=[0,0];
+    currentPlayer=0; gameOver=false; selectedCardIdx=null;
+    chosenWildColor=null; pendingExtra=0; skipNext=false;
+    log.length=0; blocks.forEach(b=>b.removed=false);
+    dealHands(); render();
+  };
 
   function collapseRisk(row) {
     const removed = blocks.filter(b=>b.removed).length;
@@ -1955,30 +1981,30 @@ function startTopplingColors(a, b) {
   }
 
   function doPlayerPull(blk, row) {
-    const card = hands[0][selectedCardIdx];
-    applyCard(card, 0, blk, row);
+    const card = hands[currentPlayer][selectedCardIdx];
+    applyCard(card, currentPlayer, blk, row);
   }
 
   function applyCard(card, playerIdx, blk, row) {
     // Remove card from hand
-    hands[playerIdx].splice(selectedCardIdx !== null && playerIdx === 0 ? selectedCardIdx : hands[playerIdx].indexOf(card), 1);
+    hands[playerIdx].splice(selectedCardIdx !== null ? selectedCardIdx : hands[playerIdx].indexOf(card), 1);
     hands[playerIdx].push(drawCard()); // draw replacement
     selectedCardIdx = null; chosenWildColor = null; hovBlock = null;
 
-    const name = LABELS[playerIdx];
+    const name = LABELS()[playerIdx];
     const opponent = 1 - playerIdx;
 
     // Apply action effects before pulling
     let extraOpponent = 0;
     if (card.type === 'skip' || card.type === 'reverse') {
       skipNext = true;
-      addLog(`${name} played ${card.type==='skip'?'Skip':'Reverse'} — ${LABELS[opponent]} loses a turn!`);
+      addLog(`${name} played ${card.type==='skip'?'Skip':'Reverse'} — ${LABELS()[opponent]} loses a turn!`);
     } else if (card.type === 'draw2') {
       extraOpponent = 2;
-      addLog(`${name} played Draw 2 — ${LABELS[opponent]} must pull 2 extra!`);
+      addLog(`${name} played Draw 2 — ${LABELS()[opponent]} must pull 2 extra!`);
     } else if (card.type === 'draw4') {
       extraOpponent = 2;
-      addLog(`${name} played Draw 4 — ${LABELS[opponent]} pulls 2 extra!`);
+      addLog(`${name} played Draw 4 — ${LABELS()[opponent]} pulls 2 extra!`);
     }
 
     // Pull the block
@@ -1988,7 +2014,7 @@ function startTopplingColors(a, b) {
     const pts = (row + 1) * 10;
 
     if (collapsed) {
-      addLog(`💥 Tower collapsed on ${name}'s pull! ${LABELS[opponent]} wins!`);
+      addLog(`💥 Tower collapsed on ${name}'s pull! ${LABELS()[opponent]} wins!`);
       fullDraw(); updateSidebar();
       setTimeout(() => tcEndGame(opponent, true), 400);
       return;
@@ -2010,17 +2036,17 @@ function startTopplingColors(a, b) {
 
     if (skipNext) {
       skipNext = false;
-      addLog(`${LABELS[currentPlayer]} is skipped!`);
+      addLog(`${LABELS()[currentPlayer]} is skipped!`);
       currentPlayer = playerIdx;
       fullDraw(); updateSidebar();
-      if (currentPlayer === 1) setTimeout(aiTurn, 800);
+      if (tcMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 800);
       return;
     }
-    if (currentPlayer === 1) setTimeout(aiTurn, 900);
+    if (tcMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 900);
   }
 
   function aiTurn() {
-    if (gameOver || currentPlayer !== 1) return;
+    if (gameOver || tcMode === '2p' || currentPlayer !== 1) return;
     const pulls = 1 + pendingExtra;
     pendingExtra = 0;
     for (let p = 0; p < pulls; p++) {
@@ -2057,11 +2083,11 @@ function startTopplingColors(a, b) {
 
   function tcEndGame(winnerIdx, byCollapse) {
     gameOver = true;
-    const winner = LABELS[winnerIdx];
+    const lbl = LABELS();
     document.getElementById('game-root').insertAdjacentHTML('beforeend', `
       <div class="tt-card tt-gameover" style="animation:tc-rise .4s ease both;margin-top:16px;">
-        <h2>${winner} wins!</h2>
-        <p style="color:#888;margin-bottom:16px;">You: ${scores[0]} pts &nbsp;·&nbsp; AI: ${scores[1]} pts${byCollapse?' · Tower collapsed!':''}</p>
+        <h2>${lbl[winnerIdx]} wins!</h2>
+        <p style="color:#888;margin-bottom:16px;">${lbl[0]}: ${scores[0]} pts &nbsp;·&nbsp; ${lbl[1]}: ${scores[1]} pts${byCollapse?' · Tower collapsed!':''}</p>
         <button class="btn primary" onclick="startTopplingColors(activeGameA,activeGameB)">Play Again</button>
         <button class="btn" onclick="goToSelect()">Pick New Games</button>
       </div>`);
