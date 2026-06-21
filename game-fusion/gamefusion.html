@@ -1385,17 +1385,81 @@ function startTowerTycoon(a, b) {
     }
   }
 
-  function endGame() {
+  function endGame(collapsed) {
     gameOver = true;
     const p1 = LABELS[ttMode][0], p2 = LABELS[ttMode][1];
     const winner = money[0] > money[1] ? `${p1} wins!` : money[1] > money[0] ? `${p2} wins!` : 'Tie game!';
-    document.getElementById('game-root').innerHTML += `
-      <div class="tt-card tt-gameover">
+
+    if (collapsed) {
+      animateCollapse(() => showEndCard(winner, p1, p2));
+    } else {
+      showEndCard(winner, p1, p2);
+    }
+  }
+
+  function showEndCard(winner, p1, p2) {
+    document.getElementById('game-root').insertAdjacentHTML('beforeend', `
+      <div class="tt-card tt-gameover" style="animation:tt-rise .4s ease both;">
         <h2>${winner}</h2>
         <p style="color:#888;margin-bottom:16px;">${p1}: $${money[0]} &nbsp;·&nbsp; ${p2}: $${money[1]}</p>
         <button class="btn primary" onclick="startTowerTycoon(activeGameA,activeGameB)">Play Again</button>
         <button class="btn" onclick="goToSelect()">Pick New Games</button>
-      </div>`;
+      </div>`);
+  }
+
+  function animateCollapse(done) {
+    // Inject keyframes once
+    if (!document.getElementById('tt-collapse-kf')) {
+      const s = document.createElement('style');
+      s.id = 'tt-collapse-kf';
+      s.textContent = `
+        @keyframes tt-wobble {
+          0%   { transform: rotate(0deg); }
+          15%  { transform: rotate(-4deg); }
+          30%  { transform: rotate(5deg); }
+          45%  { transform: rotate(-5deg); }
+          60%  { transform: rotate(4deg); }
+          75%  { transform: rotate(-3deg); }
+          90%  { transform: rotate(2deg); }
+          100% { transform: rotate(0deg); }
+        }
+        @keyframes tt-fall {
+          0%   { transform: translateY(0) rotate(0deg) scale(1); opacity:1; }
+          100% { transform: translateY(220px) rotate(var(--rot)) scale(0.6); opacity:0; }
+        }
+        @keyframes tt-rise {
+          from { opacity:0; transform:translateY(20px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+      `;
+      document.head.appendChild(s);
+    }
+
+    const towerEl = document.getElementById('tt-tower');
+    if (!towerEl) { done(); return; }
+
+    // Phase 1: whole tower wobbles
+    towerEl.style.transformOrigin = 'bottom center';
+    towerEl.style.animation = 'tt-wobble 0.55s ease';
+
+    towerEl.addEventListener('animationend', () => {
+      towerEl.style.animation = '';
+
+      // Phase 2: each remaining block flies out with a staggered delay
+      const allBlocks = towerEl.querySelectorAll('.tt-block:not(.removed)');
+      const total = allBlocks.length;
+      allBlocks.forEach((el, i) => {
+        const rot = (Math.random() * 160 - 80).toFixed(1) + 'deg';
+        el.style.setProperty('--rot', rot);
+        el.style.position = 'relative';
+        el.style.animationDelay = `${i * 28}ms`;
+        el.style.animation = `tt-fall 0.45s ease-in both`;
+      });
+
+      // Wait for all blocks to finish falling, then call done
+      const delay = total * 28 + 480;
+      setTimeout(done, delay);
+    }, { once: true });
   }
 
   function doPull(blk, row) {
@@ -1410,14 +1474,14 @@ function startTowerTycoon(a, b) {
     if (collapsed) {
       collapses++;
       addLog(`💥 Tower wobbled on ${name}'s pull!`);
-      if (collapses >= 3) { render(); setTimeout(endGame, 1000); return; }
+      if (collapses >= 3) { render(); setTimeout(() => endGame(true), 300); return; }
     } else {
       money[currentPlayer] += blk.value;
       addLog(`✅ ${name} pulled $${blk.value} (${blk.group.name})`);
     }
 
     const remaining = blocks.filter(b => !b.removed).length;
-    if (remaining === 0 || money[0] >= 2000 || money[1] >= 2000) { render(); setTimeout(endGame, 600); return; }
+    if (remaining === 0 || money[0] >= 2000 || money[1] >= 2000) { render(); setTimeout(() => endGame(false), 600); return; }
 
     // Next turn
     const next = 1 - currentPlayer;
@@ -1457,7 +1521,7 @@ function startTowerTycoon(a, b) {
   function aiTurn() {
     if (gameOver || ttMode === '2p') return;
     const available = blocks.filter(b => !b.removed);
-    if (!available.length) { endGame(); return; }
+    if (!available.length) { endGame(false); return; }
     const sorted = available.slice().sort((x, y) => {
       const sX = x.value * (1 - collapseRisk(x.row)), sY = y.value * (1 - collapseRisk(y.row));
       return sY - sX;
