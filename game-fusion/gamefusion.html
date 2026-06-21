@@ -1445,6 +1445,9 @@ function startTowerTycoon(a, b) {
     towerEl.addEventListener('animationend', () => {
       towerEl.style.animation = '';
 
+      // Instantly hide the empty (removed) slots
+      towerEl.querySelectorAll('.tt-block.removed').forEach(el => { el.style.visibility = 'hidden'; });
+
       // Phase 2: each remaining block flies out with a staggered delay
       const allBlocks = towerEl.querySelectorAll('.tt-block:not(.removed)');
       const total = allBlocks.length;
