@@ -37,25 +37,20 @@
 
     /* ── REVEAL SCREEN ── */
     #revealScreen { display: none; flex-direction: column; align-items: center; min-height: 100vh; padding: 48px 24px 64px; background: #0a0a10; }
-    #revealArt { width: 100%; max-width: 580px; border-radius: 16px; overflow: hidden; margin-bottom: 36px; border: 1px solid #2a2a3a; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+    #revealArt { width: 100%; max-width: 580px; border-radius: 16px; overflow: hidden; border: 1px solid #2a2a3a; box-shadow: 0 24px 60px rgba(0,0,0,.6); transform-origin: bottom center; }
     #revealArt svg { display: block; width: 100%; }
-    #revealName { font-size: 52px; font-weight: 800; letter-spacing: -2px; text-align: center; margin-bottom: 10px; color: #f0f0f8; }
-    #revealTagline { font-size: 17px; font-style: italic; color: #888; margin-bottom: 28px; text-align: center; }
-    #revealDesc { font-size: 15px; color: #aaa; line-height: 1.8; max-width: 520px; text-align: center; margin-bottom: 28px; }
-    #revealMeta { display: flex; gap: 20px; font-size: 12px; color: #555; letter-spacing: .5px; margin-bottom: 36px; }
-    #revealMeta span::before { content: '•'; margin-right: 8px; color: #333; }
-    #revealMeta span:first-child::before { content: none; }
-    #revealPieces { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; max-width: 520px; }
-    .rpiece { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px 12px; text-align: center; min-width: 62px; }
-    .rpiece-sym { font-size: 20px; }
-    .rpiece-name { font-size: 9px; color: #666; letter-spacing: .5px; margin-top: 2px; }
-    .rpiece-val { font-size: 10px; color: #a78bfa; font-weight: 600; margin-top: 1px; }
-    #revealRules { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 16px 20px; max-width: 520px; width: 100%; margin-bottom: 36px; font-size: 12px; color: #888; line-height: 1.9; }
-    #revealRules strong { color: #ccc; }
-    #playBtn { padding: 16px 56px; font-size: 17px; font-weight: 700; border: none; border-radius: 50px; color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
+    #playBtn { margin-top: 32px; padding: 16px 56px; font-size: 17px; font-weight: 700; border: none; border-radius: 50px; color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
     #playBtn:hover { transform: scale(1.05); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
-    #backBtn { margin-top: 18px; background: none; border: none; color: #444; font-size: 13px; cursor: pointer; padding: 6px 12px; }
+    #playBtn:disabled { opacity: .5; cursor: default; transform: none; }
+    #backBtn { margin-top: 14px; background: none; border: none; color: #444; font-size: 13px; cursor: pointer; padding: 6px 12px; }
     #backBtn:hover { color: #777; }
+    @keyframes art-collapse {
+      0%   { transform: scaleY(1) translateY(0);    opacity: 1; }
+      25%  { transform: scaleY(1.05) translateY(-8px); opacity: 1; }
+      60%  { transform: scaleY(0.05) translateY(42px); opacity: 1; }
+      85%  { transform: scaleY(0.02) translateY(46px); opacity: .3; }
+      100% { transform: scaleY(0)   translateY(50px); opacity: 0; }
+    }
 
     /* ── GAME SCREEN ── */
     #gameScreen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 48px; background: #f5f4f0; color: #111; min-height: 100vh; }
@@ -186,13 +181,7 @@
 ══════════════════════════════════════════════════════ -->
 <div id="revealScreen">
   <div id="revealArt"></div>
-  <div id="revealName"></div>
-  <div id="revealTagline"></div>
-  <div id="revealDesc"></div>
-  <div id="revealMeta"></div>
-  <div id="revealPieces"></div>
-  <div id="revealRules"></div>
-  <button id="playBtn" onclick="startGame()">▶ Begin</button>
+  <button id="playBtn" onclick="beginWithAnimation()">▶ Begin</button>
   <button id="backBtn" onclick="goToSelect()">← Pick different games</button>
 </div>
 
@@ -1135,44 +1124,19 @@ function doReveal() {
 // REVEAL SCREEN
 // ══════════════════════════════════════════════════════════════════════
 function buildRevealScreen(a, b) {
-  const name = hybridName(a, b);
-  const story = buildStory(a, b);
-  const kingUnit  = a.units[5];
-  const queenUnit = a.units[4];
-
-  // Box art — AI generated image
   loadRevealArt(a, b);
-
-  // Title & text
-  document.getElementById('revealName').textContent = name;
-  document.getElementById('revealTagline').textContent = story.tagline;
-  document.getElementById('revealDesc').textContent = story.story;
-
-  // Meta row
-  document.getElementById('revealMeta').innerHTML =
-    `<span>${story.players} players</span><span>${story.time}</span><span>Ages ${story.age}</span>`;
-
-  // Pieces
-  document.getElementById('revealPieces').innerHTML = a.units.map((u, i) => {
-    const v = VALS[i]; const vt = v === 0 ? 'WIN' : v + 'pt';
-    return `<div class="rpiece"><div class="rpiece-sym">${u.s}</div><div class="rpiece-name">${u.n}</div><div class="rpiece-val">${vt}</div></div>`;
-  }).join('');
-
-  // Rules
-  document.getElementById('revealRules').innerHTML = `
-    <strong>Quick rules:</strong><br>
-    • 6×6 board · 21 domino-style tiles, each showing two ${a.name} pieces<br>
-    • On your turn: pick a tile from your hand and place it (1×2) anywhere it fits<br>
-    • Each piece captures nearby enemies using its movement rule on placement<br>
-    • <strong>${queenUnit.n}</strong> (${queenUnit.s}) — captures in all 8 directions<br>
-    • <strong>${kingUnit.n}</strong> (${kingUnit.s}) — capturing one wins the game instantly<br>
-    • No instant win? Highest score when the board fills wins
-  `;
-
-  // Play button styled with game A gradient
   const btn = document.getElementById('playBtn');
+  btn.disabled = false;
   btn.style.background = a.bg;
   btn.style.boxShadow = `0 8px 28px ${a.accent}66`;
+}
+
+function beginWithAnimation() {
+  const artEl = document.getElementById('revealArt');
+  const btn = document.getElementById('playBtn');
+  btn.disabled = true;
+  artEl.style.animation = 'art-collapse 0.55s cubic-bezier(0.4,0,1,1) forwards';
+  artEl.addEventListener('animationend', () => startGame(), { once: true });
 }
 
 // ══════════════════════════════════════════════════════════════════════
