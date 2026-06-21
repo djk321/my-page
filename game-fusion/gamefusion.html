@@ -1571,7 +1571,7 @@ function startDeedOrDispute(a, b) {
     const statusMsg=gameOver?'Game over!'
       :phase==='wildpick'?'Choose a property to move to!'
       :phase==='buyopt'?'Buy this property?'
-      :`${lbl[current]}'s turn — play a card from your hand`;
+      :current===0&&ddMode==='ai'?'Your turn — play a card from your hand':`${lbl[current]}'s turn — play a card from your hand`;
 
     // Property legend
     const groups=[...new Set(SPACES.filter(s=>s.type==='prop').map(s=>s.group))];
