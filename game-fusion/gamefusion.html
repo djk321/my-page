@@ -1745,7 +1745,7 @@ function startToffeeTower(a, b) {
   let pendingPulls = 0;   // extra pulls still owed in current turn
   let pendingExtra = 0;   // extra pulls owed to next player (gingerbread)
   let ttMode = 'ai';
-  let ttCtx = null, hovBlock = null;
+  let ttCtx = null, hovBlock = null, animRaf = null;
   const log = [];
   const COLORS_P = ['#c9a84c', '#7F77DD'];
   function LABELS() { return ttMode === '2p' ? ['Player 1','Player 2'] : ['You','AI']; }
@@ -1935,6 +1935,84 @@ function startToffeeTower(a, b) {
 
   function scoreForRow(row) { return (ROWS - row) * 15; }
 
+  function animateCollapse(done) {
+    if (!ttCtx) { done(); return; }
+    if (animRaf) { cancelAnimationFrame(animRaf); animRaf = null; }
+    const ctx = ttCtx;
+    const flying = [];
+    const allRows = ROWS + Math.ceil(placedPile.length / COLS);
+    for (let r = 0; r < allRows; r++) {
+      for (let c = 0; c < COLS; c++) {
+        let col;
+        if (r < ROWS) {
+          const blk = blocks[r*COLS+c]; if (blk.removed) continue; col = blk.color;
+        } else {
+          const pileIdx = (r - ROWS) * COLS + c;
+          if (pileIdx >= placedPile.length) continue; col = placedPile[pileIdx];
+        }
+        const {x, y} = ttfPos(r, c);
+        const theme = CANDY[col];
+        flying.push({ x, y, col,
+          vx: (Math.random()-0.5)*14, vy: -(Math.random()*6+2),
+          vr: (Math.random()-0.5)*8, rot: 0, alpha: 1,
+          fc: theme.fc, tc: theme.tc, sc: theme.sc });
+      }
+    }
+
+    const wobbleAngles = [0,-4,5,-5,4,-3,2,0];
+    let wobbleFrame = 0;
+    const WOBBLE_FRAMES = 33;
+
+    function wobbleStep() {
+      const bg = ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#1a0a2e'); bg.addColorStop(1,'#3a1a5e');
+      ctx.fillStyle = bg; ctx.fillRect(0,0,CV_W,CV_H);
+      const angle = wobbleAngles[Math.floor(wobbleFrame/4 % wobbleAngles.length)];
+      ctx.save();
+      ctx.translate(TTX + COLS*(BW+PX)/2, TTY);
+      ctx.rotate(angle * Math.PI/180);
+      ctx.translate(-(TTX + COLS*(BW+PX)/2), -TTY);
+      for (let r = 0; r < allRows; r++) {
+        for (let c = 0; c < COLS; c++) {
+          let col;
+          if (r < ROWS) { const b=blocks[r*COLS+c]; if(b.removed) continue; col=b.color; }
+          else { const pi=(r-ROWS)*COLS+c; if(pi>=placedPile.length) continue; col=placedPile[pi]; }
+          const {x,y}=ttfPos(r,c); drawOneBlock(ctx,x,y,col,false);
+        }
+      }
+      ctx.restore();
+      wobbleFrame++;
+      animRaf = wobbleFrame < WOBBLE_FRAMES
+        ? requestAnimationFrame(wobbleStep)
+        : requestAnimationFrame(scatterStep);
+    }
+
+    function scatterStep() {
+      const bg = ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#1a0a2e'); bg.addColorStop(1,'#3a1a5e');
+      ctx.fillStyle = bg; ctx.fillRect(0,0,CV_W,CV_H);
+      ctx.fillStyle = '#2a1040'; ctx.fillRect(TTX-8,TTY+2,COLS*(BW+PX)+DX+4,10);
+      ctx.fillStyle = '#3d1a60'; ctx.fillRect(TTX-8,TTY-2,COLS*(BW+PX)+DX+4,4);
+      let anyVisible = false;
+      for (const f of flying) {
+        f.vy += 0.5; f.x += f.vx; f.y += f.vy; f.rot += f.vr;
+        f.alpha = Math.max(0, f.alpha - 0.025);
+        if (f.alpha <= 0) continue; anyVisible = true;
+        ctx.save();
+        ctx.globalAlpha = f.alpha;
+        ctx.translate(f.x+BW/2, f.y+BH/2);
+        ctx.rotate(f.rot * Math.PI/180);
+        ctx.translate(-BW/2, -BH/2);
+        drawOneBlock(ctx, 0, 0, f.col, false);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+      animRaf = anyVisible ? requestAnimationFrame(scatterStep) : (animRaf=null, done(), null);
+    }
+
+    animRaf = requestAnimationFrame(wobbleStep);
+  }
+
   function doPull(playerIdx, blk, doublingCard) {
     blk.removed = true;
     const risk = collapseRisk(blk.row);
@@ -1942,7 +2020,7 @@ function startToffeeTower(a, b) {
       const opp = 1 - playerIdx;
       addLog(`💥 Tower collapsed! ${LABELS()[opp]} wins the Gumdrop Crown!`);
       fullDraw(); updateSidebar();
-      setTimeout(() => ttfEndGame(opp, true), 400);
+      animateCollapse(() => ttfEndGame(opp, true));
       return false; // collapsed
     }
     const pts = scoreForRow(blk.row) * (doublingCard ? 2 : 1);
