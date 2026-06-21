@@ -1901,11 +1901,14 @@ function startTopplingColors(a, b) {
         .tt-msg { font-size:13px; color:#aaa; }
         .tt-gameover { text-align:center; padding:20px; }
         .tt-gameover h2 { font-size:26px; font-weight:700; color:#c9a84c; margin-bottom:8px; }
+        .tt-mode-seg { display:flex; border:1px solid #2a2a3a; border-radius:8px; overflow:hidden; margin-bottom:12px; width:fit-content; }
+        .tt-mode-seg button { padding:6px 18px; font-size:12px; border:none; background:#1a1a24; color:#888; cursor:pointer; font-family:inherit; }
+        .tt-mode-seg button.active { background:#c9a84c; color:#000; font-weight:700; }
         @keyframes tc-rise { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
       </style>
       <div id="tc">
         <div id="tc-tower-col">
-          <div class="tt-mode-seg" style="margin-bottom:10px;">
+          <div class="tt-mode-seg">
             <button class="${tcMode==='ai'?'active':''}" onclick="tcSetMode('ai')">vs AI</button>
             <button class="${tcMode==='2p'?'active':''}" onclick="tcSetMode('2p')">2 Player</button>
           </div>
