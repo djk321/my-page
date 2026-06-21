@@ -934,17 +934,76 @@ function buildBoxArtSVG(a, b) {
 </svg>`;
 }
 
-function loadRevealArt(a, b) {
-  const key = [a.id, b.id].sort().join('-');
-  const img = new Image();
-  img.src = `art/${key}.webp`;
-  img.onload = () => {
-    document.getElementById('revealArt').innerHTML =
-      `<img src="art/${key}.webp" style="width:100%;display:block;border-radius:12px" alt="${a.name} × ${b.name} box art"/>`;
+const HF_TOKEN = (() => {
+  let t = localStorage.getItem('hf_token');
+  if (!t) {
+    t = prompt('Enter your Hugging Face API token to generate box art:');
+    if (t) localStorage.setItem('hf_token', t.trim());
+  }
+  return t ? t.trim() : null;
+})();
+const HF_MODELS = [
+  'stabilityai/stable-diffusion-3.5-large',
+  'black-forest-labs/FLUX.1-schnell',
+  'stabilityai/stable-diffusion-2-1',
+];
+
+async function hfGenerate(model, prompt, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inputs: prompt }),
+    });
+
+    if (res.ok) return await res.blob();
+
+    if (res.status === 503) {
+      const json = await res.json().catch(() => ({}));
+      const wait = Math.min((json.estimated_time || 20) * 1000, 30000);
+      console.log(`Model ${model} loading, retrying in ${Math.round(wait/1000)}s…`);
+      await new Promise(r => setTimeout(r, wait));
+      continue;
+    }
+
+    throw new Error(`HTTP ${res.status} from ${model}`);
+  }
+  throw new Error(`${model} timed out after ${retries} retries`);
+}
+
+async function loadRevealArt(a, b) {
+  const artEl = document.getElementById('revealArt');
+  const name = hybridName(a, b);
+
+  const setStatus = (msg) => {
+    artEl.innerHTML = `
+      <div style="width:100%;aspect-ratio:560/400;background:#1a1a24;border-radius:12px;border:1px solid #2a2a3a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+        <div style="width:48px;height:48px;border:3px solid #2a2a3a;border-top-color:#c9a84c;border-radius:50%;animation:spin 0.9s linear infinite;"></div>
+        <div style="font-size:13px;color:#888;letter-spacing:1px;">${msg}</div>
+      </div>`;
   };
-  img.onerror = () => {
-    document.getElementById('revealArt').innerHTML = buildBoxArtSVG(a, b);
-  };
+
+  const prompt = `Epic retro video game box art for "${name}", a mashup of ${a.name} and ${b.name}. Dramatic cinematic illustration, bold colors, dark background, professional game cover art, high detail.`;
+
+  if (!HF_TOKEN) {
+    artEl.innerHTML = buildBoxArtSVG(a, b);
+    return;
+  }
+
+  for (const model of HF_MODELS) {
+    try {
+      setStatus(`Generating box art via ${model.split('/')[1]}…`);
+      const blob = await hfGenerate(model, prompt);
+      const url = URL.createObjectURL(blob);
+      artEl.innerHTML = `<img src="${url}" style="width:100%;display:block;border-radius:12px;" alt="${a.name} × ${b.name} box art"/>`;
+      return;
+    } catch (err) {
+      console.warn(`${model} failed:`, err.message);
+    }
+  }
+
+  console.warn('All models failed, falling back to SVG');
+  artEl.innerHTML = buildBoxArtSVG(a, b);
 }
 
 // ── Story builder ─────────────────────────────────────────────────────
