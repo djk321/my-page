@@ -381,6 +381,7 @@ const HYBRID_NAMES = {
   'candyland+jenga':'Toffee Tower','jenga+candyland':'Toffee Tower',
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
+  'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
 };
 
 function hybridName(a, b) {
@@ -920,6 +921,7 @@ const CUSTOM_ART = {
   'candyland+jenga': 'ToffeeTower.png',
   'jenga+sorry':     'ToweringTreachery.png',
   'checkers+jenga':  'TowerTactics.png',
+  'monopoly+uno':    'DeedorDispute.png',
 };
 
 function customArtUrl(a, b) {
@@ -1244,7 +1246,451 @@ const COMBO_GAMES = {
   'candyland+jenga': startToffeeTower,
   'jenga+sorry':     startToweringTreachery,
   'checkers+jenga':  startTowerTactics,
+  'monopoly+uno':    startDeedOrDispute,
 };
+
+// ══════════════════════════════════════════════════════════════════════
+// DEED OR DISPUTE  (Monopoly × Uno)  — Economy Template #1
+// ══════════════════════════════════════════════════════════════════════
+function startDeedOrDispute(a, b) {
+  // ── Board definition ──────────────────────────────────────────────
+  // 20 spaces: GO, 3 color groups × 3 props each, 2 Tax, 2 Chance, Jail(visit), Free Parking
+  const SPACES = [
+    {type:'go',    label:'GO',           icon:'🏦'},
+    {type:'prop',  label:'Mediterranean', price:60,  rent:10, color:'#9C27B0', group:0},
+    {type:'prop',  label:'Baltic',        price:60,  rent:10, color:'#9C27B0', group:0},
+    {type:'prop',  label:'Oriental',      price:100, rent:18, color:'#03A9F4', group:1},
+    {type:'prop',  label:'Vermont',       price:100, rent:18, color:'#03A9F4', group:1},
+    {type:'prop',  label:'Connecticut',   price:120, rent:22, color:'#03A9F4', group:1},
+    {type:'tax',   label:'Income Tax',    icon:'💸', cost:100},
+    {type:'prop',  label:'St. Charles',   price:140, rent:26, color:'#E91E63', group:2},
+    {type:'prop',  label:'States Ave',    price:140, rent:26, color:'#E91E63', group:2},
+    {type:'prop',  label:'Virginia Ave',  price:160, rent:30, color:'#E91E63', group:2},
+    {type:'corner',label:'Free Parking',  icon:'🅿️'},
+    {type:'prop',  label:'St. James',     price:180, rent:34, color:'#FF9800', group:3},
+    {type:'prop',  label:'Tennessee',     price:180, rent:34, color:'#FF9800', group:3},
+    {type:'prop',  label:'New York Ave',  price:200, rent:38, color:'#FF9800', group:3},
+    {type:'chance',label:'Chance',        icon:'❓'},
+    {type:'prop',  label:'Kentucky Ave',  price:220, rent:42, color:'#f44336', group:4},
+    {type:'prop',  label:'Indiana Ave',   price:220, rent:42, color:'#f44336', group:4},
+    {type:'prop',  label:'Illinois Ave',  price:240, rent:46, color:'#f44336', group:4},
+    {type:'tax',   label:'Luxury Tax',    icon:'💸', cost:150},
+    {type:'corner',label:'Go To Jail',    icon:'🚔'},
+  ];
+  const N = SPACES.length; // 20
+
+  // ── Uno deck ──────────────────────────────────────────────────────
+  const COLORS_U = ['red','blue','green','yellow'];
+  const ACTIONS  = ['skip','reverse','draw2'];
+  function buildDeck() {
+    const d = [];
+    for (const col of COLORS_U) {
+      for (let n = 1; n <= 9; n++) d.push({col, val:n, label:`${n}`, type:'num'});
+      for (const act of ACTIONS)    d.push({col, val:act, label:act==='draw2'?'+2':act==='skip'?'⊘':'↩', type:'action'});
+    }
+    d.push({col:'black',val:'wild',label:'W',type:'wild'});
+    d.push({col:'black',val:'wild4',label:'W+4',type:'wild'});
+    return d.sort(()=>Math.random()-.5);
+  }
+
+  const UNO_CSS = {red:'#e53935',blue:'#1e88e5',green:'#43a047',yellow:'#f9a825',black:'#2a2a3a'};
+  const UNO_LABEL_CSS = {red:'#fff',blue:'#fff',green:'#fff',yellow:'#111',black:'#c9a84c'};
+
+  // ── Game state ─────────────────────────────────────────────────────
+  const START_CASH = 1500;
+  let deck=[], discard=[];
+  let hands=[[],[]], pos=[0,0], cash=[START_CASH,START_CASH];
+  let owned={}; // owned[spaceIdx] = playerIdx
+  let skipped=[false,false], jailed=[false,false];
+  let current=0, gameOver=false, phase='play'; // phase: play | wildpick | buyopt | msg
+  let pendingMsg='', pendingCb=null;
+  let selectedCard=null, wildTarget=null;
+  const log=[];
+  let ddMode='ai';
+  function LABELS(){return ddMode==='2p'?['Player 1','Player 2']:['You','AI'];}
+  const P_COLORS=['#c9a84c','#7F77DD'];
+
+  // Chance cards pool
+  const CHANCE_CARDS = [
+    {label:'Advance to GO — collect $200!', fn:(p)=>{ doLand(p,0,true); }},
+    {label:'Bank error in your favor — collect $150!', fn:(p)=>{ cash[p]+=150; }},
+    {label:'Pay poor tax — $50.', fn:(p)=>{ cash[p]-=50; }},
+    {label:'Go back 3 spaces.', fn:(p)=>{ pos[p]=(pos[p]-3+N)%N; doLand(p,pos[p]); }},
+    {label:'Collect $100 from each player!', fn:(p)=>{ const opp=1-p; const amt=Math.min(100,cash[opp]); cash[opp]-=amt; cash[p]+=amt; }},
+    {label:'Pay $100 in repairs.', fn:(p)=>{ cash[p]-=100; }},
+  ];
+
+  function deal(pIdx, n=1){ for(let i=0;i<n;i++){ if(!deck.length){deck=discard.splice(0).sort(()=>Math.random()-.5);} if(deck.length) hands[pIdx].push(deck.pop()); } }
+  function initGame(){
+    deck=buildDeck(); discard=[]; hands=[[],[]]; pos=[0,0];
+    cash=[START_CASH,START_CASH]; owned={}; skipped=[false,false]; jailed=[false,false];
+    current=0; gameOver=false; phase='play'; selectedCard=null;
+    log.length=0;
+    deal(0,5); deal(1,5);
+  }
+  initGame();
+
+  // ── Card play logic ───────────────────────────────────────────────
+  function playCard(cardIdx) {
+    if(gameOver||phase!=='play') return;
+    if(ddMode==='ai'&&current!==0) return;
+    const card=hands[current][cardIdx];
+    if(!card) return;
+    hands[current].splice(cardIdx,1);
+    discard.push(card);
+    selectedCard=null;
+
+    if(card.type==='wild'||card.type==='wild4'){
+      if(card.type==='wild4'){
+        const opp=1-current; deal(opp,4);
+        addLog(`${LABELS()[current]} plays Wild +4 — ${LABELS()[opp]} draws 4 cards!`);
+      }
+      // let player pick destination
+      phase='wildpick';
+      render(); return;
+    }
+
+    applyCard(card, current);
+  }
+
+  function applyCard(card, p) {
+    const opp=1-p;
+    if(card.type==='num'){
+      if(jailed[p]){ jailed[p]=false; addLog(`${LABELS()[p]} escapes jail!`); }
+      let steps=card.val;
+      let newPos=(pos[p]+steps)%N;
+      if(newPos<pos[p]||pos[p]+steps>=N){ cash[p]+=200; addLog(`${LABELS()[p]} passes GO — collects $200!`); }
+      pos[p]=newPos;
+      addLog(`${LABELS()[p]} plays ${card.label} — moves to ${SPACES[pos[p]].label}`);
+      doLand(p, pos[p]);
+    } else if(card.type==='action'){
+      if(card.val==='skip'){
+        skipped[opp]=true;
+        addLog(`${LABELS()[p]} plays Skip — ${LABELS()[opp]}'s next turn is skipped!`);
+        // also move 2
+        const newPos=(pos[p]+2)%N;
+        if(newPos<pos[p]){ cash[p]+=200; addLog(`${LABELS()[p]} passes GO — collects $200!`); }
+        pos[p]=newPos;
+        doLand(p, pos[p]);
+      } else if(card.val==='reverse'){
+        // In 2P, reverse = skip yourself (lose a turn); in single move backward
+        addLog(`${LABELS()[p]} plays Reverse — moves back 3 spaces!`);
+        pos[p]=(pos[p]-3+N)%N;
+        doLand(p, pos[p]);
+      } else if(card.val==='draw2'){
+        deal(opp,2);
+        addLog(`${LABELS()[p]} plays +2 — ${LABELS()[opp]} draws 2 cards!`);
+        // also move 2
+        const newPos=(pos[p]+2)%N;
+        if(newPos<pos[p]){ cash[p]+=200; addLog(`${LABELS()[p]} passes GO — collects $200!`); }
+        pos[p]=newPos;
+        doLand(p, pos[p]);
+      }
+    }
+  }
+
+  function doLand(p, spaceIdx, fromChance=false) {
+    const sp=SPACES[spaceIdx];
+    if(sp.type==='go'){ cash[p]+=200; addLog(`${LABELS()[p]} lands on GO — collects $200!`); endTurn(); return; }
+    if(sp.type==='corner'&&sp.label==='Free Parking'){ addLog(`${LABELS()[p]} on Free Parking — safe!`); endTurn(); return; }
+    if(sp.type==='corner'&&sp.label==='Go To Jail'){
+      jailed[p]=true; pos[p]=19; addLog(`${LABELS()[p]} is sent to Jail!`);
+      endTurn(); return;
+    }
+    if(sp.type==='tax'){ cash[p]-=sp.cost; addLog(`${LABELS()[p]} pays ${sp.label} — $${sp.cost}`); checkBankruptcy(p); endTurn(); return; }
+    if(sp.type==='chance'){
+      const cc=CHANCE_CARDS[Math.floor(Math.random()*CHANCE_CARDS.length)];
+      addLog(`${LABELS()[p]} draws Chance: ${cc.label}`);
+      cc.fn(p); checkBankruptcy(p); if(!gameOver) endTurn(); return;
+    }
+    if(sp.type==='prop'){
+      if(owned[spaceIdx]===undefined){
+        // offer to buy (human) or AI auto-buys if affordable
+        if(p===0&&ddMode==='ai'){
+          phase='buyopt';
+          render(); return;
+        } else {
+          // AI or 2P second player: auto buy if can afford
+          if(cash[p]>=sp.price){ cash[p]-=sp.price; owned[spaceIdx]=p; addLog(`${LABELS()[p]} buys ${sp.label} for $${sp.price}!`); }
+          else addLog(`${LABELS()[p]} can't afford ${sp.label}.`);
+          endTurn();
+        }
+      } else if(owned[spaceIdx]===p){ addLog(`${LABELS()[p]} owns ${sp.label} — no rent.`); endTurn(); }
+      else {
+        const opp=1-p;
+        // double rent if owner has full color group
+        const grp=sp.group;
+        const grpProps=SPACES.filter(s=>s.type==='prop'&&s.group===grp);
+        const monopoly=grpProps.every((_,i)=>owned[SPACES.indexOf(grpProps[i])]===opp); // wait, need correct idx
+        const monopoly2=grpProps.every(s=>owned[SPACES.findIndex(x=>x===s)]===opp);
+        const rent=monopoly2?sp.rent*2:sp.rent;
+        const paid=Math.min(rent,cash[p]);
+        cash[p]-=paid; cash[opp]+=paid;
+        addLog(`${LABELS()[p]} pays $${paid} rent to ${LABELS()[opp]} for ${sp.label}${monopoly2?' (monopoly!)':''}`);
+        checkBankruptcy(p);
+        if(!gameOver) endTurn();
+      }
+    }
+  }
+
+  function checkBankruptcy(p){
+    if(cash[p]<=0){ cash[p]=0; gameOver=true;
+      addLog(`💀 ${LABELS()[p]} is bankrupt!`);
+      render(); showWinner(1-p); }
+  }
+
+  function endTurn(){
+    deal(current,1); // draw back up
+    // Enforce hand size limit of 7
+    while(hands[current].length>7) hands[current].shift();
+    if(gameOver) return;
+    current=1-current;
+    if(skipped[current]){ skipped[current]=false; addLog(`${LABELS()[current]}'s turn is skipped!`); current=1-current; }
+    if(jailed[current]){ addLog(`${LABELS()[current]} is in jail — must play a number 1-3 to escape or lose turn.`); }
+    render();
+    if(ddMode==='ai'&&current===1) setTimeout(aiTurn,800);
+  }
+
+  function showWinner(w){
+    const el=document.getElementById('dod-root');
+    if(!el) return;
+    el.insertAdjacentHTML('beforeend',`
+      <div class="dod-card" style="margin-top:16px;text-align:center;padding:24px;animation:dod-rise .4s ease both;">
+        <h2 style="font-size:24px;font-weight:700;color:#c9a84c;margin-bottom:8px;">🏆 ${LABELS()[w]} wins!</h2>
+        <p style="color:#888;margin-bottom:18px;">${LABELS()[1-w]} went bankrupt!</p>
+        <button class="btn primary" onclick="dodRestart()">Play Again</button>
+        <button class="btn" onclick="goToSelect()">Pick New Games</button>
+      </div>`);
+  }
+
+  // ── AI turn ───────────────────────────────────────────────────────
+  function aiTurn(){
+    if(gameOver||ddMode==='2p'||current!==1) return;
+    const hand=hands[1];
+    if(!hand.length){ endTurn(); return; }
+    // AI prefers: wild4 > draw2 > skip > highest num > wild > reverse
+    const priority=(c)=>{
+      if(c.val==='wild4') return 10;
+      if(c.val==='draw2') return 8;
+      if(c.val==='skip')  return 7;
+      if(c.type==='num')  return c.val; // 1-9
+      if(c.val==='wild')  return 5;
+      return 2;
+    };
+    const best=hand.slice().sort((x,y)=>priority(y)-priority(x))[0];
+    const idx=hand.indexOf(best);
+    addLog(`AI plays: ${best.col} ${best.label}`);
+    hands[1].splice(idx,1);
+    discard.push(best);
+    if(best.type==='wild'||best.type==='wild4'){
+      if(best.type==='wild4'){ deal(0,4); addLog(`You draw 4 cards!`); }
+      // AI picks prop space with highest value it doesn't own
+      const unowned=SPACES.map((s,i)=>({s,i})).filter(({s,i})=>s.type==='prop'&&owned[i]===undefined);
+      const target=unowned.length?unowned.sort((x,y)=>y.s.price-x.s.price)[0].i:((pos[1]+6)%N);
+      if(target<pos[1]) cash[1]+=200;
+      pos[1]=target;
+      addLog(`AI moves to ${SPACES[pos[1]].label}`);
+      doLand(1,pos[1]);
+    } else {
+      applyCard(best,1);
+    }
+  }
+
+  function addLog(msg){ log.unshift(msg); const el=document.getElementById('dod-log'); if(el) el.innerHTML=log.slice(0,12).join('<br>'); }
+
+  // ── Board ring render ─────────────────────────────────────────────
+  function boardRingHTML(){
+    const size=220, cx=size/2, cy=size/2, r=80;
+    let svg=`<svg width="${size}" height="${size}" style="display:block;margin:auto;">`;
+    SPACES.forEach((sp,i)=>{
+      const angle=(i/N)*2*Math.PI - Math.PI/2;
+      const x=cx+r*Math.cos(angle), y=cy+r*Math.sin(angle);
+      const col=sp.type==='prop'?sp.color:sp.type==='go'?'#4CAF50':sp.type==='tax'?'#f44336':sp.type==='chance'?'#FF9800':'#555';
+      const hasP0=pos[0]===i, hasP1=pos[1]===i;
+      const isOwned=owned[i]!==undefined;
+      svg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="${col}" stroke="${isOwned?P_COLORS[owned[i]]:'#111'}" stroke-width="${isOwned?2.5:1}" opacity="0.9"/>`;
+      if(hasP0) svg+=`<text x="${x.toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8">🔴</text>`;
+      if(hasP1) svg+=`<text x="${x.toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8">${hasP0?'':'🔵'}</text>`;
+      if(hasP0&&hasP1) svg+=`<text x="${(x+5).toFixed(1)}" y="${(y).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="7">🔵</text>`;
+    });
+    // center label
+    svg+=`<text x="${cx}" y="${cy-8}" text-anchor="middle" font-size="9" fill="#888">BOARD</text>`;
+    svg+=`<text x="${cx}" y="${cy+6}" text-anchor="middle" font-size="9" fill="#c9a84c">${SPACES[pos[0]].label.slice(0,10)}</text>`;
+    svg+=`</svg>`;
+    return svg;
+  }
+
+  // ── Hand HTML ─────────────────────────────────────────────────────
+  function handHTML(pIdx){
+    const hand=hands[pIdx];
+    const isHuman=pIdx===0||(ddMode==='2p');
+    const canPlay=!gameOver&&phase==='play'&&current===pIdx;
+    let h='<div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;">';
+    hand.forEach((card,i)=>{
+      const bg=UNO_CSS[card.col]||'#333';
+      const fg=UNO_LABEL_CSS[card.col]||'#fff';
+      const border=canPlay&&selectedCard===i?'3px solid #fff':'3px solid transparent';
+      const cursor=canPlay?'pointer':'default';
+      const onclick=canPlay?`dodPlay(${i})`:'';
+      const show=isHuman||pIdx===1&&ddMode!=='ai';
+      h+=`<div onclick="${onclick}" style="width:36px;height:52px;background:${show?bg:'#1a1a24'};border:${border};border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:${show?'13px':'10px'};font-weight:700;color:${show?fg:'#444'};cursor:${cursor};transition:transform .1s;${canPlay&&show?'box-shadow:0 2px 8px rgba(0,0,0,.5)':''};" ${canPlay?`onmousedown="this.style.transform='scale(.93)'" onmouseup="this.style.transform=''"`:''}>
+        ${show?card.label:'?'}
+      </div>`;
+    });
+    h+='</div>';
+    return h;
+  }
+
+  // ── Wild destination picker ────────────────────────────────────────
+  function wildPickHTML(){
+    const props=SPACES.map((s,i)=>({s,i})).filter(({s})=>s.type==='prop');
+    let h=`<div style="font-size:12px;color:#c9a84c;margin-bottom:8px;font-weight:700;">Choose where to move:</div>`;
+    h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;">`;
+    props.forEach(({s,i})=>{
+      h+=`<button onclick="dodWildPick(${i})" style="padding:4px 8px;font-size:10px;border-radius:6px;border:1px solid ${s.color};background:${s.color}22;color:#ddd;cursor:pointer;">${s.label}</button>`;
+    });
+    h+='</div>';
+    return h;
+  }
+
+  // ── Buy option ────────────────────────────────────────────────────
+  function buyOptHTML(){
+    const sp=SPACES[pos[0]];
+    return `<div style="font-size:13px;color:#aaa;margin-bottom:10px;">Land on <b style="color:#fff">${sp.label}</b> — price: <b style="color:#c9a84c">$${sp.price}</b><br>You have <b style="color:#4CAF50">$${cash[0]}</b></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn primary" onclick="dodBuy()" ${cash[0]<sp.price?'disabled':''}>Buy $${sp.price}</button>
+      <button class="btn" onclick="dodSkipBuy()">Pass</button>
+    </div>`;
+  }
+
+  // ── Main render ───────────────────────────────────────────────────
+  function render(){
+    const root=document.getElementById('dod-root');
+    if(!root) return;
+    const lbl=LABELS(); const is2p=ddMode==='2p';
+    const statusMsg=gameOver?'Game over!'
+      :phase==='wildpick'?'Choose a property to move to!'
+      :phase==='buyopt'?'Buy this property?'
+      :`${lbl[current]}'s turn — play a card from your hand`;
+
+    // Property legend
+    const groups=[...new Set(SPACES.filter(s=>s.type==='prop').map(s=>s.group))];
+    const groupRows=groups.map(g=>{
+      const gProps=SPACES.filter(s=>s.type==='prop'&&s.group===g);
+      const col=gProps[0].color;
+      const ownedBy=gProps.map(s=>owned[SPACES.indexOf(s)]);
+      const p0count=ownedBy.filter(x=>x===0).length, p1count=ownedBy.filter(x=>x===1).length;
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <div style="width:12px;height:12px;background:${col};border-radius:3px;flex-shrink:0;"></div>
+        <div style="font-size:10px;color:#888;flex:1;">${gProps[0].label.split(' ')[0]}&hellip;</div>
+        <div style="font-size:10px;color:${P_COLORS[0]};">${p0count>0?p0count+'🔴':''}</div>
+        <div style="font-size:10px;color:${P_COLORS[1]};">${p1count>0?p1count+'🔵':''}</div>
+      </div>`;
+    }).join('');
+
+    root.innerHTML=`
+    <style>
+      #dod-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #dod-board-col{flex:0 0 auto;}
+      #dod-right{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px;}
+      .dod-card{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:12px 14px;}
+      .dod-card h3{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+      .tt-mode-seg{display:flex;border:1px solid #2a2a3a;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .tt-mode-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a1a24;color:#888;cursor:pointer;font-family:inherit;}
+      .tt-mode-seg button.active{background:#c9a84c;color:#000;font-weight:700;}
+      @keyframes dod-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="dod-wrap">
+      <div id="dod-board-col">
+        <div class="tt-mode-seg">
+          <button class="${ddMode==='ai'?'active':''}" onclick="dodSetMode('ai')">vs AI</button>
+          <button class="${ddMode==='2p'?'active':''}" onclick="dodSetMode('2p')">2 Player</button>
+        </div>
+        <div class="dod-card" style="width:260px;">
+          <h3>BOARD — ${N} SPACES</h3>
+          ${boardRingHTML()}
+          <div style="margin-top:10px;">${groupRows}</div>
+        </div>
+        <div class="dod-card" style="margin-top:10px;width:260px;">
+          <h3>EVENT LOG</h3>
+          <div id="dod-log" style="font-size:10px;color:#666;line-height:1.8;max-height:110px;overflow-y:auto;">${log.slice(0,12).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="dod-right">
+        <div style="display:flex;gap:10px;">
+          <div class="dod-card" style="flex:1;border-color:${current===0?P_COLORS[0]:'#2a2a3a'};">
+            <h3>${is2p?lbl[0]:'YOU'} 🔴</h3>
+            <div style="font-size:22px;font-weight:700;color:#4CAF50;">$${cash[0]}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">Pos: ${SPACES[pos[0]].label}</div>
+            ${jailed[0]?'<div style="font-size:10px;color:#f44336;margin-top:2px;">🔒 In Jail</div>':''}
+            ${skipped[0]?'<div style="font-size:10px;color:#FF9800;margin-top:2px;">⊘ Skipped</div>':''}
+          </div>
+          <div class="dod-card" style="flex:1;border-color:${current===1?P_COLORS[1]:'#2a2a3a'};">
+            <h3>${is2p?lbl[1]:'AI'} 🔵</h3>
+            <div style="font-size:22px;font-weight:700;color:#4CAF50;">$${cash[1]}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">Pos: ${SPACES[pos[1]].label}</div>
+            ${jailed[1]?'<div style="font-size:10px;color:#f44336;margin-top:2px;">🔒 In Jail</div>':''}
+            ${skipped[1]?'<div style="font-size:10px;color:#FF9800;margin-top:2px;">⊘ Skipped</div>':''}
+          </div>
+        </div>
+        <div class="dod-card" style="border-color:#1a3a1a;">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#aaa;line-height:1.6;">${statusMsg}</div>
+          ${phase==='wildpick'&&(current===0||(is2p&&current===1))?wildPickHTML():''}
+          ${phase==='buyopt'?buyOptHTML():''}
+        </div>
+        <div class="dod-card">
+          <h3>${is2p?lbl[0]:'YOUR'} HAND (${hands[0].length} cards)</h3>
+          ${handHTML(0)}
+        </div>
+        ${is2p||current===1?`<div class="dod-card">
+          <h3>${is2p?lbl[1]:'AI'} HAND (${hands[1].length} cards)</h3>
+          ${handHTML(1)}
+        </div>`:''}
+        <div class="dod-card">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#c9a84c;">Goal:</b> Bankrupt your opponent.<br><br>
+            <b style="color:#c9a84c;">Turn:</b> Play a card from your hand to move or act.<br><br>
+            <b style="color:#c9a84c;">Number cards (1–9):</b> Move that many spaces around the board.<br>
+            <b style="color:#c9a84c;">Skip ⊘:</b> Skip opponent's next turn + move 2.<br>
+            <b style="color:#c9a84c;">Reverse ↩:</b> Move back 3 spaces.<br>
+            <b style="color:#c9a84c;">+2:</b> Opponent draws 2 cards + you move 2.<br>
+            <b style="color:#c9a84c;">Wild W:</b> Move to any property you choose.<br>
+            <b style="color:#c9a84c;">Wild W+4:</b> Opponent draws 4 + you move anywhere.<br><br>
+            <b style="color:#c9a84c;">Properties:</b> Buy unowned spaces you land on. Earn rent when opponents visit. Own a full color group = double rent!<br><br>
+            <b style="color:#f44336;">Bankruptcy:</b> Cash hits $0 — game over!
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Global handlers ───────────────────────────────────────────────
+  window.dodPlay=function(idx){ playCard(idx); render(); if(ddMode==='ai'&&current===1&&!gameOver) setTimeout(aiTurn,800); };
+  window.dodWildPick=function(spaceIdx){
+    if(spaceIdx<pos[current]) cash[current]+=200;
+    pos[current]=spaceIdx;
+    addLog(`${LABELS()[current]} moves to ${SPACES[spaceIdx].label}`);
+    phase='play'; doLand(current,spaceIdx); render();
+  };
+  window.dodBuy=function(){
+    const sp=SPACES[pos[0]];
+    cash[0]-=sp.price; owned[pos[0]]=0;
+    addLog(`You buy ${sp.label} for $${sp.price}!`);
+    phase='play'; endTurn(); render();
+  };
+  window.dodSkipBuy=function(){ phase='play'; endTurn(); render(); };
+  window.dodSetMode=function(mode){ ddMode=mode; initGame(); render(); };
+  window.dodRestart=function(){ initGame(); render(); };
+
+  // ── Boot ──────────────────────────────────────────────────────────
+  const root=document.getElementById('game-root');
+  root.innerHTML=`<div id="dod-root"></div>`;
+  render();
+  addLog('Game started! Play a card to move around the board.');
+  if(ddMode==='ai'&&current===1) setTimeout(aiTurn,800);
+}
 
 function startGame() {
   const comboKey = [activeGameA.id, activeGameB.id].sort().join('+');
