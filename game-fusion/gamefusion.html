@@ -1445,8 +1445,8 @@ function startDeedOrDispute(a, b) {
 
   // Chance cards pool
   const CHANCE_CARDS = [
-    {label:'Advance to GO — collect $200!', fn:(p)=>{ doLand(p,0,true); }},
-    {label:'Bank error in your favor — collect $150!', fn:(p)=>{ cash[p]+=150; }},
+    {label:'Advance to GO — collect $50!', fn:(p)=>{ doLand(p,0,true); }},
+    {label:'Bank error in your favor — collect $75!', fn:(p)=>{ cash[p]+=75; }},
     {label:'Pay poor tax — $50.', fn:(p)=>{ cash[p]-=50; }},
     {label:'Go back 3 spaces.', fn:(p)=>{ pos[p]=(pos[p]-3+N)%N; doLand(p,pos[p]); }},
     {label:'Collect $100 from each player!', fn:(p)=>{ const opp=1-p; const amt=Math.min(100,cash[opp]); cash[opp]-=amt; cash[p]+=amt; }},
@@ -1492,7 +1492,7 @@ function startDeedOrDispute(a, b) {
       if(jailed[p]){ jailed[p]=false; addLog(`${LABELS()[p]} escapes jail!`); }
       let steps=card.val;
       let newPos=(pos[p]+steps)%N;
-      if(newPos<pos[p]||pos[p]+steps>=N){ cash[p]+=200; addLog(`${LABELS()[p]} passes GO — collects $200!`); }
+      if(newPos<pos[p]||pos[p]+steps>=N){ cash[p]+=50; addLog(`${LABELS()[p]} passes GO — collects $50!`); }
       pos[p]=newPos;
       addLog(`${LABELS()[p]} plays ${card.label} — moves to ${SPACES[pos[p]].label}`);
       doLand(p, pos[p]);
@@ -1502,7 +1502,7 @@ function startDeedOrDispute(a, b) {
         addLog(`${LABELS()[p]} plays Skip — ${LABELS()[opp]}'s next turn is skipped!`);
         // also move 2
         const newPos=(pos[p]+2)%N;
-        if(newPos<pos[p]){ cash[p]+=200; addLog(`${LABELS()[p]} passes GO — collects $200!`); }
+        if(newPos<pos[p]){ cash[p]+=50; addLog(`${LABELS()[p]} passes GO — collects $50!`); }
         pos[p]=newPos;
         doLand(p, pos[p]);
       } else if(card.val==='reverse'){
@@ -1515,7 +1515,7 @@ function startDeedOrDispute(a, b) {
         addLog(`${LABELS()[p]} plays +2 — ${LABELS()[opp]} draws 2 & pays $${fine}!`);
         // also move 2
         const newPos=(pos[p]+2)%N;
-        if(newPos<pos[p]){ cash[p]+=200; addLog(`${LABELS()[p]} passes GO — collects $200!`); }
+        if(newPos<pos[p]){ cash[p]+=50; addLog(`${LABELS()[p]} passes GO — collects $50!`); }
         pos[p]=newPos;
         doLand(p, pos[p]);
       }
@@ -1524,7 +1524,7 @@ function startDeedOrDispute(a, b) {
 
   function doLand(p, spaceIdx, fromChance=false) {
     const sp=SPACES[spaceIdx];
-    if(sp.type==='go'){ cash[p]+=200; addLog(`${LABELS()[p]} lands on GO — collects $200!`); endTurn(); return; }
+    if(sp.type==='go'){ cash[p]+=50; addLog(`${LABELS()[p]} lands on GO — collects $50!`); endTurn(); return; }
     if(sp.type==='corner'&&sp.label==='Free Parking'){ addLog(`${LABELS()[p]} on Free Parking — safe!`); endTurn(); return; }
     if(sp.type==='corner'&&sp.label==='Go To Jail'){
       jailed[p]=true; pos[p]=19; addLog(`${LABELS()[p]} is sent to Jail!`);
