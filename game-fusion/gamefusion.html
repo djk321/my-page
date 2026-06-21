@@ -944,6 +944,10 @@ function getGeminiKey() {
 }
 
 async function geminiBoxPrompt(a, b, name) {
+  const cacheKey = `boxprompt_${[a.id, b.id].sort().join('_')}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) { console.log('Box art prompt (cached):', cached); return cached; }
+
   const key = getGeminiKey();
   if (!key) return null;
 
@@ -966,7 +970,9 @@ async function geminiBoxPrompt(a, b, name) {
     throw new Error(`Gemini ${res.status}: ${errJson?.error?.message || 'unknown'}`);
   }
   const json = await res.json();
-  return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+  const prompt = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+  if (prompt) localStorage.setItem(cacheKey, prompt);
+  return prompt;
 }
 
 async function loadRevealArt(a, b) {
