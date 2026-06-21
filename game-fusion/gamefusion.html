@@ -913,6 +913,16 @@ function buildBoxArtSVG(a, b) {
 </svg>`;
 }
 
+// Custom art for specific combos — key is sorted game IDs joined by '+'
+const CUSTOM_ART = {
+  'jenga+monopoly': 'TowerTycoon.png',
+};
+
+function customArtUrl(a, b) {
+  const key = [a.id, b.id].sort().join('+');
+  return CUSTOM_ART[key] ? CUSTOM_ART[key] : null;
+}
+
 function buildImagePrompt(a, b, name) {
   const fa = GAME_FLAVOR[a.id] || { theme: a.tag, setting: 'an arena', tone: 'strategic' };
   const fb = GAME_FLAVOR[b.id] || { theme: b.tag, setting: 'another realm', tone: 'unpredictable' };
@@ -930,6 +940,12 @@ async function loadRevealArt(a, b) {
       <div style="width:48px;height:48px;border:3px solid #2a2a3a;border-top-color:#c9a84c;border-radius:50%;animation:spin 0.9s linear infinite;"></div>
       <div style="font-size:13px;color:#888;letter-spacing:1px;">Generating box art…</div>
     </div>`;
+
+  const custom = customArtUrl(a, b);
+  if (custom) {
+    artEl.innerHTML = `<img src="${custom}" style="width:100%;display:block;border-radius:12px;" alt="${name} box art"/>`;
+    return;
+  }
 
   const imagePrompt = buildImagePrompt(a, b, name);
   console.log('Box art prompt:', imagePrompt);
