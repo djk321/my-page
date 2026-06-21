@@ -1284,10 +1284,10 @@ function startTowerTycoon(a, b) {
     { name:'Boardwalk',     color:'#00008B', bg:'#9999ff', values:[350,400] },
   ];
 
-  // Build block data — rows go bottom to top, higher = more valuable
+  // Build block data — rows go bottom to top, lower rows = more valuable (riskier to pull)
   const blocks = [];
   let groupIdx = 0, valIdx = 0;
-  for (let r = 0; r < ROWS; r++) {
+  for (let r = ROWS - 1; r >= 0; r--) {
     for (let c = 0; c < COLS; c++) {
       const grp = GROUPS[Math.min(groupIdx, GROUPS.length - 1)];
       const val = grp.values[valIdx % grp.values.length];
@@ -1304,8 +1304,8 @@ function startTowerTycoon(a, b) {
   let gameOver = false;
 
   function collapseRisk(row) {
-    // Higher row = more risky. More removed blocks = more risky.
-    const rowFactor = row / ROWS;
+    // Lower row = riskier (undermines the foundation). More removed = riskier.
+    const rowFactor = (ROWS - 1 - row) / ROWS;
     const removedFactor = removedCount / (ROWS * COLS);
     return Math.min(0.9, 0.05 + rowFactor * 0.4 + removedFactor * 0.35);
   }
@@ -1399,8 +1399,8 @@ function startTowerTycoon(a, b) {
     drawTowerCanvas(ctx);
     // Risk labels
     ctx.font='bold 11px system-ui'; ctx.textAlign='center';
-    ctx.fillStyle='#f44336'; ctx.fillText('⬆ RISKIER · HIGHER VALUE', CV_W/2, 16);
-    ctx.fillStyle='#4CAF50'; ctx.fillText('⬇ SAFER · LOWER VALUE', CV_W/2, CV_H-8);
+    ctx.fillStyle='#4CAF50'; ctx.fillText('⬆ SAFER · LOWER VALUE', CV_W/2, 16);
+    ctx.fillStyle='#f44336'; ctx.fillText('⬇ RISKIER · HIGHER VALUE', CV_W/2, CV_H-8);
   }
 
   function addLog(msg) {
@@ -1477,7 +1477,7 @@ function startTowerTycoon(a, b) {
             <h3>HOW TO PLAY</h3>
             <div style="font-size:12px;color:#888;line-height:1.8;">
               <b style="color:#c9a84c;">Goal:</b> Earn the most money pulling blocks. First to <b style="color:#fff;">$2,000</b> wins — or most money when the tower runs out.<br><br>
-              <b style="color:#c9a84c;">Risk:</b> <span style="color:#4CAF50;">■ Bottom rows</span> are safe but low value. <span style="color:#f44336;">■ Top rows</span> are risky but worth more.<br><br>
+              <b style="color:#c9a84c;">Risk:</b> <span style="color:#f44336;">■ Bottom rows</span> are risky but high value. <span style="color:#4CAF50;">■ Top rows</span> are safer but worth less.<br><br>
               <b style="color:#c9a84c;">Collapse:</b> If the tower wobbles you earn nothing that turn. After <b style="color:#fff;">3 collapses</b> the game ends.
             </div>
           </div>
@@ -1877,7 +1877,7 @@ function startTopplingColors(a, b) {
         <h3>HOW TO PLAY</h3>
         <div style="font-size:12px;color:#888;line-height:1.8;">
           <b style="color:#c9a84c;">Goal:</b> Score the most points pulling colored blocks. First to <b style="color:#fff;">500 pts</b> wins — or most points when the tower empties.<br><br>
-          <b style="color:#c9a84c;">Your Turn:</b> Click a card from your hand, then click a matching colored block on the tower to pull it. Higher blocks = more points but more risk.<br><br>
+          <b style="color:#c9a84c;">Your Turn:</b> Click a card from your hand, then click a matching colored block on the tower to pull it. Lower blocks = more points but riskier.<br><br>
           <b style="color:#c9a84c;">Wild / Draw 4:</b> Lights up all blocks — pick a color circle first, then pull any block of that color.<br><br>
           <b style="color:#c9a84c;">Action Cards:</b><br>
           <span style="color:#ef5350;">⊘ Skip</span> &amp; <span style="color:#ef5350;">↺ Reverse</span> — opponent loses their next turn.<br>
@@ -1980,9 +1980,10 @@ function startTopplingColors(a, b) {
 
   function collapseRisk(row) {
     const removed = blocks.filter(b=>b.removed).length;
-    const stability = removed / (ROWS * COLS); // 0 when fresh, 1 when empty
-    // Risk stays very low early, ramps up as tower destabilizes
-    return Math.min(0.85, stability * 0.55 + (row / ROWS) * stability * 0.35);
+    const stability = removed / (ROWS * COLS);
+    // Lower row = riskier (removes foundation support)
+    const rowFactor = (ROWS - 1 - row) / ROWS;
+    return Math.min(0.85, stability * 0.45 + rowFactor * stability * 0.45);
   }
 
   function doPlayerPull(blk, row) {
@@ -2016,7 +2017,7 @@ function startTopplingColors(a, b) {
     blk.removed = true;
     const risk = collapseRisk(row);
     const collapsed = Math.random() < risk;
-    const pts = (row + 1) * 10;
+    const pts = (ROWS - row) * 10;
 
     if (collapsed) {
       addLog(`💥 Tower collapsed on ${name}'s pull! ${LABELS()[opponent]} wins!`);
@@ -2075,8 +2076,8 @@ function startTopplingColors(a, b) {
       const candidates = available.filter(b=>b.color===pullColor);
       if (!candidates.length) { hands[1].splice(bestIdx,1); hands[1].push(drawCard()); continue; }
       const pick = candidates.slice().sort((x,y)=>{
-        const sx=((x.row+1)*10)*(1-collapseRisk(x.row));
-        const sy=((y.row+1)*10)*(1-collapseRisk(y.row));
+        const sx=((ROWS-x.row)*10)*(1-collapseRisk(x.row));
+        const sy=((ROWS-y.row)*10)*(1-collapseRisk(y.row));
         return sy-sx;
       })[0];
       selectedCardIdx = bestIdx;
