@@ -60,37 +60,37 @@
     #gameScreen { display: none; flex-direction: column; align-items: center; padding: 20px 20px 48px; background: #0f0f14; color: #e8e8f0; min-height: 100vh; }
     #topBar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 820px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
     h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-    .subtitle { font-size: 11px; color: #aaa; letter-spacing: 1px; }
+    .subtitle { font-size: 11px; color: #888; letter-spacing: 1px; }
     #controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .seg { display: flex; border: 0.5px solid #ddd; border-radius: 8px; overflow: hidden; }
-    .seg button { padding: 6px 14px; font-size: 12px; border: none; background: #fff; cursor: pointer; color: #555; }
-    .seg button.active { background: #1a1a2e; color: #fff; }
-    .seg button:not(:last-child) { border-right: 0.5px solid #ddd; }
+    .seg { display: flex; border: 0.5px solid #3a3a4a; border-radius: 8px; overflow: hidden; }
+    .seg button { padding: 6px 14px; font-size: 12px; border: none; background: #1a1a24; cursor: pointer; color: #aaa; font-family: inherit; }
+    .seg button.active { background: #c9a84c; color: #0f0f14; font-weight: 600; }
+    .seg button:not(:last-child) { border-right: 0.5px solid #3a3a4a; }
     #diffRow { display: flex; gap: 8px; align-items: center; }
-    #diffLabel { font-size: 11px; color: #aaa; letter-spacing: .5px; }
-    #soundBtn { padding: 6px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #555; }
-    #soundBtn.on { background: #E1F5EE; border-color: #5DCAA5; color: #0F6E56; }
-    #pickNewBtn { padding: 6px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #555; }
-    #pickNewBtn:hover { background: #f5f4f0; }
+    #diffLabel { font-size: 11px; color: #888; letter-spacing: .5px; }
+    #soundBtn { padding: 6px 12px; font-size: 12px; border: 0.5px solid #3a3a4a; border-radius: 8px; background: #1a1a24; cursor: pointer; color: #aaa; font-family: inherit; }
+    #soundBtn.on { background: #1a2a24; border-color: #5DCAA5; color: #5DCAA5; }
+    #pickNewBtn { padding: 6px 12px; font-size: 12px; border: 0.5px solid #3a3a4a; border-radius: 8px; background: #1a1a24; cursor: pointer; color: #aaa; font-family: inherit; }
+    #pickNewBtn:hover { background: #2a2a3a; color: #fff; }
     #game-root { width: 100%; max-width: 820px; }
     #histBanner { display: none; background: #FAEEDA; border: 0.5px solid #EF9F27; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #633806; text-align: center; margin-bottom: 10px; }
     #histBanner.visible { display: block; }
     #statusBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
-    #msg { font-size: 13px; color: #555; flex: 1; min-width: 180px; line-height: 1.5; }
+    #msg { font-size: 13px; color: #ccc; flex: 1; min-width: 180px; line-height: 1.5; }
     .score-box { text-align: center; border-radius: 10px; padding: 5px 14px; border: 0.5px solid; }
-    .score-box.p1 { background: #EEEDFE; border-color: #AFA9EC; }
-    .score-box.p2 { background: #E1F5EE; border-color: #5DCAA5; }
+    .score-box.p1 { background: #1e1a3a; border-color: #7F77DD; }
+    .score-box.p2 { background: #1a2a24; border-color: #5DCAA5; }
     .score-label { font-size: 10px; font-weight: 500; letter-spacing: .5px; }
-    .score-box.p1 .score-label { color: #534AB7; }
-    .score-box.p2 .score-label { color: #0F6E56; }
+    .score-box.p1 .score-label { color: #a89ef0; }
+    .score-box.p2 .score-label { color: #5DCAA5; }
     .score-num { font-size: 20px; font-weight: 500; }
-    .score-box.p1 .score-num { color: #26215C; }
-    .score-box.p2 .score-num { color: #04342C; }
+    .score-box.p1 .score-num { color: #c9c4ff; }
+    .score-box.p2 .score-num { color: #7de8c0; }
     #mainArea { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
     #boardWrap { display: grid; grid-template-columns: 16px repeat(6,50px); grid-template-rows: 16px repeat(6,50px); gap: 3px; cursor: crosshair; user-select: none; }
     #boardWrap.hist-mode { cursor: default; }
     .col-label, .row-label { font-size: 10px; color: #bbb; display: flex; align-items: center; justify-content: center; }
-    .gc { width: 50px; height: 50px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0.5px solid #ddd; background: #fff; position: relative; pointer-events: none; }
+    .gc { width: 50px; height: 50px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0.5px solid #2a2a3a; background: #1a1a24; position: relative; pointer-events: none; }
     .gc.pcl { background: #EEEDFE; border-color: #7F77DD; }
     .gc.acl { background: #E1F5EE; border-color: #1D9E75; }
     .gc.pvc { background: #FAEEDA; border-color: #EF9F27; }
@@ -100,52 +100,52 @@
     .gc .sy { font-size: 20px; line-height: 1; pointer-events: none; }
     .gc .lb { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: 500; pointer-events: none; }
     .gc.pcl .lb { color: #534AB7; } .gc.acl .lb { color: #0F6E56; } .gc.fxc .sy { opacity: .3; }
-    #histNav { display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 10px; background: #fff; border-radius: 10px; border: 0.5px solid #ddd; flex-wrap: wrap; }
+    #histNav { display: none; align-items: center; gap: 6px; margin-top: 8px; padding: 7px 10px; background: #1a1a24; border-radius: 10px; border: 0.5px solid #2a2a3a; flex-wrap: wrap; }
     #histNav.visible { display: flex; }
     #histLabel { font-size: 12px; color: #888; flex: 1; text-align: center; white-space: nowrap; }
-    .nav-btn { padding: 5px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 7px; background: #fff; cursor: pointer; color: #333; white-space: nowrap; }
-    .nav-btn:hover:not(:disabled) { background: #f5f4f0; } .nav-btn:disabled { opacity: .3; cursor: default; }
-    .nav-btn.live-btn { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
-    .nav-btn.live-btn:hover { background: #2a2a3e; }
+    .nav-btn { padding: 5px 12px; font-size: 12px; border: 0.5px solid #3a3a4a; border-radius: 7px; background: #1a1a24; cursor: pointer; color: #ccc; white-space: nowrap; font-family: inherit; }
+    .nav-btn:hover:not(:disabled) { background: #2a2a3a; color: #fff; } .nav-btn:disabled { opacity: .3; cursor: default; }
+    .nav-btn.live-btn { background: #c9a84c; color: #0f0f14; border-color: #c9a84c; font-weight: 600; }
+    .nav-btn.live-btn:hover { background: #e8c96a; }
     #boardNote { font-size: 10px; color: #bbb; margin-top: 5px; line-height: 1.6; }
     #poolSection { margin-top: 10px; }
-    #poolToggleBtn { width: 100%; padding: 7px 12px; font-size: 12px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #555; text-align: left; display: flex; justify-content: space-between; }
-    #poolToggleBtn:hover { background: #f5f4f0; }
-    #poolGrid { display: none; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding: 8px; background: #fff; border-radius: 8px; border: 0.5px solid #ddd; }
+    #poolToggleBtn { width: 100%; padding: 7px 12px; font-size: 12px; border: 0.5px solid #3a3a4a; border-radius: 8px; background: #1a1a24; cursor: pointer; color: #ccc; text-align: left; display: flex; justify-content: space-between; font-family: inherit; }
+    #poolToggleBtn:hover { background: #2a2a3a; color: #fff; }
+    #poolGrid { display: none; flex-wrap: wrap; gap: 4px; margin-top: 6px; padding: 8px; background: #1a1a24; border-radius: 8px; border: 0.5px solid #2a2a3a; }
     #poolGrid.open { display: flex; }
-    .pt { display: flex; align-items: center; gap: 1px; padding: 4px 6px; background: #f5f4f0; border-radius: 5px; font-size: 14px; border: 0.5px solid #ddd; }
-    .pt-div { width: 2px; height: 12px; background: #ccc; margin: 0 2px; border-radius: 1px; }
+    .pt { display: flex; align-items: center; gap: 1px; padding: 4px 6px; background: #0f0f14; border-radius: 5px; font-size: 14px; border: 0.5px solid #2a2a3a; }
+    .pt-div { width: 2px; height: 12px; background: #3a3a4a; margin: 0 2px; border-radius: 1px; }
     #sidebar { flex: 1; min-width: 195px; }
     #turnBadge { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 8px; display: inline-block; margin-bottom: 12px; }
     .section-label { font-size: 10px; letter-spacing: 1px; color: #aaa; margin-bottom: 5px; }
     #handEl { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
-    .tc { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: #f5f4f0; border: 0.5px solid #ddd; border-radius: 9px; cursor: pointer; user-select: none; }
-    .tc:hover { border-color: #aaa; } .tc.sel { border: 2px solid #7F77DD; background: #EEEDFE; } .tc.disabled { opacity: .35; cursor: default; }
-    .th { width: 32px; height: 32px; background: #fff; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 17px; border: 0.5px solid #ddd; flex-shrink: 0; }
-    .tc-name { flex: 1; font-size: 12px; color: #555; } .tc-pts { font-size: 10px; color: #aaa; flex-shrink: 0; }
+    .tc { display: flex; align-items: center; gap: 7px; padding: 7px 10px; background: #1a1a24; border: 0.5px solid #2a2a3a; border-radius: 9px; cursor: pointer; user-select: none; }
+    .tc:hover { border-color: #4a4a6a; } .tc.sel { border: 2px solid #7F77DD; background: #1e1a3a; } .tc.disabled { opacity: .35; cursor: default; }
+    .th { width: 32px; height: 32px; background: #0f0f14; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 17px; border: 0.5px solid #2a2a3a; flex-shrink: 0; }
+    .tc-name { flex: 1; font-size: 12px; color: #ccc; } .tc-pts { font-size: 10px; color: #666; flex-shrink: 0; }
     #oriRow { display: flex; gap: 5px; margin-bottom: 12px; }
-    .ori-btn { flex: 1; font-size: 12px; padding: 6px 4px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; color: #333; }
-    .ori-btn:hover { background: #f5f4f0; } .ori-btn.active { background: #EEEDFE; border-color: #7F77DD; color: #3C3489; font-weight: 500; }
-    #poolTxt { font-size: 11px; color: #aaa; margin-bottom: 6px; }
-    #kingWarn { display: none; font-size: 11px; color: #993C1D; background: #FAECE7; padding: 5px 8px; border-radius: 7px; margin-bottom: 6px; line-height: 1.5; }
-    #capLog { font-size: 11px; color: #aaa; line-height: 1.8; }
-    #goEl { display: none; margin-top: 20px; padding: 24px; background: #fff; border-radius: 14px; border: 0.5px solid #ddd; text-align: center; }
-    #goMsg { font-size: 24px; font-weight: 500; margin-bottom: 5px; } #goSub { font-size: 13px; color: #666; margin-bottom: 18px; }
-    .btn { display: inline-block; padding: 9px 22px; font-size: 13px; font-weight: 500; border: 0.5px solid #ddd; border-radius: 9px; background: #fff; cursor: pointer; color: #333; margin: 0 5px; }
-    .btn:hover { background: #f5f4f0; } .btn.primary { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
-    .btn.primary:hover { background: #2a2a3e; }
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+    .ori-btn { flex: 1; font-size: 12px; padding: 6px 4px; border: 0.5px solid #3a3a4a; border-radius: 8px; background: #1a1a24; cursor: pointer; color: #ccc; font-family: inherit; }
+    .ori-btn:hover { background: #2a2a3a; } .ori-btn.active { background: #1e1a3a; border-color: #7F77DD; color: #a89ef0; font-weight: 500; }
+    #poolTxt { font-size: 11px; color: #888; margin-bottom: 6px; }
+    #kingWarn { display: none; font-size: 11px; color: #ffaa80; background: #2a1810; padding: 5px 8px; border-radius: 7px; margin-bottom: 6px; line-height: 1.5; border: 0.5px solid #6a3020; }
+    #capLog { font-size: 11px; color: #888; line-height: 1.8; }
+    #goEl { display: none; margin-top: 20px; padding: 24px; background: #1a1a24; border-radius: 14px; border: 0.5px solid #2a2a3a; text-align: center; }
+    #goMsg { font-size: 24px; font-weight: 500; margin-bottom: 5px; } #goSub { font-size: 13px; color: #888; margin-bottom: 18px; }
+    .btn { display: inline-block; padding: 9px 22px; font-size: 13px; font-weight: 500; border: 0.5px solid #3a3a4a; border-radius: 9px; background: #1a1a24; cursor: pointer; color: #ccc; margin: 0 5px; font-family: inherit; }
+    .btn:hover { background: #2a2a3a; color: #fff; } .btn.primary { background: #c9a84c; color: #0f0f14; border-color: #c9a84c; font-weight: 600; }
+    .btn.primary:hover { background: #e8c96a; }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 100; align-items: center; justify-content: center; }
     .overlay.show { display: flex; }
-    .overlay-box { background: #fff; border-radius: 18px; padding: 32px 36px; max-width: 440px; width: 92%; text-align: center; }
+    .overlay-box { background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 18px; padding: 32px 36px; max-width: 440px; width: 92%; text-align: center; }
     .overlay-box h2 { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
-    .overlay-box .sub { font-size: 13px; color: #666; margin-bottom: 16px; }
+    .overlay-box .sub { font-size: 13px; color: #888; margin-bottom: 16px; }
     .score-big { display: flex; justify-content: center; align-items: baseline; gap: 14px; margin: 16px 0; }
     .score-big .side { text-align: center; }
     .score-big .side .name { font-size: 10px; letter-spacing: 1px; color: #aaa; margin-bottom: 3px; }
     .score-big .side .val  { font-size: 50px; font-weight: 500; line-height: 1; }
     .score-big .side.you .val { color: #3C3489; } .score-big .side.ai .val { color: #0F6E56; }
-    .tips { text-align: left; background: #f5f4f0; border-radius: 9px; padding: 12px 14px; margin-bottom: 18px; }
-    .tips .tip { font-size: 12px; color: #444; line-height: 1.7; display: flex; gap: 7px; }
+    .tips { text-align: left; background: #1a1a24; border: 0.5px solid #2a2a3a; border-radius: 9px; padding: 12px 14px; margin-bottom: 18px; }
+    .tips .tip { font-size: 12px; color: #aaa; line-height: 1.7; display: flex; gap: 7px; }
     #passOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.82); z-index: 90; align-items: center; justify-content: center; }
     #passOverlay.show { display: flex; }
     #passBox { background: #fff; border-radius: 18px; padding: 36px 40px; max-width: 360px; width: 90%; text-align: center; }
