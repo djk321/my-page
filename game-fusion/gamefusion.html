@@ -382,6 +382,7 @@ const HYBRID_NAMES = {
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
+  'candyland+monopoly':'Sweet Riches','monopoly+candyland':'Sweet Riches',
 };
 
 function hybridName(a, b) {
@@ -917,6 +918,7 @@ function buildBoxArtSVG(a, b) {
 // Template tags — used to pick themed animations on the artwork page
 const GAME_TEMPLATE = {
   'monopoly+uno': 'economy',
+  'candyland+monopoly': 'economy',
 };
 function gameTemplate(a, b) {
   const key = [a.id, b.id].sort().join('+');
@@ -931,6 +933,7 @@ const CUSTOM_ART = {
   'jenga+sorry':     'ToweringTreachery.png',
   'checkers+jenga':  'TowerTactics.png',
   'monopoly+uno':    'DeedorDispute.png',
+  'candyland+monopoly': 'SweetRiches.png',
 };
 
 function customArtUrl(a, b) {
@@ -1380,6 +1383,7 @@ const COMBO_GAMES = {
   'jenga+sorry':     startToweringTreachery,
   'checkers+jenga':  startTowerTactics,
   'monopoly+uno':    startDeedOrDispute,
+  'candyland+monopoly': startSweetRiches,
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -1823,6 +1827,382 @@ function startDeedOrDispute(a, b) {
   render();
   addLog('Game started! Play a card to move around the board.');
   if(ddMode==='ai'&&current===1) setTimeout(aiTurn,800);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SWEET RICHES  (Monopoly × Candyland)  — Economy Template #2
+// ══════════════════════════════════════════════════════════════════════
+function startSweetRiches(a, b) {
+  // ── Board ──────────────────────────────────────────────────────────
+  const SPACES = [
+    {type:'go',     label:'Candy Castle',      icon:'🏰'},
+    {type:'prop',   label:'Lollipop Lane',      price:60,  rent:30,  color:'#e91e63', group:0},
+    {type:'prop',   label:'Cherry Drop Court',  price:60,  rent:30,  color:'#e91e63', group:0},
+    {type:'special',label:'Gumdrop Gauntlet',   icon:'🔴', effect:'stuck'},
+    {type:'prop',   label:'Blueberry Blvd',     price:100, rent:55,  color:'#1e88e5', group:1},
+    {type:'prop',   label:'Sapphire Sweet St',  price:120, rent:65,  color:'#1e88e5', group:1},
+    {type:'special',label:'Rainbow Bridge',     icon:'🌈', effect:'bonus', amount:75},
+    {type:'prop',   label:'Lemon Drop Lane',    price:140, rent:80,  color:'#f9a825', group:2},
+    {type:'prop',   label:'Butterscotch Bend',  price:140, rent:80,  color:'#f9a825', group:2},
+    {type:'prop',   label:'Honey Hollow',       price:160, rent:90,  color:'#f9a825', group:2},
+    {type:'special',label:'Sugar Rush!',        icon:'🎉', effect:'forward', amount:3},
+    {type:'prop',   label:'Spearmint Square',   price:180, rent:100, color:'#43a047', group:3},
+    {type:'prop',   label:'Gummy Worm Way',     price:180, rent:100, color:'#43a047', group:3},
+    {type:'prop',   label:'Jellybean Junction', price:200, rent:115, color:'#43a047', group:3},
+    {type:'special',label:'Peppermint Plunge',  icon:'🌀', effect:'back', amount:3},
+    {type:'prop',   label:'Grape Gumdrop Grv',  price:220, rent:130, color:'#8e24aa', group:4},
+    {type:'prop',   label:'Bubblegum Blvd',     price:220, rent:130, color:'#8e24aa', group:4},
+    {type:'prop',   label:'Cotton Candy Cloud', price:240, rent:150, color:'#8e24aa', group:4},
+    {type:'tax',    label:'Syrup Tax',          icon:'💸', cost:90},
+    {type:'special',label:'Gumdrop Gauntlet II',icon:'🔴', effect:'stuck'},
+  ];
+  const N = SPACES.length;
+
+  // ── Candyland colour deck ──────────────────────────────────────────
+  // Each colour card moves you to the next property of that group colour
+  // 'double' cards skip to the 2nd next property of that colour
+  const CARD_COLORS = [
+    {col:'#e91e63', label:'Red',    grp:0},
+    {col:'#1e88e5', label:'Blue',   grp:1},
+    {col:'#f9a825', label:'Yellow', grp:2},
+    {col:'#43a047', label:'Green',  grp:3},
+    {col:'#8e24aa', label:'Purple', grp:4},
+  ];
+  function buildDeck() {
+    const d = [];
+    for (const cc of CARD_COLORS) {
+      for (let i = 0; i < 4; i++) d.push({type:'color', ...cc, double:false});
+      for (let i = 0; i < 2; i++) d.push({type:'color', ...cc, double:true});
+    }
+    // Special cards
+    d.push({type:'special', label:'Rainbow Dash!', icon:'🌈', effect:'castle'});
+    d.push({type:'special', label:'Rainbow Dash!', icon:'🌈', effect:'castle'});
+    d.push({type:'special', label:'Gumdrop!',      icon:'🔴', effect:'stuck'});
+    d.push({type:'special', label:'Gumdrop!',      icon:'🔴', effect:'stuck'});
+    d.push({type:'special', label:'Sugar Rush!',   icon:'🎉', effect:'forward'});
+    return d.sort(() => Math.random() - 0.5);
+  }
+
+  // ── State ──────────────────────────────────────────────────────────
+  const START_CASH = 700;
+  let deck = [], discard = [];
+  let pos = [0, 0], cash = [START_CASH, START_CASH];
+  let owned = {}, factories = {}; // factories[spaceIdx] = true
+  let stuck = [0, 0]; // turns stuck in Gumdrop Gauntlet
+  let current = 0, gameOver = false, srMode = 'ai';
+  let drawnCard = null, phase = 'draw'; // draw | land | buy
+  const log = [];
+  const P_COLORS = ['#e91e63', '#1e88e5'];
+  const PIECE = ['🍭', '🫐'];
+  function LABELS() { return srMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'AI']; }
+
+  function deal() {
+    if (!deck.length) { deck = discard.splice(0).sort(() => Math.random() - 0.5); }
+    if (!deck.length) { deck = buildDeck(); }
+    const c = deck.pop(); discard.push(c); return c;
+  }
+  function initGame() {
+    deck = buildDeck(); discard = []; pos = [0, 0]; cash = [START_CASH, START_CASH];
+    owned = {}; factories = {}; stuck = [0, 0]; current = 0; gameOver = false;
+    phase = 'draw'; drawnCard = null; log.length = 0;
+  }
+  initGame();
+
+  // ── Movement ───────────────────────────────────────────────────────
+  function nextOfGroup(fromPos, grp, skip = 0) {
+    let count = skip, p = fromPos;
+    for (let i = 1; i <= N; i++) {
+      const idx = (fromPos + i) % N;
+      const sp = SPACES[idx];
+      if (sp.type === 'prop' && sp.group === grp) {
+        if (count === 0) return idx;
+        count--;
+      }
+    }
+    return (fromPos + 1) % N;
+  }
+
+  function doDrawCard() {
+    if (gameOver || phase !== 'draw') return;
+    if (srMode === 'ai' && current !== 0) return;
+    if (stuck[current] > 0) { stuck[current]--; addLog(`${LABELS()[current]} is stuck in the Gumdrop Gauntlet! (${stuck[current]} turn${stuck[current]!==1?'s':''} left)`); endTurn(); return; }
+    drawnCard = deal();
+    phase = 'land';
+    render();
+    setTimeout(() => resolveCard(current, drawnCard), 600);
+  }
+
+  function resolveCard(p, card) {
+    const oldPos = pos[p];
+    if (card.type === 'color') {
+      const skip = card.double ? 1 : 0;
+      const dest = nextOfGroup(oldPos, card.grp, skip);
+      if (dest <= oldPos) { cash[p] += 50; addLog(`${LABELS()[p]} passes Candy Castle — collects $50!`); }
+      pos[p] = dest;
+      addLog(`${LABELS()[p]} draws ${card.double ? 'Double ' : ''}${card.label} — moves to ${SPACES[dest].label}`);
+    } else if (card.type === 'special') {
+      if (card.effect === 'castle') {
+        cash[p] += 50; pos[p] = 0;
+        addLog(`${LABELS()[p]} draws Rainbow Dash — zooms to Candy Castle! Collects $50!`);
+      } else if (card.effect === 'stuck') {
+        stuck[p] = 2; pos[p] = SPACES.findIndex(s => s.effect === 'stuck');
+        addLog(`${LABELS()[p]} draws Gumdrop — stuck for 2 turns!`);
+        phase = 'draw'; drawnCard = null; render(); endTurn(); return;
+      } else if (card.effect === 'forward') {
+        const dest = (oldPos + 3) % N;
+        if (dest < oldPos) { cash[p] += 50; addLog(`${LABELS()[p]} passes Candy Castle!`); }
+        pos[p] = dest;
+        addLog(`${LABELS()[p]} draws Sugar Rush — zooms ahead 3 spaces!`);
+      }
+    }
+    doLand(p, pos[p]);
+  }
+
+  function doLand(p, spIdx) {
+    const sp = SPACES[spIdx];
+    if (sp.type === 'go') { cash[p] += 50; addLog(`${LABELS()[p]} lands on Candy Castle — $50!`); phase = 'draw'; drawnCard = null; render(); endTurn(); return; }
+    if (sp.type === 'tax') { cash[p] -= sp.cost; addLog(`${LABELS()[p]} pays ${sp.label} — $${sp.cost}`); checkBankrupt(p); phase = 'draw'; drawnCard = null; if (!gameOver) { render(); endTurn(); } return; }
+    if (sp.type === 'special') {
+      if (sp.effect === 'stuck') { stuck[p] = 2; addLog(`${LABELS()[p]} lands on ${sp.label} — stuck 2 turns!`); }
+      else if (sp.effect === 'bonus') { cash[p] += sp.amount; addLog(`${LABELS()[p]} crosses ${sp.label} — +$${sp.amount}!`); }
+      else if (sp.effect === 'forward') { const dest=(spIdx+sp.amount)%N; pos[p]=dest; addLog(`${LABELS()[p]} Sugar Rush! jumps ${sp.amount} forward!`); doLand(p,dest); return; }
+      else if (sp.effect === 'back') { const dest=(spIdx-sp.amount+N)%N; pos[p]=dest; addLog(`${LABELS()[p]} Peppermint Plunge — back ${sp.amount}!`); doLand(p,dest); return; }
+      phase = 'draw'; drawnCard = null; render(); endTurn(); return;
+    }
+    if (sp.type === 'prop') {
+      if (owned[spIdx] === undefined) {
+        if (p === 0 && srMode === 'ai') { phase = 'buy'; render(); return; }
+        aiAutoBuy(p, spIdx);
+      } else if (owned[spIdx] === p) {
+        addLog(`${LABELS()[p]} owns ${sp.label} — safe!`);
+      } else {
+        const opp = 1 - p;
+        const hasFactory = factories[spIdx];
+        const monopoly = isMonopoly(opp, sp.group);
+        let rent = sp.rent * (hasFactory ? 2 : 1) * (monopoly && !hasFactory ? 2 : 1);
+        const paid = Math.min(rent, cash[p]);
+        cash[p] -= paid; cash[opp] += paid;
+        addLog(`${LABELS()[p]} pays $${paid} rent to ${LABELS()[opp]} for ${sp.label}${hasFactory?' 🏭':''}${monopoly&&!hasFactory?' (monopoly!)':''}`);
+        checkBankrupt(p);
+      }
+    }
+    phase = 'draw'; drawnCard = null; if (!gameOver) { render(); endTurn(); }
+  }
+
+  function isMonopoly(player, grp) {
+    return SPACES.every((sp, i) => sp.type !== 'prop' || sp.group !== grp || owned[i] === player);
+  }
+
+  function aiAutoBuy(p, spIdx) {
+    const sp = SPACES[spIdx];
+    if (cash[p] >= sp.price) { cash[p] -= sp.price; owned[spIdx] = p; addLog(`${LABELS()[p]} buys ${sp.label} for $${sp.price}!`); }
+    else addLog(`${LABELS()[p]} can't afford ${sp.label}.`);
+  }
+
+  function checkBankrupt(p) {
+    if (cash[p] <= 0) { cash[p] = 0; gameOver = true; addLog(`💀 ${LABELS()[p]} is bankrupt!`); render(); showWinner(1 - p); }
+  }
+
+  function endTurn() {
+    if (gameOver) return;
+    current = 1 - current;
+    render();
+    if (srMode === 'ai' && current === 1) setTimeout(aiTurn, 900);
+  }
+
+  // ── AI ─────────────────────────────────────────────────────────────
+  function aiTurn() {
+    if (gameOver || srMode === '2p' || current !== 1) return;
+    if (stuck[1] > 0) { stuck[1]--; addLog(`AI is stuck! (${stuck[1]} turn${stuck[1]!==1?'s':''} left)`); endTurn(); return; }
+    drawnCard = deal(); phase = 'land'; render();
+    addLog(`AI draws: ${drawnCard.double?'Double ':''}${drawnCard.label||drawnCard.icon}`);
+    setTimeout(() => resolveCard(1, drawnCard), 700);
+    // AI auto-buys handled inside aiAutoBuy
+  }
+
+  // ── Build factory ──────────────────────────────────────────────────
+  window.srBuildFactory = function(spIdx) {
+    if (owned[spIdx] !== 0 || factories[spIdx] || cash[0] < 150) return;
+    cash[0] -= 150; factories[spIdx] = true;
+    addLog(`You build a Sugar Factory 🏭 on ${SPACES[spIdx].label}!`);
+    render();
+  };
+
+  function showWinner(w) {
+    document.getElementById('sr-root').insertAdjacentHTML('beforeend', `
+      <div class="sr-card" style="margin-top:16px;text-align:center;padding:24px;animation:sr-rise .4s ease both;">
+        <h2 style="font-size:24px;font-weight:700;color:#e91e63;margin-bottom:8px;">🍭 ${LABELS()[w]} wins!</h2>
+        <p style="color:#888;margin-bottom:18px;">${LABELS()[1-w]} went bankrupt!</p>
+        <button class="btn primary" onclick="startSweetRiches(activeGameA,activeGameB)">Play Again</button>
+        <button class="btn" onclick="goToSelect()">Pick New Games</button>
+      </div>`);
+  }
+
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('sr-log'); if (el) el.innerHTML = log.slice(0, 12).join('<br>'); }
+
+  // ── Board ring ─────────────────────────────────────────────────────
+  function boardRingHTML() {
+    const size = 220, cx = size/2, cy = size/2, r = 80;
+    let svg = `<svg width="${size}" height="${size}" style="display:block;margin:auto;">`;
+    SPACES.forEach((sp, i) => {
+      const angle = (i / N) * 2 * Math.PI - Math.PI / 2;
+      const x = cx + r * Math.cos(angle), y = cy + r * Math.sin(angle);
+      const col = sp.type==='prop' ? sp.color : sp.type==='go' ? '#e91e63' : sp.type==='tax' ? '#f44336' : '#ff9800';
+      const isOwned = owned[i] !== undefined;
+      const hasFac = factories[i];
+      svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="${col}" stroke="${isOwned?P_COLORS[owned[i]]:'#222'}" stroke-width="${isOwned?2.5:1}" opacity="0.9"/>`;
+      if (hasFac) svg += `<text x="${x.toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="7">🏭</text>`;
+      if (pos[0]===i) svg += `<text x="${(x-(pos[1]===i?3:0)).toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8">🍭</text>`;
+      if (pos[1]===i) svg += `<text x="${(x+(pos[0]===i?3:0)).toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="8">🫐</text>`;
+    });
+    svg += `<text x="${cx}" y="${cy-8}" text-anchor="middle" font-size="9" fill="#888">CANDY</text>`;
+    svg += `<text x="${cx}" y="${cy+6}" text-anchor="middle" font-size="9" fill="#e91e63">${SPACES[pos[0]].label.slice(0,12)}</text>`;
+    svg += `</svg>`;
+    return svg;
+  }
+
+  // ── Card drawn display ─────────────────────────────────────────────
+  function cardHTML() {
+    if (!drawnCard) return '<div style="height:60px;display:flex;align-items:center;justify-content:center;color:#444;font-size:12px;">Draw a card to move!</div>';
+    const bg = drawnCard.col || '#ff9800';
+    const label = drawnCard.double ? `Double ${drawnCard.label}` : (drawnCard.label || drawnCard.icon);
+    return `<div style="display:inline-block;padding:10px 20px;background:${bg};border-radius:10px;font-size:16px;font-weight:700;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.4);text-shadow:0 1px 2px rgba(0,0,0,.4);">${drawnCard.icon||''} ${label}</div>`;
+  }
+
+  // ── Factory panel ──────────────────────────────────────────────────
+  function factoryHTML() {
+    const myProps = SPACES.map((sp,i)=>({sp,i})).filter(({sp,i})=>sp.type==='prop'&&owned[i]===0);
+    if (!myProps.length) return '<div style="font-size:11px;color:#555;">Own a property to build here.</div>';
+    return myProps.map(({sp,i})=>{
+      const hasFac = factories[i];
+      const canBuild = !hasFac && cash[0] >= 150;
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <div style="width:10px;height:10px;background:${sp.color};border-radius:2px;flex-shrink:0;"></div>
+        <div style="font-size:10px;color:#aaa;flex:1;">${sp.label.slice(0,14)}</div>
+        ${hasFac
+          ? '<span style="font-size:11px;">🏭 Built</span>'
+          : `<button onclick="srBuildFactory(${i})" ${canBuild?'':'disabled'} style="padding:2px 8px;font-size:10px;border-radius:5px;border:1px solid #e91e63;background:${canBuild?'#e91e63':'#2a2a3a'};color:${canBuild?'#fff':'#555'};cursor:${canBuild?'pointer':'default'};">$150</button>`}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Main render ────────────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('sr-root');
+    if (!root) return;
+    const lbl = LABELS(), is2p = srMode === '2p';
+    const canDraw = !gameOver && phase === 'draw' && (srMode==='2p'||current===0);
+    const statusMsg = gameOver ? 'Game over!'
+      : phase==='buy' ? 'Buy this sweet property?'
+      : stuck[current]>0 ? `${lbl[current]} is stuck in the Gumdrop Gauntlet!`
+      : current===0||is2p ? `${current===0&&!is2p?'Your':''+lbl[current]+"'s"} turn — draw a card!`
+      : 'AI is drawing a card…';
+
+    const curSp = SPACES[pos[0]];
+    const buyHTML = phase==='buy' ? `
+      <div style="font-size:13px;color:#aaa;margin-bottom:10px;">Land on <b style="color:#fff">${curSp.label}</b> — <b style="color:#e91e63">$${curSp.price}</b><br>You have <b style="color:#4CAF50">$${cash[0]}</b></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn primary" onclick="srBuy()" ${cash[0]<curSp.price?'disabled':''} style="background:#e91e63;border-color:#e91e63;">Buy $${curSp.price}</button>
+        <button class="btn" onclick="srSkipBuy()">Pass</button>
+      </div>` : '';
+
+    root.innerHTML = `
+    <style>
+      #sr-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #sr-board-col{flex:0 0 auto;}
+      #sr-right{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px;}
+      .sr-card{background:#1a0a1e;border:1px solid #3a1a3e;border-radius:12px;padding:12px 14px;}
+      .sr-card h3{font-size:11px;letter-spacing:1px;color:#7a3a8a;margin-bottom:8px;}
+      .tt-mode-seg{display:flex;border:1px solid #3a1a3e;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .tt-mode-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a0a1e;color:#888;cursor:pointer;font-family:inherit;}
+      .tt-mode-seg button.active{background:#e91e63;color:#fff;font-weight:700;}
+      @keyframes sr-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="sr-wrap">
+      <div id="sr-board-col">
+        <div class="tt-mode-seg">
+          <button class="${srMode==='ai'?'active':''}" onclick="srSetMode('ai')">vs AI</button>
+          <button class="${srMode==='2p'?'active':''}" onclick="srSetMode('2p')">2 Player</button>
+        </div>
+        <div class="sr-card" style="width:260px;background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+          <h3>CANDY BOARD</h3>
+          ${boardRingHTML()}
+          <div style="margin-top:8px;font-size:10px;color:#888;display:flex;gap:8px;flex-wrap:wrap;">
+            ${[...new Set(SPACES.filter(s=>s.type==='prop').map(s=>s.group))].map(g=>{
+              const gProps=SPACES.filter(s=>s.type==='prop'&&s.group===g);
+              const col=gProps[0].color;
+              const p0=gProps.filter(s=>owned[SPACES.indexOf(s)]===0).length;
+              const p1=gProps.filter(s=>owned[SPACES.indexOf(s)]===1).length;
+              return `<span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:${col};border-radius:50%;display:inline-block;"></span>${p0>0?p0+'🍭':''}${p1>0?p1+'🫐':''}</span>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="sr-card" style="margin-top:10px;width:260px;background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+          <h3>EVENT LOG</h3>
+          <div id="sr-log" style="font-size:10px;color:#777;line-height:1.8;max-height:110px;overflow-y:auto;">${log.slice(0,12).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="sr-right">
+        <div style="display:flex;gap:10px;">
+          <div class="sr-card" style="flex:1;border-color:${current===0?P_COLORS[0]:'#3a1a3e'};background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+            <h3>${is2p?lbl[0]:'YOU'} 🍭</h3>
+            <div style="font-size:22px;font-weight:700;color:#4CAF50;">$${cash[0]}</div>
+            <div style="font-size:10px;color:#666;margin-top:2px;">${SPACES[pos[0]].label}</div>
+            ${stuck[0]>0?`<div style="font-size:10px;color:#f44336;">🔴 Stuck ${stuck[0]} turn${stuck[0]!==1?'s':''}</div>`:''}
+          </div>
+          <div class="sr-card" style="flex:1;border-color:${current===1?P_COLORS[1]:'#3a1a3e'};background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+            <h3>${is2p?lbl[1]:'AI'} 🫐</h3>
+            <div style="font-size:22px;font-weight:700;color:#4CAF50;">$${cash[1]}</div>
+            <div style="font-size:10px;color:#666;margin-top:2px;">${SPACES[pos[1]].label}</div>
+            ${stuck[1]>0?`<div style="font-size:10px;color:#f44336;">🔴 Stuck ${stuck[1]} turn${stuck[1]!==1?'s':''}</div>`:''}
+          </div>
+        </div>
+        <div class="sr-card" style="background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#aaa;margin-bottom:10px;">${statusMsg}</div>
+          ${buyHTML}
+          ${canDraw?`<button onclick="srDraw()" class="btn primary" style="background:#e91e63;border-color:#e91e63;font-size:14px;padding:10px 24px;">🃏 Draw a Card</button>`:''}
+        </div>
+        <div class="sr-card" style="background:linear-gradient(135deg,#1a0a1e,#2a0a2e);text-align:center;">
+          <h3>DRAWN CARD</h3>
+          ${cardHTML()}
+        </div>
+        <div class="sr-card" style="background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+          <h3>🏭 SUGAR FACTORIES ($150 each — doubles rent)</h3>
+          ${factoryHTML()}
+        </div>
+        <div class="sr-card" style="background:linear-gradient(135deg,#1a0a1e,#2a0a2e);">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#e91e63;">Goal:</b> Bankrupt your opponent with sweet rent!<br><br>
+            <b style="color:#e91e63;">Turn:</b> Click Draw a Card — your colour card moves you to the next candy property of that colour.<br><br>
+            <b style="color:#e91e63;">Double card:</b> Skip to the 2nd property of that colour.<br>
+            <b style="color:#e91e63;">🌈 Rainbow Dash:</b> Zoom to Candy Castle + $50!<br>
+            <b style="color:#e91e63;">🔴 Gumdrop:</b> Stuck for 2 turns — can't move!<br>
+            <b style="color:#e91e63;">🎉 Sugar Rush:</b> Leap 3 spaces forward!<br><br>
+            <b style="color:#e91e63;">Properties:</b> Buy to earn rent. Own a full colour = double rent. Build a Sugar Factory ($150) to double rent again!<br><br>
+            <b style="color:#f44336;">Bankruptcy:</b> Cash hits $0 — game over!
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Global handlers ────────────────────────────────────────────────
+  window.srDraw = function() { doDrawCard(); };
+  window.srBuy = function() {
+    const spIdx = pos[0]; const sp = SPACES[spIdx];
+    cash[0] -= sp.price; owned[spIdx] = 0;
+    addLog(`You buy ${sp.label} for $${sp.price}!`);
+    phase = 'draw'; drawnCard = null; endTurn(); render();
+  };
+  window.srSkipBuy = function() { phase = 'draw'; drawnCard = null; endTurn(); render(); };
+  window.srSetMode = function(mode) { srMode = mode; initGame(); render(); };
+
+  const root = document.getElementById('game-root');
+  root.innerHTML = `<div id="sr-root"></div>`;
+  render();
+  addLog('Welcome to Sweet Riches! Draw a card to begin your candy adventure!');
 }
 
 function startGame() {
