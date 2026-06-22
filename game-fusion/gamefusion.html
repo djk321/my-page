@@ -3052,8 +3052,8 @@ function startTowerTycoon(a, b) {
     ctx.closePath(); ctx.fill(); ctx.stroke();
     // Label
     if (label) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.font = 'bold 11px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle = 'rgba(0,0,0,0.82)';
+      ctx.font = 'bold 14px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
       ctx.fillText(label, x+BW/2, y+BH/2);
     }
     ctx.globalAlpha = 1;
@@ -3097,9 +3097,9 @@ function startTowerTycoon(a, b) {
     ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
     drawTowerCanvas(ctx);
     // Risk labels
-    ctx.font='bold 11px system-ui'; ctx.textAlign='center';
-    ctx.fillStyle='#4CAF50'; ctx.fillText('⬆ SAFER · LOWER VALUE', CV_W/2, 16);
-    ctx.fillStyle='#f44336'; ctx.fillText('⬇ RISKIER · HIGHER VALUE', CV_W/2, CV_H-8);
+    ctx.font='bold 13px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle='#5fd163'; ctx.fillText('⬆ SAFER · LOWER VALUE', CV_W/2, 17);
+    ctx.fillStyle='#ff5b4d'; ctx.fillText('⬇ RISKIER · HIGHER VALUE', CV_W/2, CV_H-8);
   }
 
   function addLog(msg) {
@@ -3136,10 +3136,10 @@ function startTowerTycoon(a, b) {
         #tt-tower-col { flex:0 0 auto; }
         #tt-side { flex:1; min-width:220px; display:flex; flex-direction:column; gap:12px; }
         .tt-card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:12px; padding:14px 16px; }
-        .tt-card h3 { font-size:11px; letter-spacing:1px; color:#555; margin-bottom:8px; }
-        .tt-score { font-size:28px; font-weight:700; }
-        .tt-msg { font-size:13px; color:#aaa; line-height:1.6; }
-        #tt-log { font-size:11px; color:#666; line-height:1.9; max-height:120px; overflow-y:auto; }
+        .tt-card h3 { font-size:14px; letter-spacing:1px; color:#9a9aac; margin-bottom:8px; }
+        .tt-score { font-size:32px; font-weight:700; }
+        .tt-msg { font-size:16px; color:#d8d8e0; line-height:1.6; }
+        #tt-log { font-size:14px; color:#a8a8b4; line-height:1.9; max-height:140px; overflow-y:auto; }
         .tt-gameover { text-align:center; padding:20px; }
         .tt-gameover h2 { font-size:28px; font-weight:700; color:#c9a84c; margin-bottom:8px; }
         .tt-mode-seg { display:flex; border:1px solid #2a2a3a; border-radius:8px; overflow:hidden; margin-bottom:12px; width:fit-content; }
@@ -3174,10 +3174,10 @@ function startTowerTycoon(a, b) {
           </div>
           <div class="tt-card">
             <h3>HOW TO PLAY</h3>
-            <div style="font-size:12px;color:#888;line-height:1.8;">
+            <div style="font-size:14px;color:#bcbcc8;line-height:1.8;">
               <b style="color:#c9a84c;">Goal:</b> Earn the most money pulling blocks. First to <b style="color:#fff;">$2,000</b> wins — or most money when the tower runs out.<br><br>
               <b style="color:#c9a84c;">Risk:</b> <span style="color:#f44336;">■ Bottom rows</span> are risky but high value. <span style="color:#4CAF50;">■ Top rows</span> are safer but worth less.<br><br>
-              <b style="color:#c9a84c;">Collapse:</b> If the tower wobbles you earn nothing that turn. After <b style="color:#fff;">3 collapses</b> the game ends.
+              <b style="color:#c9a84c;">Collapse:</b> If the tower wobbles you earn nothing that turn. After <b style="color:#fff;">3 wobbles</b> the tower collapses and the game ends.
             </div>
           </div>
         </div>
@@ -3298,6 +3298,27 @@ function startTowerTycoon(a, b) {
     animRaf=requestAnimationFrame(wobbleStep);
   }
 
+  // Quick, non-fatal shake: tower sways a few times with decaying amplitude, then settles.
+  function animateWobble(done) {
+    if (!ttCtx) { done(); return; }
+    const ctx = ttCtx;
+    const FRAMES = 42;
+    let f = 0;
+    function step() {
+      const bg=ctx.createLinearGradient(0,0,0,CV_H);
+      bg.addColorStop(0,'#0e2a4a'); bg.addColorStop(1,'#1a3a60');
+      ctx.fillStyle=bg; ctx.fillRect(0,0,CV_W,CV_H);
+      const t = f / FRAMES;
+      const amp = 4.5 * (1 - t);                 // degrees, decays to 0
+      const angle = amp * Math.sin(t * Math.PI * 6); // ~3 swings
+      drawTowerCanvas(ctx, 0, angle);
+      f++;
+      if (f < FRAMES) { animRaf = requestAnimationFrame(step); }
+      else { animRaf = null; fullDraw(); done(); }
+    }
+    animRaf = requestAnimationFrame(step);
+  }
+
   function doPull(blk, row) {
     if (gameOver || blk.removed) return;
     blk.removed = true;
@@ -3307,28 +3328,34 @@ function startTowerTycoon(a, b) {
     const collapsed = Math.random() < risk;
     const name = LABELS[ttMode][currentPlayer];
 
+    function proceed() {
+      const remaining = blocks.filter(b => !b.removed).length;
+      if (remaining === 0 || money[0] >= 2000 || money[1] >= 2000) {
+        fullDraw(); updateSidebar();
+        setTimeout(() => endGame(false), 600); return;
+      }
+      currentPlayer = 1 - currentPlayer;
+      hovBlock = null;
+      fullDraw(); updateSidebar();
+      if (ttMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 900);
+    }
+
     if (collapsed) {
       collapses++;
       addLog(`💥 Tower wobbled on ${name}'s pull!`);
+      updateSidebar();
       if (collapses >= 3) {
         fullDraw(); updateSidebar();
         setTimeout(() => endGame(true), 300); return;
       }
-    } else {
-      money[currentPlayer] += blk.value;
-      addLog(`✅ ${name} pulled $${blk.value} (${blk.group.name})`);
+      hovBlock = null;
+      animateWobble(proceed); // small shake before play continues
+      return;
     }
 
-    const remaining = blocks.filter(b => !b.removed).length;
-    if (remaining === 0 || money[0] >= 2000 || money[1] >= 2000) {
-      fullDraw(); updateSidebar();
-      setTimeout(() => endGame(false), 600); return;
-    }
-
-    currentPlayer = 1 - currentPlayer;
-    hovBlock = null;
-    fullDraw(); updateSidebar();
-    if (ttMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 900);
+    money[currentPlayer] += blk.value;
+    addLog(`✅ ${name} pulled $${blk.value} (${blk.group.name})`);
+    proceed();
   }
 
   window.ttSetMode = function(mode) {
