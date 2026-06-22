@@ -384,6 +384,7 @@ const HYBRID_NAMES = {
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
   'candyland+monopoly':'Sweet Riches','monopoly+candyland':'Sweet Riches',
   'monopoly+sorry':'Greed & Grudges','sorry+monopoly':'Greed & Grudges',
+  'monopoly+checkers':'Tycoon Takedown','checkers+monopoly':'Tycoon Takedown',
 };
 
 function hybridName(a, b) {
@@ -921,6 +922,7 @@ const GAME_TEMPLATE = {
   'monopoly+uno': 'economy',
   'candyland+monopoly': 'economy',
   'monopoly+sorry':     'economy',
+  'checkers+monopoly':  'economy',
 };
 function gameTemplate(a, b) {
   const key = [a.id, b.id].sort().join('+');
@@ -937,6 +939,7 @@ const CUSTOM_ART = {
   'monopoly+uno':    'DeedorDispute.png',
   'candyland+monopoly': 'SweetRiches.png',
   'monopoly+sorry':     'GreedandGrudges.png',
+  'checkers+monopoly':  'TycoonTakedown.png',
 };
 
 function customArtUrl(a, b) {
@@ -1388,6 +1391,7 @@ const COMBO_GAMES = {
   'monopoly+uno':    startDeedOrDispute,
   'candyland+monopoly': startSweetRiches,
   'monopoly+sorry':     startGreedAndGrudges,
+  'checkers+monopoly':  startTycoonTakedown,
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2603,6 +2607,332 @@ function startGreedAndGrudges(a, b) {
   render();
   addLog('Greed & Grudges begins! Fortune favours the treacherous — draw a card!');
   if (ggMode === 'ai' && current === 1) setTimeout(aiTurn, 900);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TYCOON TAKEDOWN  (Monopoly × Checkers)  — Economy Template #4
+// ══════════════════════════════════════════════════════════════════════
+function startTycoonTakedown(a, b) {
+  const SZ = 8;
+  const TOTAL_DARK = 32;
+  const WIN_PROPS = 17; // majority of 32
+  const isDark = (r, c) => (r + c) % 2 === 1;
+
+  // ── State ──────────────────────────────────────────────────────────
+  let props = [];   // props[r][c] = 0 | 1 | null  (owner of dark square)
+  let pieces = [];  // pieces[r][c] = {player, king} | null
+  let current = 0, gameOver = false, ttMode = 'ai';
+  let selected = null;       // {r,c}
+  let legalMap = {};         // "r,c" -> move object
+  let mustContinue = null;   // {r,c} during a multi-jump chain
+  const log = [];
+  const P_NAME = () => ttMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'AI'];
+  const P_COLOR = ['#FF9800', '#7F77DD'];
+  // Player 0 (human, gold) starts bottom, moves UP (dr=-1). Player 1 (AI, purple) top, moves DOWN (dr=+1).
+  const forwardDir = [-1, +1];
+  const backRow = [0, 7]; // row a piece must reach to be kinged
+
+  function initGame() {
+    props = Array.from({ length: SZ }, () => Array(SZ).fill(null));
+    pieces = Array.from({ length: SZ }, () => Array(SZ).fill(null));
+    // Blue (player 1) on top row, Red (player 0) on bottom row
+    [[0, 1], [0, 3], [0, 5], [0, 7]].forEach(([r, c]) => { pieces[r][c] = { player: 1, king: false }; props[r][c] = 1; });
+    [[7, 0], [7, 2], [7, 4], [7, 6]].forEach(([r, c]) => { pieces[r][c] = { player: 0, king: false }; props[r][c] = 0; });
+    current = 0; gameOver = false; selected = null; legalMap = {}; mustContinue = null;
+    log.length = 0;
+  }
+  initGame();
+
+  function inBounds(r, c) { return r >= 0 && r < SZ && c >= 0 && c < SZ; }
+  function countProps(p) { let n = 0; for (let r = 0; r < SZ; r++) for (let c = 0; c < SZ; c++) if (props[r][c] === p) n++; return n; }
+  function countPieces(p) { let n = 0; for (let r = 0; r < SZ; r++) for (let c = 0; c < SZ; c++) if (pieces[r][c] && pieces[r][c].player === p) n++; return n; }
+
+  // ── Move generation ────────────────────────────────────────────────
+  function dirsFor(piece) {
+    return piece.king
+      ? [[-1, -1], [-1, 1], [1, -1], [1, 1]]
+      : [[forwardDir[piece.player], -1], [forwardDir[piece.player], 1]];
+  }
+  function movesFor(r, c) {
+    const pc = pieces[r][c];
+    if (!pc) return { simple: [], jumps: [] };
+    const simple = [], jumps = [];
+    for (const [dr, dc] of dirsFor(pc)) {
+      const nr = r + dr, nc = c + dc;
+      if (inBounds(nr, nc) && isDark(nr, nc) && !pieces[nr][nc]) {
+        simple.push({ fromR: r, fromC: c, toR: nr, toC: nc, isJump: false });
+      }
+      const jr = r + 2 * dr, jc = c + 2 * dc;
+      if (inBounds(jr, jc) && isDark(jr, jc) && !pieces[jr][jc] &&
+          pieces[nr] && pieces[nr][nc] && pieces[nr][nc].player !== pc.player) {
+        jumps.push({ fromR: r, fromC: c, toR: jr, toC: jc, isJump: true, capR: nr, capC: nc });
+      }
+    }
+    return { simple, jumps };
+  }
+  function allMoves(player) {
+    const all = [], allJumps = [];
+    for (let r = 0; r < SZ; r++) for (let c = 0; c < SZ; c++) {
+      if (pieces[r][c] && pieces[r][c].player === player) {
+        const { simple, jumps } = movesFor(r, c);
+        all.push(...simple); allJumps.push(...jumps);
+      }
+    }
+    return allJumps.length ? allJumps : all; // jumps mandatory
+  }
+
+  function claim(r, c, player) { if (isDark(r, c)) props[r][c] = player; }
+
+  // ── Execute a move ─────────────────────────────────────────────────
+  function applyMove(mv) {
+    const pc = pieces[mv.fromR][mv.fromC];
+    pieces[mv.toR][mv.toC] = pc;
+    pieces[mv.fromR][mv.fromC] = null;
+    claim(mv.toR, mv.toC, pc.player);
+    if (mv.isJump) {
+      const cap = pieces[mv.capR][mv.capC];
+      pieces[mv.capR][mv.capC] = null;
+      props[mv.capR][mv.capC] = pc.player; // seize the captured mogul's square
+      addLog(`${P_NAME()[pc.player]}'s mogul jumps & seizes ${sqName(mv.capR, mv.capC)}!`);
+    } else {
+      addLog(`${P_NAME()[pc.player]} moves to ${sqName(mv.toR, mv.toC)} — claims it!`);
+    }
+    // Kinging
+    let justKinged = false;
+    if (!pc.king && mv.toR === backRow[pc.player]) {
+      pc.king = true; justKinged = true;
+      addLog(`👑 ${P_NAME()[pc.player]}'s mogul is KINGED — unlocks Empire Power!`);
+    }
+    // King "Empire Power": claim all 4 diagonal-adjacent dark squares
+    if (pc.king) {
+      for (const [dr, dc] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+        const ar = mv.toR + dr, ac = mv.toC + dc;
+        if (inBounds(ar, ac) && isDark(ar, ac)) claim(ar, ac, pc.player);
+      }
+    }
+    // Multi-jump continuation (not after kinging, per checkers rules)
+    if (mv.isJump && !justKinged) {
+      const { jumps } = movesFor(mv.toR, mv.toC);
+      if (jumps.length) { mustContinue = { r: mv.toR, c: mv.toC }; return true; }
+    }
+    mustContinue = null;
+    return false; // turn over
+  }
+
+  function sqName(r, c) { return String.fromCharCode(65 + c) + (SZ - r); }
+
+  function checkEnd() {
+    const p0p = countProps(0), p1p = countProps(1);
+    if (p0p >= WIN_PROPS) { gameOver = true; showWinner(0); return true; }
+    if (p1p >= WIN_PROPS) { gameOver = true; showWinner(1); return true; }
+    if (countPieces(1) === 0) { gameOver = true; showWinner(0); return true; }
+    if (countPieces(0) === 0) { gameOver = true; showWinner(1); return true; }
+    // No legal moves = lose
+    if (allMoves(current).length === 0) {
+      // current player (about to move) is stuck → opponent wins
+      gameOver = true; showWinner(1 - current); return true;
+    }
+    return false;
+  }
+
+  function endTurn() {
+    selected = null; legalMap = {};
+    current = 1 - current;
+    if (checkEnd()) { render(); return; }
+    render();
+    if (ttMode === 'ai' && current === 1) setTimeout(aiTurn, 700);
+  }
+
+  // ── Human interaction ──────────────────────────────────────────────
+  window.ttdCell = function(r, c) {
+    if (gameOver) return;
+    if (ttMode === 'ai' && current !== 0) return;
+    const key = r + ',' + c;
+    // Clicking a legal destination?
+    if (selected && legalMap[key]) {
+      const more = applyMove(legalMap[key]);
+      if (more) { selected = { r: legalMap[key].toR, c: legalMap[key].toC }; computeLegal(selected.r, selected.c, true); render(); return; }
+      endTurn(); return;
+    }
+    // Selecting own piece
+    if (pieces[r][c] && pieces[r][c].player === current) {
+      if (mustContinue) return; // locked into the jumping piece
+      selected = { r, c };
+      computeLegal(r, c, false);
+      render();
+    }
+  };
+
+  function computeLegal(r, c, jumpsOnly) {
+    legalMap = {};
+    const { simple, jumps } = movesFor(r, c);
+    // If any jump exists anywhere for this player, jumps mandatory
+    const playerHasJump = allMoves(current).some(m => m.isJump);
+    const list = (jumpsOnly || playerHasJump) ? jumps : [...simple, ...jumps];
+    list.forEach(m => { legalMap[m.toR + ',' + m.toC] = m; });
+  }
+
+  // ── AI ─────────────────────────────────────────────────────────────
+  function aiTurn() {
+    if (gameOver || ttMode === '2p' || current !== 1) return;
+    let moves = allMoves(1);
+    if (!moves.length) { checkEnd(); render(); return; }
+    const pick = (ms) => {
+      // Score: jumps best, then claiming unowned, then stealing, then advancing toward king row
+      return ms.slice().sort((x, y) => scoreMove(y) - scoreMove(x))[0];
+    };
+    let mv = pick(moves);
+    let more = applyMove(mv);
+    // Resolve multi-jumps
+    while (more) {
+      const { jumps } = movesFor(mustContinue.r, mustContinue.c);
+      if (!jumps.length) break;
+      more = applyMove(jumps.sort((x, y) => scoreMove(y) - scoreMove(x))[0]);
+    }
+    if (checkEnd()) { render(); return; }
+    endTurn();
+  }
+  function scoreMove(m) {
+    let s = 0;
+    if (m.isJump) s += 100;
+    const dest = props[m.toR][m.toC];
+    if (dest === null) s += 20;        // claim neutral
+    else if (dest === 0) s += 30;      // steal from human
+    s += (m.toR);                      // AI moves down → higher row = progress toward kinging (row 7)
+    if (m.toR === backRow[1]) s += 50; // kinging move
+    return s + Math.random() * 5;
+  }
+
+  function showWinner(w) {
+    const names = P_NAME();
+    document.getElementById('ttd-root').insertAdjacentHTML('beforeend', `
+      <div class="ttd-card" style="margin-top:16px;text-align:center;padding:24px;animation:ttd-rise .4s ease both;">
+        <h2 style="font-size:24px;font-weight:700;color:#FF9800;margin-bottom:8px;">🎩 ${names[w]} corners the market!</h2>
+        <p style="color:#888;margin-bottom:18px;">${names[w]} owns ${countProps(w)} of ${TOTAL_DARK} properties.</p>
+        <button class="btn primary" onclick="startTycoonTakedown(activeGameA,activeGameB)">Play Again</button>
+        <button class="btn" onclick="goToSelect()">Pick New Games</button>
+      </div>`);
+  }
+
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('ttd-log'); if (el) el.innerHTML = log.slice(0, 12).join('<br>'); }
+
+  // ── Board render ───────────────────────────────────────────────────
+  function boardHTML() {
+    const CELL = 42;
+    let h = `<div style="display:grid;grid-template-columns:repeat(${SZ},${CELL}px);grid-template-rows:repeat(${SZ},${CELL}px);gap:0;border:3px solid #5a3a04;border-radius:6px;overflow:hidden;width:fit-content;">`;
+    for (let r = 0; r < SZ; r++) {
+      for (let c = 0; c < SZ; c++) {
+        const dark = isDark(r, c);
+        const key = r + ',' + c;
+        const owner = props[r][c];
+        let bg;
+        if (!dark) bg = '#241a10';
+        else if (owner === 0) bg = 'rgba(255,152,0,.35)';
+        else if (owner === 1) bg = 'rgba(127,119,221,.4)';
+        else bg = '#3a2c18';
+        const isSel = selected && selected.r === r && selected.c === c;
+        const isDest = !!legalMap[key];
+        const border = isSel ? 'inset 0 0 0 3px #fff' : isDest ? 'inset 0 0 0 3px #4CAF50' : 'none';
+        const click = dark ? `onclick="ttdCell(${r},${c})"` : '';
+        const cursor = dark ? 'pointer' : 'default';
+        const pc = pieces[r][c];
+        let piece = '';
+        if (pc) {
+          const grad = pc.player === 0 ? 'radial-gradient(circle at 35% 30%,#ffc107,#e65100)' : 'radial-gradient(circle at 35% 30%,#9c8fff,#4527a0)';
+          piece = `<div style="width:28px;height:28px;border-radius:50%;background:${grad};border:2px solid ${pc.player===0?'#fff3e0':'#ede7ff'};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 5px rgba(0,0,0,.5);">${pc.king ? '<span style="font-size:15px;color:#fff;text-shadow:0 1px 2px #000;">♔</span>' : ''}</div>`;
+        } else if (isDest) {
+          piece = `<div style="width:12px;height:12px;border-radius:50%;background:rgba(76,175,80,.6);"></div>`;
+        }
+        h += `<div ${click} style="width:${CELL}px;height:${CELL}px;background:${bg};box-shadow:${border};display:flex;align-items:center;justify-content:center;cursor:${cursor};">${piece}</div>`;
+      }
+    }
+    h += '</div>';
+    return h;
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('ttd-root');
+    if (!root) return;
+    const names = P_NAME(), is2p = ttMode === '2p';
+    const p0p = countProps(0), p1p = countProps(1);
+    const statusMsg = gameOver ? 'Game over!'
+      : mustContinue ? `${names[current]} — continue jumping with the same mogul!`
+      : current === 0 && !is2p ? 'Your turn — click a mogul, then a highlighted square.'
+      : is2p ? `${names[current]}'s turn — click a mogul, then a square.`
+      : 'AI is plotting its takeover…';
+
+    root.innerHTML = `
+    <style>
+      #ttd-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #ttd-right{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px;}
+      .ttd-card{background:#140d04;border:1px solid #2e1f08;border-radius:12px;padding:12px 14px;}
+      .ttd-card h3{font-size:11px;letter-spacing:1px;color:#7a5410;margin-bottom:8px;}
+      .tt-mode-seg{display:flex;border:1px solid #2e1f08;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .tt-mode-seg button{padding:6px 18px;font-size:12px;border:none;background:#140d04;color:#888;cursor:pointer;font-family:inherit;}
+      .tt-mode-seg button.active{background:#FF9800;color:#000;font-weight:700;}
+      @keyframes ttd-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="ttd-wrap">
+      <div>
+        <div class="tt-mode-seg">
+          <button class="${ttMode==='ai'?'active':''}" onclick="ttdSetMode('ai')">vs AI</button>
+          <button class="${ttMode==='2p'?'active':''}" onclick="ttdSetMode('2p')">2 Player</button>
+        </div>
+        ${boardHTML()}
+        <div style="display:flex;gap:8px;margin-top:8px;font-size:10px;color:#777;">
+          <span>♔ = Kinged mogul (Empire Power)</span>
+        </div>
+      </div>
+      <div id="ttd-right">
+        <div style="display:flex;gap:10px;">
+          <div class="ttd-card" style="flex:1;border-color:${current===0?P_COLOR[0]:'#2e1f08'};">
+            <h3>${is2p?names[0]:'YOU'} 🟠</h3>
+            <div style="font-size:24px;font-weight:700;color:#FF9800;">${p0p}<span style="font-size:12px;color:#666;"> /${TOTAL_DARK} props</span></div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">${countPieces(0)} moguls</div>
+          </div>
+          <div class="ttd-card" style="flex:1;border-color:${current===1?P_COLOR[1]:'#2e1f08'};">
+            <h3>${is2p?names[1]:'AI'} 🟣</h3>
+            <div style="font-size:24px;font-weight:700;color:#9c8fff;">${p1p}<span style="font-size:12px;color:#666;"> /${TOTAL_DARK} props</span></div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">${countPieces(1)} moguls</div>
+          </div>
+        </div>
+        <div class="ttd-card">
+          <h3>PROPERTY CONTROL — first to ${WIN_PROPS} wins</h3>
+          <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:#3a2c18;">
+            <div style="width:${(p0p/TOTAL_DARK*100).toFixed(1)}%;background:#FF9800;"></div>
+            <div style="flex:1;"></div>
+            <div style="width:${(p1p/TOTAL_DARK*100).toFixed(1)}%;background:#7F77DD;"></div>
+          </div>
+        </div>
+        <div class="ttd-card">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#aaa;">${statusMsg}</div>
+        </div>
+        <div class="ttd-card">
+          <h3>EVENT LOG</h3>
+          <div id="ttd-log" style="font-size:10px;color:#6a5410;line-height:1.8;max-height:110px;overflow-y:auto;">${log.slice(0,12).join('<br>')}</div>
+        </div>
+        <div class="ttd-card">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#FF9800;">Goal:</b> Own the most properties on the board — first to ${WIN_PROPS} of ${TOTAL_DARK} wins (or wipe out all rival moguls).<br><br>
+            <b style="color:#FF9800;">Move:</b> Click a mogul, then a highlighted square. Moguls move diagonally forward one space — like checkers.<br><br>
+            <b style="color:#FF9800;">Claim:</b> Every square your mogul lands on becomes <b>your property</b>.<br><br>
+            <b style="color:#FF9800;">Jump:</b> Leap diagonally over a rival mogul into the empty space beyond. You <b>capture the mogul AND seize its property</b>! Jumps are mandatory, and multi-jumps chain.<br><br>
+            <b style="color:#FF9800;">👑 King your mogul</b> by reaching the far row — it can then move any diagonal direction AND claims all surrounding squares each move (Empire Power)!
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  window.ttdSetMode = function(m) { ttMode = m; initGame(); render(); };
+
+  const root = document.getElementById('game-root');
+  root.innerHTML = `<div id="ttd-root"></div>`;
+  render();
+  addLog('Tycoon Takedown begins! Lease, claim, and corner the market!');
 }
 
 function startGame() {
