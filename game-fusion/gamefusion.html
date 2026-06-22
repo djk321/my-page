@@ -383,6 +383,7 @@ const HYBRID_NAMES = {
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
   'candyland+monopoly':'Sweet Riches','monopoly+candyland':'Sweet Riches',
+  'monopoly+sorry':'Greed & Grudges','sorry+monopoly':'Greed & Grudges',
 };
 
 function hybridName(a, b) {
@@ -919,6 +920,7 @@ function buildBoxArtSVG(a, b) {
 const GAME_TEMPLATE = {
   'monopoly+uno': 'economy',
   'candyland+monopoly': 'economy',
+  'monopoly+sorry':     'economy',
 };
 function gameTemplate(a, b) {
   const key = [a.id, b.id].sort().join('+');
@@ -934,6 +936,7 @@ const CUSTOM_ART = {
   'checkers+jenga':  'TowerTactics.png',
   'monopoly+uno':    'DeedorDispute.png',
   'candyland+monopoly': 'SweetRiches.png',
+  'monopoly+sorry':     'GreedandGrudges.png',
 };
 
 function customArtUrl(a, b) {
@@ -1384,6 +1387,7 @@ const COMBO_GAMES = {
   'checkers+jenga':  startTowerTactics,
   'monopoly+uno':    startDeedOrDispute,
   'candyland+monopoly': startSweetRiches,
+  'monopoly+sorry':     startGreedAndGrudges,
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -2203,6 +2207,402 @@ function startSweetRiches(a, b) {
   root.innerHTML = `<div id="sr-root"></div>`;
   render();
   addLog('Welcome to Sweet Riches! Draw a card to begin your candy adventure!');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// GREED & GRUDGES  (Monopoly × Sorry!)  — Economy Template #3
+// ══════════════════════════════════════════════════════════════════════
+function startGreedAndGrudges(a, b) {
+  // ── Board ──────────────────────────────────────────────────────────
+  const SPACES = [
+    {type:'go',      label:'Start',              icon:'🏠'},
+    {type:'prop',    label:'Amber Alley',         price:60,  rent:30,  color:'#9C27B0', group:0},
+    {type:'prop',    label:'Grudge Grove',        price:60,  rent:30,  color:'#9C27B0', group:0},
+    {type:'shortcut',label:'Shortcut!',           icon:'⚡', jump:5},
+    {type:'prop',    label:'Backstab Blvd',       price:100, rent:55,  color:'#1e88e5', group:1},
+    {type:'prop',    label:'Betrayal Bay',        price:120, rent:65,  color:'#1e88e5', group:1},
+    {type:'tax',     label:'Grudge Tax',          icon:'😠', cost:80},
+    {type:'prop',    label:'Rivalry Row',         price:140, rent:80,  color:'#f9a825', group:2},
+    {type:'prop',    label:'Feud Fairway',        price:140, rent:80,  color:'#f9a825', group:2},
+    {type:'prop',    label:'Vendetta Vale',       price:160, rent:90,  color:'#f9a825', group:2},
+    {type:'safe',    label:'Safety Zone',         icon:'🛡️'},
+    {type:'prop',    label:'Sabotage Square',     price:180, rent:100, color:'#43a047', group:3},
+    {type:'prop',    label:'Treachery Terrace',   price:180, rent:100, color:'#43a047', group:3},
+    {type:'shortcut',label:'Shortcut!',           icon:'⚡', jump:4},
+    {type:'prop',    label:'Malice Manor',        price:220, rent:130, color:'#f44336', group:4},
+    {type:'prop',    label:'Spite Street',        price:220, rent:130, color:'#f44336', group:4},
+    {type:'prop',    label:'Vengeance Villa',     price:240, rent:150, color:'#f44336', group:4},
+    {type:'tax',     label:'Grudge Tax II',       icon:'😠', cost:100},
+    {type:'prop',    label:'Rancor Road',         price:200, rent:115, color:'#FF5722', group:5},
+    {type:'prop',    label:'Greed Gardens',       price:200, rent:115, color:'#FF5722', group:5},
+  ];
+  const N = SPACES.length;
+
+  // ── Sorry! deck ────────────────────────────────────────────────────
+  // Faithful to real Sorry! card distribution
+  const CARD_DEFS = [
+    {val:1,  label:'1',       desc:'Move 1 forward',                     count:5},
+    {val:2,  label:'2',       desc:'Move 2 forward, then draw again!',   count:4},
+    {val:3,  label:'3',       desc:'Move 3 forward',                     count:4},
+    {val:4,  label:'4',       desc:'Move 4 BACKWARD',                    count:4},
+    {val:5,  label:'5',       desc:'Move 5 forward',                     count:4},
+    {val:7,  label:'7',       desc:'Move 7 forward',                     count:4},
+    {val:8,  label:'8',       desc:'Move 8 forward',                     count:4},
+    {val:10, label:'10',      desc:'Move 10 forward OR 1 backward',      count:4},
+    {val:11, label:'11',      desc:'Move 11 forward OR swap positions!', count:4},
+    {val:12, label:'12',      desc:'Move 12 forward',                    count:4},
+    {val:'sorry', label:'SORRY!', desc:'Send rival back to Start — and strip their property!', count:4},
+  ];
+  function buildDeck() {
+    const d = [];
+    for (const def of CARD_DEFS) for (let i = 0; i < def.count; i++) d.push({...def});
+    return d.sort(() => Math.random() - 0.5);
+  }
+
+  // ── State ──────────────────────────────────────────────────────────
+  const START_CASH = 700;
+  let deck = [], pos = [0, 0], cash = [START_CASH, START_CASH];
+  let owned = {}, houses = {}; // houses[spaceIdx] = count (0–1)
+  let current = 0, gameOver = false, ggMode = 'ai';
+  let drawnCard = null, phase = 'draw'; // draw | choice10 | choice11 | buy | drawagain
+  let safeThisTurn = false;
+  const log = [];
+  const P_COLORS = ['#FF9800', '#7F77DD'];
+  const PIECE = ['🔴', '🔵'];
+  function LABELS() { return ggMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'AI']; }
+
+  function drawCard() {
+    if (!deck.length) deck = buildDeck();
+    return deck.pop();
+  }
+  function initGame() {
+    deck = buildDeck(); pos = [0, 0]; cash = [START_CASH, START_CASH];
+    owned = {}; houses = {}; current = 0; gameOver = false;
+    phase = 'draw'; drawnCard = null; safeThisTurn = false; log.length = 0;
+  }
+  initGame();
+
+  // ── Movement helpers ───────────────────────────────────────────────
+  function moveBy(p, steps) {
+    const old = pos[p];
+    let next = (old + steps + N) % N;
+    // Check passing START (forward only)
+    if (steps > 0 && next < old) { cash[p] += 50; addLog(`${LABELS()[p]} passes Start — collects $50!`); }
+    pos[p] = next;
+    // Resolve shortcuts
+    const sp = SPACES[next];
+    if (sp.type === 'shortcut') {
+      addLog(`${LABELS()[p]} hits ${sp.label} — leaps ${sp.jump} ahead!`);
+      pos[p] = (next + sp.jump) % N;
+    }
+    return pos[p];
+  }
+
+  function doLand(p, spIdx) {
+    const sp = SPACES[spIdx];
+    if (sp.type === 'go')       { cash[p] += 50; addLog(`${LABELS()[p]} lands on Start — $50!`); finishTurn(); return; }
+    if (sp.type === 'shortcut') { finishTurn(); return; } // already jumped
+    if (sp.type === 'safe')     { safeThisTurn = true; addLog(`${LABELS()[p]} enters the Safety Zone — immune this turn!`); finishTurn(); return; }
+    if (sp.type === 'tax')      { cash[p] -= sp.cost; addLog(`${LABELS()[p]} pays ${sp.label} — $${sp.cost}!`); checkBankrupt(p); finishTurn(); return; }
+    if (sp.type === 'prop') {
+      if (owned[spIdx] === undefined) {
+        if (p === 0 && ggMode === 'ai') { phase = 'buy'; render(); return; }
+        aiAutoBuy(p, spIdx); finishTurn();
+      } else if (owned[spIdx] === p) {
+        addLog(`${LABELS()[p]} owns ${sp.label} — home turf!`); finishTurn();
+      } else {
+        const opp = 1 - p;
+        if (safeThisTurn) { addLog(`${LABELS()[p]} is safe — no rent on ${sp.label}!`); finishTurn(); return; }
+        const h = houses[spIdx] || 0;
+        const mono = isMonopoly(opp, sp.group);
+        const mult = (1 + h) * (mono && h === 0 ? 2 : 1);
+        const rent = Math.round(sp.rent * mult);
+        const paid = Math.min(rent, cash[p]);
+        cash[p] -= paid; cash[opp] += paid;
+        addLog(`${LABELS()[p]} pays $${paid} rent to ${LABELS()[opp]} for ${sp.label}${h > 0 ? ` 🏚×${h}` : ''}${mono && h === 0 ? ' (monopoly!)' : ''}`);
+        checkBankrupt(p);
+        finishTurn();
+      }
+    }
+  }
+
+  function isMonopoly(player, grp) {
+    return SPACES.every((sp, i) => sp.type !== 'prop' || sp.group !== grp || owned[i] === player);
+  }
+
+  function aiAutoBuy(p, spIdx) {
+    const sp = SPACES[spIdx];
+    if (cash[p] >= sp.price) { cash[p] -= sp.price; owned[spIdx] = p; addLog(`${LABELS()[p]} buys ${sp.label} for $${sp.price}!`); }
+    else addLog(`${LABELS()[p]} can't afford ${sp.label}.`);
+  }
+
+  function checkBankrupt(p) {
+    if (cash[p] <= 0) {
+      cash[p] = 0; gameOver = true;
+      addLog(`💀 ${LABELS()[p]} is bankrupt — GRUDGES WIN!`);
+      render(); showWinner(1 - p);
+    }
+  }
+
+  function finishTurn() {
+    safeThisTurn = false; drawnCard = null; phase = 'draw';
+    if (gameOver) return;
+    current = 1 - current;
+    render();
+    if (ggMode === 'ai' && current === 1) setTimeout(aiTurn, 900);
+  }
+
+  // ── Card resolution ────────────────────────────────────────────────
+  function resolveMove(steps) {
+    const dest = moveBy(current, steps);
+    addLog(`${LABELS()[current]} moves ${steps > 0 ? steps + ' forward' : Math.abs(steps) + ' back'} → ${SPACES[dest].label}`);
+    doLand(current, dest);
+  }
+
+  function resolveCard(card) {
+    drawnCard = card;
+    const p = current, opp = 1 - p;
+
+    if (card.val === 'sorry') {
+      // Strip opponent's property at their current position
+      const oppPos = pos[opp];
+      const strippedProp = SPACES[oppPos].type === 'prop' && owned[oppPos] === opp ? SPACES[oppPos].label : null;
+      if (strippedProp) { delete owned[oppPos]; addLog(`💥 SORRY! — ${LABELS()[opp]}'s ${strippedProp} is SEIZED!`); }
+      pos[opp] = 0; cash[opp] -= 30; // sting fee
+      addLog(`😈 ${LABELS()[p]} plays SORRY! — ${LABELS()[opp]} sent back to Start!`);
+      finishTurn(); return;
+    }
+    if (card.val === 2) {
+      resolveMove(2);
+      if (!gameOver) { addLog(`Draw again!`); phase = 'draw'; render(); if (ggMode === 'ai' && current === 1) setTimeout(aiTurn, 900); }
+      return;
+    }
+    if (card.val === 4)  { resolveMove(-4); return; }
+    if (card.val === 10) { phase = 'choice10'; render(); if (ggMode === 'ai' && current === 1) setTimeout(() => { aiChoice10(); }, 600); return; }
+    if (card.val === 11) { phase = 'choice11'; render(); if (ggMode === 'ai' && current === 1) setTimeout(() => { aiChoice11(); }, 600); return; }
+    resolveMove(card.val);
+  }
+
+  // ── Player draws ───────────────────────────────────────────────────
+  function doDrawCard() {
+    if (gameOver || phase !== 'draw') return;
+    if (ggMode === 'ai' && current !== 0) return;
+    const card = drawCard();
+    addLog(`${LABELS()[current]} draws: ${card.label}`);
+    resolveCard(card);
+  }
+
+  // ── Choices ────────────────────────────────────────────────────────
+  window.ggMove10 = function(fwd) { phase = 'draw'; fwd ? resolveMove(10) : resolveMove(-1); };
+  window.ggMove11 = function(fwd) {
+    phase = 'draw';
+    if (fwd) { resolveMove(11); }
+    else {
+      // Swap
+      const tmp = pos[current]; pos[current] = pos[1 - current]; pos[1 - current] = tmp;
+      addLog(`🔄 ${LABELS()[current]} swaps positions with ${LABELS()[1 - current]}!`);
+      doLand(current, pos[current]);
+    }
+  };
+  function aiChoice10() { ggMove10(true); } // AI always goes forward
+  function aiChoice11() {
+    // AI swaps if opponent has more money
+    if (cash[0] > cash[1] + 100) ggMove11(false); else ggMove11(true);
+  }
+
+  // ── AI ─────────────────────────────────────────────────────────────
+  function aiTurn() {
+    if (gameOver || ggMode === '2p' || current !== 1) return;
+    const card = drawCard();
+    drawnCard = card; phase = 'land'; render();
+    addLog(`AI draws: ${card.label}`);
+    setTimeout(() => resolveCard(card), 700);
+  }
+
+  // ── Building Grudge Houses ─────────────────────────────────────────
+  window.ggBuildHouse = function(spIdx) {
+    if (owned[spIdx] !== 0 || (houses[spIdx] || 0) >= 2 || cash[0] < 120) return;
+    cash[0] -= 120; houses[spIdx] = (houses[spIdx] || 0) + 1;
+    addLog(`You build a Grudge House 🏚 on ${SPACES[spIdx].label}!`);
+    render();
+  };
+
+  function showWinner(w) {
+    document.getElementById('gg-root').insertAdjacentHTML('beforeend', `
+      <div class="gg-card" style="margin-top:16px;text-align:center;padding:24px;animation:gg-rise .4s ease both;">
+        <h2 style="font-size:24px;font-weight:700;color:#FF9800;margin-bottom:8px;">💰 ${LABELS()[w]} wins!</h2>
+        <p style="color:#888;margin-bottom:18px;">The path to riches is paved with broken friendships!</p>
+        <button class="btn primary" onclick="startGreedAndGrudges(activeGameA,activeGameB)">Play Again</button>
+        <button class="btn" onclick="goToSelect()">Pick New Games</button>
+      </div>`);
+  }
+
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('gg-log'); if (el) el.innerHTML = log.slice(0, 12).join('<br>'); }
+
+  // ── Board ring ─────────────────────────────────────────────────────
+  function boardRingHTML() {
+    const size = 220, cx = size/2, cy = size/2, r = 80;
+    let svg = `<svg width="${size}" height="${size}" style="display:block;margin:auto;">`;
+    SPACES.forEach((sp, i) => {
+      const angle = (i / N) * 2 * Math.PI - Math.PI / 2;
+      const x = cx + r * Math.cos(angle), y = cy + r * Math.sin(angle);
+      const col = sp.type==='prop' ? sp.color : sp.type==='go' ? '#FF9800' : sp.type==='tax' ? '#f44336' : sp.type==='shortcut' ? '#4CAF50' : sp.type==='safe' ? '#2196F3' : '#555';
+      const isOwned = owned[i] !== undefined;
+      const h = houses[i] || 0;
+      svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="8" fill="${col}" stroke="${isOwned?P_COLORS[owned[i]]:'#222'}" stroke-width="${isOwned?2.5:1}" opacity="0.9"/>`;
+      if (h > 0) svg += `<text x="${x.toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="7">${'🏚'.repeat(h)}</text>`;
+      if (pos[0]===i) svg += `<text x="${(x-(pos[1]===i?4:0)).toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="9">🔴</text>`;
+      if (pos[1]===i) svg += `<text x="${(x+(pos[0]===i?4:0)).toFixed(1)}" y="${(y+1).toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="9">🔵</text>`;
+    });
+    svg += `<text x="${cx}" y="${cy-8}" text-anchor="middle" font-size="9" fill="#888">BOARD</text>`;
+    svg += `<text x="${cx}" y="${cy+6}" text-anchor="middle" font-size="9" fill="#FF9800">${SPACES[pos[0]].label.slice(0,12)}</text>`;
+    svg += '</svg>';
+    return svg;
+  }
+
+  // ── House panel ────────────────────────────────────────────────────
+  function houseHTML() {
+    const myProps = SPACES.map((sp,i)=>({sp,i})).filter(({sp,i})=>sp.type==='prop'&&owned[i]===0&&isMonopoly(0,sp.group));
+    if (!myProps.length) return '<div style="font-size:11px;color:#555;">Own a full colour group to build.</div>';
+    return myProps.map(({sp,i})=>{
+      const h = houses[i] || 0;
+      const canBuild = h < 2 && cash[0] >= 120;
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+        <div style="width:10px;height:10px;background:${sp.color};border-radius:2px;flex-shrink:0;"></div>
+        <div style="font-size:10px;color:#aaa;flex:1;">${sp.label.slice(0,14)}</div>
+        <span style="font-size:10px;color:#888;">${'🏚'.repeat(h)}${'○'.repeat(2-h)}</span>
+        ${canBuild ? `<button onclick="ggBuildHouse(${i})" style="padding:2px 8px;font-size:10px;border-radius:5px;border:1px solid #FF9800;background:#FF9800;color:#000;cursor:pointer;">$120</button>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('gg-root');
+    if (!root) return;
+    const lbl = LABELS(), is2p = ggMode === '2p';
+    const canDraw = !gameOver && phase === 'draw' && (is2p || current === 0);
+
+    const statusMsg = gameOver ? 'Game over!'
+      : phase === 'buy'      ? 'Buy this property?'
+      : phase === 'choice10' ? `${lbl[current]}: move 10 forward OR 1 backward?`
+      : phase === 'choice11' ? `${lbl[current]}: move 11 forward OR swap positions?`
+      : current===0&&!is2p   ? 'Your turn — draw a card!'
+      : is2p                 ? `${lbl[current]}'s turn — draw a card!`
+      : 'AI is thinking…';
+
+    const curSp = SPACES[pos[0]];
+    const buyHTML = phase === 'buy' ? `
+      <div style="font-size:13px;color:#aaa;margin-bottom:10px;">Land on <b style="color:#fff">${curSp.label}</b> — <b style="color:#FF9800">$${curSp.price}</b><br>You have <b style="color:#4CAF50">$${cash[0]}</b></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn primary" onclick="ggBuy()" ${cash[0]<curSp.price?'disabled':''} style="background:#FF9800;border-color:#FF9800;color:#000;">Buy $${curSp.price}</button>
+        <button class="btn" onclick="ggSkipBuy()">Pass</button>
+      </div>` : '';
+
+    const choiceHTML = phase === 'choice10' ? `
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn primary" onclick="ggMove10(true)" style="background:#FF9800;border-color:#FF9800;color:#000;">Move 10 Forward</button>
+        <button class="btn" onclick="ggMove10(false)">Move 1 Back</button>
+      </div>` : phase === 'choice11' ? `
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn primary" onclick="ggMove11(true)" style="background:#FF9800;border-color:#FF9800;color:#000;">Move 11 Forward</button>
+        <button class="btn" onclick="ggMove11(false)" style="border-color:#f44336;color:#f44336;">🔄 Swap Positions</button>
+      </div>` : '';
+
+    const cardDisplay = drawnCard ? `
+      <div style="display:inline-block;padding:10px 24px;background:${drawnCard.val==='sorry'?'#b71c1c':'#1a1a2e'};border:2px solid ${drawnCard.val==='sorry'?'#f44336':'#FF9800'};border-radius:10px;font-size:${drawnCard.val==='sorry'?'16':'22'}px;font-weight:700;color:${drawnCard.val==='sorry'?'#f44336':'#FF9800'};box-shadow:0 4px 16px rgba(0,0,0,.5);">
+        ${drawnCard.label}
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:6px;">${drawnCard.desc}</div>` : `<div style="color:#444;font-size:12px;">Draw a card to move!</div>`;
+
+    root.innerHTML = `
+    <style>
+      #gg-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #gg-board-col{flex:0 0 auto;}
+      #gg-right{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px;}
+      .gg-card{background:#0f0a04;border:1px solid #2a1a04;border-radius:12px;padding:12px 14px;}
+      .gg-card h3{font-size:11px;letter-spacing:1px;color:#6a4a04;margin-bottom:8px;}
+      .tt-mode-seg{display:flex;border:1px solid #2a1a04;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .tt-mode-seg button{padding:6px 18px;font-size:12px;border:none;background:#0f0a04;color:#888;cursor:pointer;font-family:inherit;}
+      .tt-mode-seg button.active{background:#FF9800;color:#000;font-weight:700;}
+      @keyframes gg-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="gg-wrap">
+      <div id="gg-board-col">
+        <div class="tt-mode-seg">
+          <button class="${ggMode==='ai'?'active':''}" onclick="ggSetMode('ai')">vs AI</button>
+          <button class="${ggMode==='2p'?'active':''}" onclick="ggSetMode('2p')">2 Player</button>
+        </div>
+        <div class="gg-card" style="width:260px;background:linear-gradient(135deg,#0f0a04,#1f1204);">
+          <h3>BOARD</h3>
+          ${boardRingHTML()}
+          <div style="margin-top:8px;font-size:10px;color:#555;line-height:1.6;">
+            🟢 Shortcut  🔵 Safety Zone  😠 Tax  🔴🔵 Tokens
+          </div>
+        </div>
+        <div class="gg-card" style="margin-top:10px;width:260px;background:linear-gradient(135deg,#0f0a04,#1f1204);">
+          <h3>EVENT LOG</h3>
+          <div id="gg-log" style="font-size:10px;color:#665500;line-height:1.8;max-height:120px;overflow-y:auto;">${log.slice(0,12).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="gg-right">
+        <div style="display:flex;gap:10px;">
+          <div class="gg-card" style="flex:1;border-color:${current===0?P_COLORS[0]:'#2a1a04'};background:linear-gradient(135deg,#0f0a04,#1f1204);">
+            <h3>${is2p?lbl[0]:'YOU'} 🔴</h3>
+            <div style="font-size:22px;font-weight:700;color:#4CAF50;">$${cash[0]}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">${SPACES[pos[0]].label}</div>
+          </div>
+          <div class="gg-card" style="flex:1;border-color:${current===1?P_COLORS[1]:'#2a1a04'};background:linear-gradient(135deg,#0f0a04,#1f1204);">
+            <h3>${is2p?lbl[1]:'AI'} 🔵</h3>
+            <div style="font-size:22px;font-weight:700;color:#4CAF50;">$${cash[1]}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">${SPACES[pos[1]].label}</div>
+          </div>
+        </div>
+        <div class="gg-card" style="background:linear-gradient(135deg,#0f0a04,#1f1204);">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#aaa;margin-bottom:8px;">${statusMsg}</div>
+          ${buyHTML}${choiceHTML}
+          ${canDraw?`<button onclick="ggDraw()" class="btn primary" style="background:#FF9800;border-color:#FF9800;color:#000;font-size:14px;padding:10px 24px;">🃏 Draw a Card</button>`:''}
+        </div>
+        <div class="gg-card" style="background:linear-gradient(135deg,#0f0a04,#1f1204);text-align:center;">
+          <h3>DRAWN CARD</h3>
+          ${cardDisplay}
+        </div>
+        <div class="gg-card" style="background:linear-gradient(135deg,#0f0a04,#1f1204);">
+          <h3>🏚 GRUDGE HOUSES ($120 each — stacks up to ×2)</h3>
+          ${houseHTML()}
+        </div>
+        <div class="gg-card" style="background:linear-gradient(135deg,#0f0a04,#1f1204);">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#FF9800;">Goal:</b> Bankrupt your rival with rent and treachery!<br><br>
+            <b style="color:#FF9800;">Turn:</b> Draw a Sorry! card — it tells you how far to move.<br><br>
+            <b style="color:#FF9800;">Special cards:</b><br>
+            <b>2</b> — Move 2, then draw again!<br>
+            <b>4</b> — Move 4 BACKWARD (dodge a property!)<br>
+            <b>10</b> — Move 10 forward OR 1 backward<br>
+            <b>11</b> — Move 11 forward OR swap positions!<br>
+            <b style="color:#f44336;">SORRY!</b> — Send rival to Start + seize their property!<br><br>
+            <b style="color:#FF9800;">⚡ Shortcuts</b> leap you forward. <b style="color:#2196F3;">🛡️ Safety Zone</b> grants rent immunity for one turn.<br><br>
+            <b style="color:#FF9800;">🏚 Grudge Houses:</b> Own a full colour group and spend $120 to build (max 2). Each house multiplies rent further!<br><br>
+            <b style="color:#f44336;">Bankruptcy:</b> Cash hits $0 — grudges win!
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── Globals ────────────────────────────────────────────────────────
+  window.ggDraw     = function() { doDrawCard(); };
+  window.ggBuy      = function() { const i=pos[0]; cash[0]-=SPACES[i].price; owned[i]=0; addLog(`You buy ${SPACES[i].label}!`); phase='draw'; drawnCard=null; finishTurn(); render(); };
+  window.ggSkipBuy  = function() { phase='draw'; drawnCard=null; finishTurn(); render(); };
+  window.ggSetMode  = function(m) { ggMode=m; initGame(); render(); };
+
+  const root = document.getElementById('game-root');
+  root.innerHTML = `<div id="gg-root"></div>`;
+  render();
+  addLog('Greed & Grudges begins! Fortune favours the treacherous — draw a card!');
+  if (ggMode === 'ai' && current === 1) setTimeout(aiTurn, 900);
 }
 
 function startGame() {
