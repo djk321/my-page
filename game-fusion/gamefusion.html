@@ -390,6 +390,7 @@ const HYBRID_NAMES = {
   'jenga+uno':'Toppling Colors','uno+jenga':'Toppling Colors',
   'candyland+jenga':'Toffee Tower','jenga+candyland':'Toffee Tower',
   'candyland+uno':'Sweet Dispute','uno+candyland':'Sweet Dispute',
+  'candyland+sorry':'Sweet Revenge Rally','sorry+candyland':'Sweet Revenge Rally',
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
@@ -441,6 +442,16 @@ const GAME_FLAVOR = {
 
 // ── Curated stories for popular combos ───────────────────────────────
 const HYBRID_STORIES = {
+  'candyland+sorry': {
+    tagline: 'It\'s a sweet race — until someone gets bumped.',
+    story: 'The peppermint path to the Candy Castle is paved with payback. Draw a card and race forward — but land on a rival\'s square and you bump them all the way back to Start. Draw a SORRY! gumdrop and fling them back from anywhere. An 11 lets you swap places at the cruelest moment, a 4 yanks you backward, and the candy slides launch you ahead while sweeping any pawn in your path back to square one. You must land on the castle by exact count. The sweetest victories are the pettiest ones.',
+    players: '2', time: '8–15 min', age: '6+',
+  },
+  'sorry+candyland': {
+    tagline: 'It\'s a sweet race — until someone gets bumped.',
+    story: 'The peppermint path to the Candy Castle is paved with payback. Draw a card and race forward — but land on a rival\'s square and you bump them all the way back to Start. Draw a SORRY! gumdrop and fling them back from anywhere. An 11 lets you swap places at the cruelest moment, a 4 yanks you backward, and the candy slides launch you ahead while sweeping any pawn in your path back to square one. You must land on the castle by exact count. The sweetest victories are the pettiest ones.',
+    players: '2', time: '8–15 min', age: '6+',
+  },
   'candyland+uno': {
     tagline: 'Sweetest race. Sourest tricks.',
     story: 'The peppermint path to the Candy Castle has never been this cutthroat. Instead of flipping a card from a deck, you hold a hand of color cards and choose exactly how to advance — match the licorice path\'s color for a Sugar Rush and surge ahead. But your rival can drop a Sour Reverse to fling you backward, a +2 to clog your hand, or a Rainbow Lollipop to warp straight to the next candy landmark. First pawn to the castle wins — if your opponent doesn\'t spoil the trip first.',
@@ -941,6 +952,7 @@ function buildBoxArtSVG(a, b) {
 // Template tags — used to pick themed animations on the artwork page
 const GAME_TEMPLATE = {
   'candyland+uno':      'path-race',
+  'candyland+sorry':    'path-race',
   'monopoly+uno': 'economy',
   'candyland+monopoly': 'economy',
   'monopoly+sorry':     'economy',
@@ -957,6 +969,7 @@ const CUSTOM_ART = {
   'jenga+uno':       'TopplingColors.png',
   'candyland+jenga': 'ToffeeTower.png',
   'candyland+uno':   'SweetDispute.png',
+  'candyland+sorry': 'SweetRevengeRally.png',
   'jenga+sorry':     'ToweringTreachery.png',
   'checkers+jenga':  'TowerTactics.png',
   'monopoly+uno':    'DeedorDispute.png',
@@ -1451,6 +1464,7 @@ const COMBO_GAMES = {
   'jenga+uno':       startTopplingColors,
   'candyland+jenga': startToffeeTower,
   'candyland+uno':   startSweetDispute,
+  'candyland+sorry': startSweetRevengeRally,
   'jenga+sorry':     startToweringTreachery,
   'checkers+jenga':  startTowerTactics,
   'monopoly+uno':    startDeedOrDispute,
@@ -2221,6 +2235,366 @@ function startSweetDispute(a, b) {
   document.getElementById('game-root').innerHTML = `<div id="sd-root"></div>`;
   render();
   addLog('The sweet race begins! Play a card to leave the Start.');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SWEET REVENGE RALLY  (Candy Land × Sorry!)  — Path Race Template
+// ══════════════════════════════════════════════════════════════════════
+function startSweetRevengeRally(a, b) {
+  // ── Candy track ────────────────────────────────────────────────────
+  // Same serpentine Path-Race board as Sweet Dispute, but themed around
+  // Sorry!'s revenge mechanics: draw a single card, bump rivals to Start,
+  // ride candy slides, and finish by exact count.
+  const CANDY = ['red', 'pink', 'green', 'purple'];
+  const CANDY_CSS  = { red:'#d32f2f', pink:'#ec407a', green:'#43a047', purple:'#8e24aa' };
+
+  const N = 36, FINISH = N - 1, COLS = 6;
+  const TRACK = [];
+  for (let i = 0; i < N; i++) TRACK.push({ color: CANDY[i % CANDY.length], special: null, icon: null, label: null });
+  TRACK[0]      = { color:'green',  special:'start',    icon:'🏁', label:'Start' };
+  TRACK[7]      = { color:'pink',   special:'slide', to:13, icon:'🛝', label:'Peppermint Slide' };
+  TRACK[11]     = { color:'red',    special:'back',  to:6,  icon:'🍫', label:'Chocolate Pit' };
+  TRACK[18]     = { color:'green',  special:'landmark', icon:'🍬', label:'Gumdrop Junction' };
+  TRACK[22]     = { color:'purple', special:'slide', to:28, icon:'🍭', label:'Lollipop Luge' };
+  TRACK[31]     = { color:'red',    special:'back',  to:25, icon:'🥨', label:'Licorice Snarl' };
+  TRACK[FINISH] = { color:'purple', special:'castle', icon:'🏰', label:'Candy Castle' };
+
+  const BW = 244, pad = 16, cell = (BW - pad * 2) / (COLS - 1);
+  function cellXY(i) {
+    const row = Math.floor(i / COLS);
+    let col = i % COLS;
+    if (row % 2 === 1) col = COLS - 1 - col;
+    return { x: pad + col * cell, y: pad + row * cell };
+  }
+  const ROWS = Math.ceil(N / COLS);
+  const BH = pad * 2 + (ROWS - 1) * cell;
+
+  // ── Sorry!-style deck ──────────────────────────────────────────────
+  // Each card is drawn one at a time (no hand). kind drives the effect.
+  function buildDeck() {
+    const d = [];
+    const add = (card, count) => { for (let i = 0; i < count; i++) d.push({ ...card }); };
+    add({ kind:'move', n:1,  label:'1'  }, 5);
+    add({ kind:'move', n:2,  label:'2', again:true }, 4);   // Sorry!: a 2 grants another draw
+    add({ kind:'move', n:3,  label:'3'  }, 4);
+    add({ kind:'back', n:4,  label:'4'  }, 4);               // move backward 4
+    add({ kind:'move', n:5,  label:'5'  }, 4);
+    add({ kind:'move', n:7,  label:'7'  }, 4);
+    add({ kind:'move', n:8,  label:'8'  }, 4);
+    add({ kind:'ten',         label:'10' }, 4);              // choice: +10 or −1
+    add({ kind:'eleven',      label:'11' }, 4);              // choice: +11 or swap
+    add({ kind:'move', n:12, label:'12' }, 4);
+    add({ kind:'sorry',       label:'SORRY!' }, 5);          // send rival to Start
+    return d.sort(() => Math.random() - 0.5);
+  }
+
+  const P_COLORS = ['#d32f2f', '#7F77DD'];   // red pawn (you) / purple pawn (rival)
+  const P_ICON   = ['🔴', '🔵'];
+
+  // ── State ──────────────────────────────────────────────────────────
+  let deck = [], discard = [], pos = [0, 0];
+  let current = 0, gameOver = false, winner = -1;
+  let phase = 'draw';                          // 'draw' | 'choice' | 'over'
+  let lastCard = null, pendingCard = null, drawAgain = false;
+  const log = [];
+  let srMode = 'ai';
+  function LBL() { return srMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'Rival']; }
+
+  function drawFromDeck() {
+    if (!deck.length) { deck = discard.splice(0).sort(() => Math.random() - 0.5); }
+    const c = deck.pop(); if (c) discard.push(c);
+    return c;
+  }
+  function initGame() {
+    deck = buildDeck(); discard = []; pos = [0, 0];
+    current = 0; gameOver = false; winner = -1; phase = 'draw';
+    lastCard = null; pendingCard = null; drawAgain = false;
+    log.length = 0;
+  }
+  initGame();
+
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('srr-log'); if (el) el.innerHTML = log.slice(0, 12).join('<br>'); }
+
+  // ── Movement ───────────────────────────────────────────────────────
+  // Forward moves require an exact landing on the castle; overshoot bounces back.
+  function applyMove(p, delta) {
+    let target = pos[p] + delta;
+    if (delta > 0 && target > FINISH) { target = FINISH - (target - FINISH); addLog(`${LBL()[p]} overshoots the castle and bounces back!`); }
+    if (target < 0) target = 0;
+    pos[p] = target;
+    resolveSquare(p);
+  }
+
+  function bumpCheck(p) {
+    const opp = 1 - p;
+    if (pos[p] === pos[opp] && pos[p] !== 0 && pos[p] !== FINISH) {
+      pos[opp] = 0;
+      addLog(`💥 ${LBL()[p]} bumps ${LBL()[opp]} all the way back to Start!`);
+    }
+  }
+
+  function resolveSquare(p) {
+    if (pos[p] >= FINISH) { win(p); return; }
+    const sq = TRACK[pos[p]];
+    if (sq.special === 'slide') {
+      addLog(`${sq.icon} ${LBL()[p]} rides the ${sq.label} — whooosh to ${TRACK[sq.to].label || 'square ' + sq.to}!`);
+      // Sorry! slide rule: sweep any pawn caught on the slide back to Start.
+      const opp = 1 - p;
+      if (pos[opp] > pos[p] && pos[opp] <= sq.to) { pos[opp] = 0; addLog(`💥 ${LBL()[opp]} was on the slide — swept back to Start!`); }
+      pos[p] = sq.to;
+      if (pos[p] >= FINISH) { win(p); return; }
+    } else if (sq.special === 'back') {
+      addLog(`${sq.icon} ${LBL()[p]} is caught in the ${sq.label} — dragged back!`);
+      pos[p] = sq.to;
+    } else if (sq.special === 'landmark') {
+      addLog(`${sq.icon} ${LBL()[p]} passes ${sq.label}.`);
+    }
+    bumpCheck(p);
+  }
+
+  function win(p) { gameOver = true; winner = p; phase = 'over'; pos[p] = FINISH; addLog(`🏰 ${LBL()[p]} reaches the Candy Castle by exact count — and wins!`); }
+
+  // ── Card resolution ────────────────────────────────────────────────
+  function resolveCard(p, card, isAI) {
+    drawAgain = false;
+    if (card.kind === 'move') {
+      addLog(`${LBL()[p]} draws ${card.label} — advances ${card.n}.`);
+      applyMove(p, card.n);
+      if (card.again && !gameOver) { drawAgain = true; addLog(`✨ A 2 — ${LBL()[p]} draws again!`); }
+    } else if (card.kind === 'back') {
+      addLog(`${LBL()[p]} draws 4 — backtracks ${card.n} squares.`);
+      applyMove(p, -card.n);
+    } else if (card.kind === 'sorry') {
+      const opp = 1 - p;
+      if (pos[opp] > 0) { addLog(`🍬💢 ${LBL()[p]} draws SORRY! — ${LBL()[opp]} is flung back to Start!`); pos[opp] = 0; }
+      else { addLog(`🍬 ${LBL()[p]} draws SORRY! — but ${LBL()[opp]} is already at Start. No effect.`); }
+    } else if (card.kind === 'ten' || card.kind === 'eleven') {
+      if (isAI || srMode === '2p' && false) { /* handled below */ }
+      if (!isAI && (srMode === '2p' || p === 0)) {
+        pendingCard = card; phase = 'choice'; return;     // wait for human choice
+      }
+      // AI auto-picks the better option
+      const choice = aiChooseOption(p, card);
+      applyChoice(p, card, choice);
+    }
+  }
+
+  function applyChoice(p, card, choice) {
+    if (card.kind === 'ten') {
+      if (choice === 'fwd') { addLog(`${LBL()[p]} plays the 10 — advances 10.`); applyMove(p, 10); }
+      else { addLog(`${LBL()[p]} plays the 10 as a sneaky −1 — backs up 1.`); applyMove(p, -1); }
+    } else if (card.kind === 'eleven') {
+      if (choice === 'swap') {
+        const opp = 1 - p;
+        addLog(`🔄 ${LBL()[p]} plays 11 — SWAPS places with ${LBL()[opp]}!`);
+        const t = pos[p]; pos[p] = pos[opp]; pos[opp] = t;
+        resolveSquare(p);
+      } else { addLog(`${LBL()[p]} plays 11 — advances 11.`); applyMove(p, 11); }
+    }
+  }
+
+  function aiChooseOption(p, card) {
+    const opp = 1 - p;
+    if (card.kind === 'ten') {
+      const fwd = Math.min(FINISH, pos[p] + 10) <= FINISH ? (pos[p] + 10 > FINISH ? FINISH - (pos[p] + 10 - FINISH) : pos[p] + 10) : pos[p];
+      const back = Math.max(0, pos[p] - 1);
+      return fwd >= back ? 'fwd' : 'back';
+    }
+    if (card.kind === 'eleven') {
+      // Swap if it gains ground or denies a leading rival.
+      return (pos[opp] > pos[p] + 5) ? 'swap' : 'fwd';
+    }
+    return 'fwd';
+  }
+
+  // ── Turn flow ──────────────────────────────────────────────────────
+  function takeTurn(card, isAI) {
+    lastCard = card;
+    resolveCard(current, card, isAI);
+    if (phase === 'choice') { render(); return; }   // pause for human choice
+    finishTurn();
+  }
+
+  function finishTurn() {
+    if (gameOver) { render(); return; }
+    if (drawAgain) {
+      drawAgain = false;
+      render();
+      if (srMode === 'ai' && current === 1) setTimeout(aiTurn, 850);
+      // human draws again via the Draw button (phase stays 'draw')
+      return;
+    }
+    current = 1 - current;
+    phase = 'draw';
+    render();
+    if (srMode === 'ai' && current === 1 && !gameOver) setTimeout(aiTurn, 850);
+  }
+
+  function aiTurn() {
+    if (gameOver || srMode === '2p' || current !== 1) return;
+    if (phase === 'choice') return;
+    const card = drawFromDeck();
+    takeTurn(card, true);
+  }
+
+  // ── Global handlers ────────────────────────────────────────────────
+  window.srrDraw = function () {
+    if (gameOver || phase !== 'draw') return;
+    if (srMode === 'ai' && current !== 0) return;
+    const card = drawFromDeck();
+    takeTurn(card, false);
+  };
+  window.srrChoose = function (choice) {
+    if (phase !== 'choice' || !pendingCard) return;
+    const card = pendingCard; pendingCard = null; phase = 'draw';
+    applyChoice(current, card, choice);
+    finishTurn();
+  };
+  window.srrSetMode = function (m) { srMode = m; initGame(); render(); };
+  window.srrRestart = function () { initGame(); render(); };
+
+  // ── Render: board ──────────────────────────────────────────────────
+  function boardSVG() {
+    let svg = `<svg width="${BW}" height="${BH}" style="display:block;margin:auto;">`;
+    let d = '';
+    for (let i = 0; i < N; i++) { const { x, y } = cellXY(i); d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+    svg += `<path d="${d}" fill="none" stroke="#3a1a2a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // draw slide connectors
+    for (let i = 0; i < N; i++) {
+      if (TRACK[i].special === 'slide') {
+        const s = cellXY(i), e = cellXY(TRACK[i].to);
+        svg += `<line x1="${s.x.toFixed(1)}" y1="${s.y.toFixed(1)}" x2="${e.x.toFixed(1)}" y2="${e.y.toFixed(1)}" stroke="#f9a825" stroke-width="2.5" stroke-dasharray="4 3" opacity="0.7"/>`;
+      }
+    }
+    for (let i = 0; i < N; i++) {
+      const { x, y } = cellXY(i);
+      const sq = TRACK[i];
+      const r = sq.special ? 8.5 : 6;
+      svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${CANDY_CSS[sq.color]}" stroke="${sq.special ? '#fff' : '#1a1a24'}" stroke-width="${sq.special ? 2 : 1}"/>`;
+      if (sq.icon) svg += `<text x="${x.toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="middle" font-size="10">${sq.icon}</text>`;
+    }
+    for (let p = 0; p < 2; p++) {
+      const { x, y } = cellXY(pos[p]);
+      const ox = pos[0] === pos[1] ? (p === 0 ? -5 : 5) : 0;
+      svg += `<text x="${(x + ox).toFixed(1)}" y="${(y - 9).toFixed(1)}" text-anchor="middle" font-size="13">${P_ICON[p]}</text>`;
+    }
+    svg += `</svg>`;
+    return svg;
+  }
+
+  // ── Render: drawn card ─────────────────────────────────────────────
+  function cardFaceHTML(card, big) {
+    if (!card) return `<div style="width:${big?56:40}px;height:${big?80:58}px;border-radius:10px;border:2px dashed #444;display:flex;align-items:center;justify-content:center;color:#555;font-size:11px;">deck</div>`;
+    const isSorry = card.kind === 'sorry';
+    const bg = isSorry ? '#d32f2f' : '#fff';
+    const fg = isSorry ? '#fff' : '#d32f2f';
+    const fs = isSorry ? (big ? 13 : 10) : (big ? 30 : 22);
+    return `<div style="width:${big?56:40}px;height:${big?80:58}px;border-radius:10px;background:${bg};color:${fg};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${fs}px;box-shadow:0 3px 10px rgba(0,0,0,.5);border:2px solid #b71c1c;">${card.label}</div>`;
+  }
+
+  // ── Render: main ───────────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('srr-root');
+    if (!root) return;
+    const lbl = LBL(), is2p = srMode === '2p';
+    const myTurn = srMode === '2p' ? true : current === 0;
+    const status = gameOver
+      ? `${lbl[winner]} wins the rally to the Candy Castle!`
+      : phase === 'choice'
+        ? `${lbl[current]} drew a ${pendingCard.label} — choose how to play it.`
+        : (current === 0 && !is2p ? 'Your turn' : `${lbl[current]}'s turn`) + ' — draw a card.';
+    const distTo = (p) => FINISH - pos[p];
+
+    const choiceBtns = phase === 'choice' && (is2p || current === 0)
+      ? (pendingCard.kind === 'ten'
+          ? `<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn primary" onclick="srrChoose('fwd')">Move 10 ➜</button><button class="btn" onclick="srrChoose('back')">Back 1 ↩</button></div>`
+          : `<div style="display:flex;gap:8px;margin-top:10px;"><button class="btn primary" onclick="srrChoose('fwd')">Move 11 ➜</button><button class="btn" onclick="srrChoose('swap')">🔄 Swap places</button></div>`)
+      : '';
+
+    const drawBtn = !gameOver && phase === 'draw' && myTurn
+      ? `<button class="btn primary" style="margin-top:12px;font-size:14px;" onclick="srrDraw()">🍬 Draw a Card</button>`
+      : (!gameOver && !myTurn && phase !== 'choice' ? `<div style="margin-top:12px;font-size:12px;color:#777;">${lbl[1]} is drawing…</div>` : '');
+
+    root.innerHTML = `
+    <style>
+      #srr-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #srr-right{flex:1;min-width:248px;display:flex;flex-direction:column;gap:10px;}
+      .srr-card{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:12px 14px;}
+      .srr-card h3{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+      .srr-seg{display:flex;border:1px solid #2a2a3a;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .srr-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a1a24;color:#888;cursor:pointer;font-family:inherit;}
+      .srr-seg button.active{background:#d32f2f;color:#fff;font-weight:700;}
+      @keyframes srr-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="srr-wrap">
+      <div style="flex:0 0 auto;">
+        <div class="srr-seg">
+          <button class="${srMode === 'ai' ? 'active' : ''}" onclick="srrSetMode('ai')">vs AI</button>
+          <button class="${srMode === '2p' ? 'active' : ''}" onclick="srrSetMode('2p')">2 Player</button>
+        </div>
+        <div class="srr-card" style="width:272px;">
+          <h3>CANDY PATH → 🏰</h3>
+          ${boardSVG()}
+        </div>
+        <div class="srr-card" style="margin-top:10px;width:272px;">
+          <h3>EVENT LOG</h3>
+          <div id="srr-log" style="font-size:10px;color:#888;line-height:1.8;max-height:118px;overflow-y:auto;">${log.slice(0, 12).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="srr-right">
+        <div style="display:flex;gap:10px;">
+          <div class="srr-card" style="flex:1;border-color:${current === 0 ? P_COLORS[0] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[0] : 'YOU'} 🔴</h3>
+            <div style="font-size:22px;font-weight:700;color:${P_COLORS[0]};">${distTo(0)}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">squares from castle</div>
+          </div>
+          <div class="srr-card" style="flex:1;border-color:${current === 1 ? P_COLORS[1] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[1] : 'RIVAL'} 🔵</h3>
+            <div style="font-size:22px;font-weight:700;color:${P_COLORS[1]};">${distTo(1)}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">squares from castle</div>
+          </div>
+        </div>
+        <div class="srr-card" style="border-color:#3a1a1a;display:flex;gap:14px;align-items:center;">
+          <div style="flex:0 0 auto;text-align:center;">
+            <h3 style="margin-bottom:6px;">LAST CARD</h3>
+            ${cardFaceHTML(lastCard, true)}
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:12px;color:#ccc;line-height:1.6;">${status}</div>
+            ${choiceBtns}
+            ${drawBtn}
+          </div>
+        </div>
+        <div class="srr-card">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#d32f2f;">Goal:</b> Be first to the Candy Castle 🏰 — by <b>exact</b> count (overshoot bounces back).<br><br>
+            <b style="color:#d32f2f;">Each turn:</b> draw one card and move.<br>
+            <b style="color:#d32f2f;">Bump:</b> land on a rival's square → they go back to Start!<br>
+            <b style="color:#d32f2f;">SORRY! 🍬💢:</b> fling the rival back to Start from anywhere.<br>
+            <b style="color:#d32f2f;">4:</b> backtrack 4. &nbsp;<b style="color:#d32f2f;">11:</b> move 11 or swap places.<br>
+            <b style="color:#d32f2f;">10:</b> move 10 or back 1. &nbsp;<b style="color:#d32f2f;">2:</b> move 2 + draw again.<br>
+            <b style="color:#d32f2f;">Candy slides 🛝🍭:</b> launch ahead — and sweep any rival on the slide back to Start!
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    if (gameOver) {
+      root.insertAdjacentHTML('beforeend', `
+        <div class="srr-card" style="margin-top:16px;text-align:center;padding:24px;animation:srr-rise .4s ease both;">
+          <h2 style="font-size:24px;font-weight:700;color:#d32f2f;margin-bottom:8px;">🏰 ${lbl[winner]} wins!</h2>
+          <p style="color:#888;margin-bottom:18px;">Sweetest revenge on the rally to the castle.</p>
+          <button class="btn primary" onclick="srrRestart()">Play Again</button>
+          <button class="btn" onclick="goToSelect()">Pick New Games</button>
+        </div>`);
+    }
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────
+  document.getElementById('game-root').innerHTML = `<div id="srr-root"></div>`;
+  render();
+  addLog('The revenge rally begins! Draw a card to leave the Start.');
 }
 
 // ══════════════════════════════════════════════════════════════════════
