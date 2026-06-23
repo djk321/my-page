@@ -14,8 +14,9 @@
 
     /* ── SELECT SCREEN ── */
     #selectScreen { display: flex; flex-direction: column; align-items: center; padding: 56px 24px 64px; min-height: 100vh; }
-    #selectTitle { font-size: 38px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; text-align: center; background: linear-gradient(135deg, #e8d5a3, #c9a84c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    #selectSub { font-size: 14px; color: #666; margin-bottom: 36px; letter-spacing: 2px; text-transform: uppercase; }
+    #selectTitle { font-size: 38px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; text-align: center; background: linear-gradient(135deg, #e8d5a3, #c9a84c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    #selectTagline { font-size: 15px; color: #9a9aa8; margin-bottom: 26px; letter-spacing: 0.2px; line-height: 1.5; max-width: 560px; text-align: center; }
+    #selectSub { font-size: 13px; color: #888; margin-bottom: 36px; letter-spacing: 2px; text-transform: uppercase; }
     #selStatus { font-size: 13px; color: #888; margin-bottom: 22px; min-height: 20px; transition: color .2s; }
     #selStatus.ready { color: #c9a84c; font-weight: 500; }
     #gameGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; width: 100%; max-width: 640px; margin-bottom: 32px; }
@@ -175,6 +176,7 @@
 ══════════════════════════════════════════════════════ -->
 <div id="selectScreen">
   <div id="selectTitle">🎮 Game Fusion</div>
+  <div id="selectTagline">Creative game mashups and experimental hybrids — where genres collide.</div>
   <div id="selectSub">Pick 2 Games to Merge</div>
   <div id="selStatus">Choose your first game</div>
   <div id="gameGrid"></div>
