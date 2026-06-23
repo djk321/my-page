@@ -1296,13 +1296,27 @@ function doReveal() {
 // REVEAL SCREEN
 // ══════════════════════════════════════════════════════════════════════
 function buildRevealScreen(a, b) {
+  // beginWithAnimation() hides the art and fades the name/meta/button to launch the
+  // game. Those styles are never otherwise restored, so without this reset every
+  // reveal after the first play is blank (no art, no name, no Begin button). Reset
+  // them here so each reveal starts fresh and visible.
+  const artEl = document.getElementById('revealArt');
+  artEl.style.visibility = 'visible';
+  artEl.style.opacity = '1';
+  artEl.style.animation = '';
+  const nameEl = document.getElementById('revealName');
+  const metaEl = document.getElementById('revealMeta');
+  nameEl.style.opacity = '1';
+  metaEl.style.opacity = '1';
+
   loadRevealArt(a, b);
-  document.getElementById('revealName').textContent = hybridName(a, b);
+  nameEl.textContent = hybridName(a, b);
   const story = buildStory(a, b);
-  document.getElementById('revealMeta').innerHTML =
+  metaEl.innerHTML =
     `<span>👥 ${story.players} players</span><span>⏱ ${story.time}</span><span>🎯 Ages ${story.age}</span>`;
   const btn = document.getElementById('playBtn');
   btn.disabled = false;
+  btn.style.opacity = '1';
   btn.style.background = a.bg;
   btn.style.boxShadow = `0 8px 28px ${a.accent}66`;
 }
