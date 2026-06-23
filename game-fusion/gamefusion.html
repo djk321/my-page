@@ -13,20 +13,22 @@
     nav a.active { color:#fff; border-bottom:2px solid #c9a84c; padding-bottom:2px; }
 
     /* ── SELECT SCREEN ── */
-    #selectScreen { display: flex; flex-direction: column; align-items: center; padding: 40px 24px 60px; min-height: 100vh; }
-    #selectTitle { font-size: 36px; font-weight: 700; letter-spacing: -1px; margin-bottom: 6px; background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    #selectSub { font-size: 14px; color: #666; margin-bottom: 32px; letter-spacing: 1px; }
-    #selStatus { font-size: 13px; color: #888; margin-bottom: 20px; min-height: 20px; transition: color .2s; }
-    #selStatus.ready { color: #a78bfa; font-weight: 500; }
-    #gameGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; max-width: 480px; margin-bottom: 28px; }
-    .gcard { background: #1a1a24; border: 1.5px solid #2a2a38; border-radius: 12px; padding: 16px 10px; text-align: center; cursor: pointer; transition: all .18s; user-select: none; }
-    .gcard:hover { border-color: #4a4a6a; background: #22223a; transform: translateY(-2px); }
-    .gcard.selA { border-color: #a78bfa; background: #1e1a3a; box-shadow: 0 0 0 2px #a78bfa40; }
+    #selectScreen { display: flex; flex-direction: column; align-items: center; padding: 56px 24px 64px; min-height: 100vh; }
+    #selectTitle { font-size: 38px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; text-align: center; background: linear-gradient(135deg, #e8d5a3, #c9a84c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    #selectSub { font-size: 14px; color: #666; margin-bottom: 36px; letter-spacing: 2px; text-transform: uppercase; }
+    #selStatus { font-size: 13px; color: #888; margin-bottom: 22px; min-height: 20px; transition: color .2s; }
+    #selStatus.ready { color: #c9a84c; font-weight: 500; }
+    #gameGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; width: 100%; max-width: 640px; margin-bottom: 32px; }
+    .gcard { background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 16px; padding: 28px 16px; text-align: center; cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; user-select: none; }
+    .gcard:hover { transform: translateY(-4px); border-color: #c9a84c; box-shadow: 0 12px 40px rgba(201, 168, 76, 0.15); }
+    .gcard.selA { border-color: #a78bfa; background: #1e1a3a; box-shadow: 0 0 0 2px #a78bfa55; }
+    .gcard.selA:hover { border-color: #a78bfa; box-shadow: 0 0 0 2px #a78bfa55, 0 12px 40px rgba(167, 139, 250, 0.2); }
     .gcard.selA .gcard-badge { background: #a78bfa; color: #fff; }
-    .gcard.selB { border-color: #60a5fa; background: #1a2038; box-shadow: 0 0 0 2px #60a5fa40; }
+    .gcard.selB { border-color: #60a5fa; background: #1a2038; box-shadow: 0 0 0 2px #60a5fa55; }
+    .gcard.selB:hover { border-color: #60a5fa; box-shadow: 0 0 0 2px #60a5fa55, 0 12px 40px rgba(96, 165, 250, 0.2); }
     .gcard.selB .gcard-badge { background: #60a5fa; color: #fff; }
-    .gcard-icon { font-size: 28px; margin-bottom: 6px; line-height: 1; }
-    .gcard-name { font-size: 11px; color: #ccc; font-weight: 500; letter-spacing: .3px; }
+    .gcard-icon { font-size: 38px; margin-bottom: 10px; line-height: 1; }
+    .gcard-name { font-size: 14px; color: #e8e8f0; font-weight: 600; letter-spacing: .3px; }
     .gcard-badge { display: none; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 20px; background: #2a2a38; color: #888; margin-top: 4px; letter-spacing: .5px; }
     .gcard.selA .gcard-badge, .gcard.selB .gcard-badge { display: inline-block; }
     #mergeBtn { display: none; padding: 14px 40px; font-size: 16px; font-weight: 700; border: none; border-radius: 14px; background: linear-gradient(135deg, #a78bfa, #60a5fa); color: #fff; cursor: pointer; letter-spacing: .5px; transition: transform .15s, box-shadow .15s; }
@@ -172,9 +174,8 @@
      SELECT SCREEN
 ══════════════════════════════════════════════════════ -->
 <div id="selectScreen">
-  <div id="selectTitle">GAME MERGE</div>
-  <div id="selectSub">PICK 2 GAMES TO MERGE</div>
-  <a data-back-btn href="javascript:window.history.back()" class="btn" style="margin-bottom:20px;text-decoration:none;display:inline-flex;align-items:center;">← Back</a>
+  <div id="selectTitle">🎮 Game Fusion</div>
+  <div id="selectSub">Pick 2 Games to Merge</div>
   <div id="selStatus">Choose your first game</div>
   <div id="gameGrid"></div>
   <button id="mergeBtn" onclick="doReveal()">⚡ MERGE THEM</button>
