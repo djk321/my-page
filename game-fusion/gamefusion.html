@@ -393,6 +393,7 @@ const HYBRID_NAMES = {
   'candyland+sorry':'Sweet Revenge Rally','sorry+candyland':'Sweet Revenge Rally',
   'candyland+checkers':'Frosted Fiefdom','checkers+candyland':'Frosted Fiefdom',
   'uno+sorry':'Sorry Not Sorry','sorry+uno':'Sorry Not Sorry',
+  'uno+checkers':'Lineage Leap','checkers+uno':'Lineage Leap',
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
@@ -444,6 +445,16 @@ const GAME_FLAVOR = {
 
 // ── Curated stories for popular combos ───────────────────────────────
 const HYBRID_STORIES = {
+  'uno+checkers': {
+    tagline: 'Every leap is a card. Every card is a weapon.',
+    story: 'Checkers, but your pieces only move when you spend a card. Hold a hand of color cards: play a colored card to awaken a checker standing on a matching square, then slide or LEAP it across the board to capture. Out of the right color? Drop a Wild to move anyone, a Skip to freeze your rival, a +2 to bury them in cards, or a Grand Leap to capture and clog their hand at once. Manage your hand, control the colors, and capture every enemy piece. Your bloodline survives only as long as your cards do.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
+  'checkers+uno': {
+    tagline: 'Every leap is a card. Every card is a weapon.',
+    story: 'Checkers, but your pieces only move when you spend a card. Hold a hand of color cards: play a colored card to awaken a checker standing on a matching square, then slide or LEAP it across the board to capture. Out of the right color? Drop a Wild to move anyone, a Skip to freeze your rival, a +2 to bury them in cards, or a Grand Leap to capture and clog their hand at once. Manage your hand, control the colors, and capture every enemy piece. Your bloodline survives only as long as your cards do.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
   'uno+sorry': {
     tagline: 'Race to home. Apologize to no one.',
     story: 'Hold a hand of color cards and sprint down the track to HOME — but this is a race with no manners. Land on your rival and you bump them all the way back to Start. Slap down a Reverse to swap places at the worst possible moment, a +2 to clog their hand and shove them back, or the dreaded SORRY! card to banish them to Start and bury them in cards. A Wild lets you warp to the next square of any color you pick. Whoever reaches HOME first wins — and no, they\'re not sorry.',
@@ -977,6 +988,7 @@ const GAME_TEMPLATE = {
   'candyland+sorry':    'path-race',
   'candyland+checkers': 'capture',
   'sorry+uno':          'path-race',
+  'checkers+uno':       'card-battle',
   'monopoly+uno': 'economy',
   'candyland+monopoly': 'economy',
   'monopoly+sorry':     'economy',
@@ -996,6 +1008,7 @@ const CUSTOM_ART = {
   'candyland+sorry': 'SweetRevengeRally.png',
   'candyland+checkers': 'FrostedFiefdom.png',
   'sorry+uno':          'SorrynotSorry.png',
+  'checkers+uno':       'LinageLeap.png',
   'jenga+sorry':     'ToweringTreachery.png',
   'checkers+jenga':  'TowerTactics.png',
   'monopoly+uno':    'DeedorDispute.png',
@@ -1304,9 +1317,18 @@ function beginWithAnimation() {
   if (metaEl) metaEl.style.transition = 'opacity 0.2s'; metaEl && (metaEl.style.opacity = '0');
   btn.style.transition = 'opacity 0.2s'; btn.style.opacity = '0';
 
+  // Guarantee the game starts exactly once, even if the slice animation never
+  // finishes — e.g. the tab loses focus mid-reveal (requestAnimationFrame pauses),
+  // the renderer hiccups, or an animation frame throws. Without this failsafe the
+  // reveal screen is left showing hidden art and the game never launches: a blank
+  // screen on "some" combinations depending on timing/focus.
+  let launched = false;
+  const launch = () => { if (launched) return; launched = true; startGame(); };
+  setTimeout(launch, 3500);   // failsafe — longer than the slowest animation (economy ≈3s), so it only fires when genuinely stuck
+
   // Phase 1: shake the art
   const img = artEl.querySelector('img') || artEl.querySelector('svg');
-  if (!img) { startGame(); return; }
+  if (!img) { launch(); return; }
   artEl.style.animation = 'art-shake 0.32s ease-in-out';
 
   setTimeout(() => {
@@ -1331,18 +1353,18 @@ function beginWithAnimation() {
       // awaiting load, and Begin is clickable immediately). Drawing an incomplete image
       // throws InvalidStateError, which would abort this whole sequence and leave a blank
       // screen — so if it isn't ready, skip the slice animation and just start the game.
-      if (!source.complete || source.naturalWidth === 0) { cv.remove(); startGame(); return; }
+      if (!source.complete || source.naturalWidth === 0) { cv.remove(); launch(); return; }
       try {
         oCtx.drawImage(source, 0, 0, W, H);
       } catch (e) {
-        cv.remove(); startGame(); return;
+        cv.remove(); launch(); return;
       }
     } else {
       // SVG fallback: just fade out normally
       artEl.style.transition = 'opacity 0.4s';
       artEl.style.opacity = '0';
       cv.remove();
-      setTimeout(startGame, 420);
+      setTimeout(launch, 420);
       return;
     }
 
@@ -1404,7 +1426,7 @@ function beginWithAnimation() {
           ctx.restore();
         });
         if (!allGone && (ts - startTime) < 3000) requestAnimationFrame(animCrumble);
-        else { cv.remove(); startGame(); }
+        else { cv.remove(); launch(); }
       }
       requestAnimationFrame(animCrumble);
 
@@ -1436,7 +1458,7 @@ function beginWithAnimation() {
           ctx.drawImage(offscreen, s.srcX, 0, stripW, H, s.x, 0, stripW, H);
           ctx.restore();
         });
-        alive > 0 ? requestAnimationFrame(animRace) : (cv.remove(), startGame());
+        alive > 0 ? requestAnimationFrame(animRace) : (cv.remove(), launch());
       }
       requestAnimationFrame(animRace);
 
@@ -1468,9 +1490,38 @@ function beginWithAnimation() {
           ctx.drawImage(offscreen, x, y, tw, th, -tw / 2, -th / 2, tw, th);
           ctx.restore();
         });
-        alive > 0 ? requestAnimationFrame(animCapture) : (cv.remove(), startGame());
+        alive > 0 ? requestAnimationFrame(animCapture) : (cv.remove(), launch());
       }
       requestAnimationFrame(animCapture);
+
+    } else if (tmpl === 'card-battle') {
+      // ── Card Battle: art splits into cards that fan out and fly away ──
+      const NC = 5, pw = W / NC;
+      const panels = Array.from({ length: NC }, (_, i) => ({
+        srcX: i * pw, x: i * pw, y: 0, rot: 0,
+        vrot: (i - (NC - 1) / 2) * 0.05, vx: (i - (NC - 1) / 2) * 3.4, vy: -2 - Math.random() * 2,
+        op: 1, delay: i * 55,
+      }));
+      let elapsed = 0, last = null;
+      function animCards(ts) {
+        if (!last) last = ts;
+        elapsed += ts - last; last = ts;
+        ctx.clearRect(0, 0, W, H);
+        let alive = 0;
+        panels.forEach(p => {
+          if (p.op <= 0) return;
+          alive++;
+          if (elapsed >= p.delay) { p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.rot += p.vrot; p.op -= 0.024; }
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.op);
+          ctx.translate(p.x + pw / 2, p.y + H / 2);
+          ctx.rotate(p.rot);
+          ctx.drawImage(offscreen, p.srcX, 0, pw, H, -pw / 2, -H / 2, pw, H);
+          ctx.restore();
+        });
+        alive > 0 ? requestAnimationFrame(animCards) : (cv.remove(), launch());
+      }
+      requestAnimationFrame(animCards);
 
     } else {
       // ── Default: horizontal floor strips fall and fade ──────────────
@@ -1507,7 +1558,7 @@ function beginWithAnimation() {
           ctx.drawImage(offscreen, 0, f.srcY, W, stripH, -W / 2, -stripH / 2, W, stripH);
           ctx.restore();
         });
-        alive > 0 ? requestAnimationFrame(animStrips) : (cv.remove(), startGame());
+        alive > 0 ? requestAnimationFrame(animStrips) : (cv.remove(), launch());
       }
       requestAnimationFrame(animStrips);
     }
@@ -1525,6 +1576,7 @@ const COMBO_GAMES = {
   'candyland+sorry': startSweetRevengeRally,
   'candyland+checkers': startFrostedFiefdom,
   'sorry+uno':          startSorryNotSorry,
+  'checkers+uno':       startLineageLeap,
   'jenga+sorry':     startToweringTreachery,
   'checkers+jenga':  startTowerTactics,
   'monopoly+uno':    startDeedOrDispute,
@@ -3235,6 +3287,318 @@ function startSorryNotSorry(a, b) {
   document.getElementById('game-root').innerHTML = `<div id="sns-root"></div>`;
   render();
   addLog('The race is on! Play a card — and no apologies.');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// LINEAGE LEAP  (Uno × Checkers)  — Card Battle Template
+// ══════════════════════════════════════════════════════════════════════
+function startLineageLeap(a, b) {
+  const BS = 6, CELL = 42, PLY_CAP = 90;
+  const UCOLORS = ['red', 'yellow', 'green', 'blue'];
+  const UNO_CSS  = { red:'#e53935', yellow:'#f9a825', green:'#43a047', blue:'#1e88e5', wild:'#2a2a3a' };
+  const UNO_TEXT = { red:'#fff', yellow:'#222', green:'#fff', blue:'#fff', wild:'#fff' };
+  const P_COLORS = ['#c9a84c', '#7F77DD'];
+  const P_ICON   = ['🔴', '🔵'];
+
+  // Dark squares carry an Uno color; you can only activate a piece with a
+  // matching-color card (or a Wild).
+  const board   = Array.from({ length: BS }, () => Array(BS).fill(null));
+  const SQ_COLOR = Array.from({ length: BS }, () => Array(BS).fill(null));
+  (function paint() { let k = 0; for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) if ((r + c) % 2 === 1) SQ_COLOR[r][c] = UCOLORS[k++ % 4]; })();
+
+  function initBoard() {
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) board[r][c] = null;
+    for (let r = 0; r < 2; r++)       for (let c = 0; c < BS; c++) if ((r + c) % 2 === 1) board[r][c] = { p: 1, king: false };
+    for (let r = BS - 2; r < BS; r++) for (let c = 0; c < BS; c++) if ((r + c) % 2 === 1) board[r][c] = { p: 0, king: false };
+  }
+
+  // ── Uno deck ───────────────────────────────────────────────────────
+  function buildDeck() {
+    const d = [];
+    for (const col of UCOLORS) {
+      for (let n = 1; n <= 9; n++) { d.push({ col, kind:'num', val:n, label:`${n}` }); d.push({ col, kind:'num', val:n, label:`${n}` }); }
+      for (let i = 0; i < 2; i++) { d.push({ col, kind:'skip', label:'⊘' }); d.push({ col, kind:'reverse', label:'↩' }); d.push({ col, kind:'draw2', label:'+2' }); }
+    }
+    for (let i = 0; i < 4; i++) d.push({ col:'wild', kind:'wild', label:'🌈' });
+    for (let i = 0; i < 4; i++) d.push({ col:'wild', kind:'grandleap', label:'LEAP' });
+    return d.sort(() => Math.random() - 0.5);
+  }
+  function cardName(c) { return c.kind === 'num' ? `${c.col} ${c.label}` : c.kind === 'wild' ? 'Wild' : c.kind === 'grandleap' ? 'Grand Leap' : c.kind === 'skip' ? 'Skip' : c.kind === 'reverse' ? 'Reverse' : '+2'; }
+
+  // ── State ──────────────────────────────────────────────────────────
+  let deck = [], discard = [], hands = [[], []];
+  let current = 0, gameOver = false, winner = -1, winBy = '', ply = 0;
+  let phase = 'pickCard';                 // 'pickCard' | 'pickMove' | 'over'
+  let selCard = null, selPiece = null, validDests = [];
+  let skip = [false, false];
+  const log = [];
+  let llMode = 'ai';
+  function LBL() { return llMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'Rival']; }
+
+  function deal(p, n = 1) { for (let i = 0; i < n; i++) { if (!deck.length) deck = discard.splice(0).sort(() => Math.random() - 0.5); if (deck.length && hands[p].length < 10) hands[p].push(deck.pop()); } }
+  function initGame() {
+    deck = buildDeck(); discard = []; hands = [[], []]; initBoard();
+    current = 0; gameOver = false; winner = -1; winBy = ''; ply = 0;
+    phase = 'pickCard'; selCard = null; selPiece = null; validDests = []; skip = [false, false];
+    log.length = 0; deal(0, 5); deal(1, 5);
+  }
+  initGame();
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('ll-log'); if (el) el.innerHTML = log.slice(0, 11).join('<br>'); }
+
+  // ── Checkers logic ─────────────────────────────────────────────────
+  function movesFor(pr, pc, who) {
+    const piece = board[pr][pc]; if (!piece || piece.p !== who) return [];
+    const moves = [], dirs = [];
+    if (piece.p === 0 || piece.king) dirs.push(-1);
+    if (piece.p === 1 || piece.king) dirs.push(1);
+    for (const dr of dirs) for (const dc of [-1, 1]) {
+      const nr = pr + dr, nc = pc + dc;
+      if (nr < 0 || nr >= BS || nc < 0 || nc >= BS) continue;
+      if (!board[nr][nc]) moves.push({ fr: pr, fc: pc, tr: nr, tc: nc, cr: null, cc: null, jump: false });
+      else if (board[nr][nc].p !== piece.p) {
+        const jr = pr + 2 * dr, jc = pc + 2 * dc;
+        if (jr >= 0 && jr < BS && jc >= 0 && jc < BS && !board[jr][jc]) moves.push({ fr: pr, fc: pc, tr: jr, tc: jc, cr: nr, cc: nc, jump: true });
+      }
+    }
+    return moves;
+  }
+  function countPieces(who) { let n = 0; for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) if (board[r][c] && board[r][c].p === who) n++; return n; }
+  function getActivatable(card, who) {
+    const res = [];
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) {
+      const pc = board[r][c]; if (!pc || pc.p !== who) continue;
+      if (card.kind === 'num' && SQ_COLOR[r][c] !== card.col) continue;
+      if (movesFor(r, c, who).length) res.push({ r, c });
+    }
+    return res;
+  }
+  function execMove(m) {
+    const piece = board[m.fr][m.fc];
+    board[m.tr][m.tc] = piece; board[m.fr][m.fc] = null;
+    let cap = false, crown = false;
+    if (m.cr !== null) { board[m.cr][m.cc] = null; cap = true; }
+    if (piece.p === 0 && m.tr === 0 && !piece.king) { piece.king = true; crown = true; }
+    if (piece.p === 1 && m.tr === BS - 1 && !piece.king) { piece.king = true; crown = true; }
+    return { cap, crown };
+  }
+  function capturableAfter(m, who) {
+    const opp = 1 - who;
+    const snap = board.map(row => row.map(c => c ? { ...c } : null));
+    const pc = board[m.fr][m.fc]; board[m.tr][m.tc] = pc; board[m.fr][m.fc] = null; if (m.cr !== null) board[m.cr][m.cc] = null;
+    let danger = false;
+    outer: for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) if (board[r][c] && board[r][c].p === opp)
+      for (const jm of movesFor(r, c, opp)) if (jm.jump && jm.cr === m.tr && jm.cc === m.tc) { danger = true; break outer; }
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) board[r][c] = snap[r][c];
+    return danger;
+  }
+  function scoreMove(m, who) {
+    let s = Math.random() * 0.5;
+    if (m.jump) s += 100;
+    const piece = board[m.fr][m.fc];
+    if (!piece.king) { if ((who === 1 && m.tr === BS - 1) || (who === 0 && m.tr === 0)) s += 14; s += (who === 1 ? m.tr : BS - 1 - m.tr) * 0.7; }
+    if (capturableAfter(m, who)) s -= m.jump ? 35 : 16;
+    return s;
+  }
+
+  // ── Turn flow ──────────────────────────────────────────────────────
+  function win(p, by) { gameOver = true; winner = p; winBy = by; phase = 'over'; addLog(`🏆 ${LBL()[p]} ${by === 'capture' ? 'captures the last enemy piece' : 'holds the stronger bloodline'} — victory!`); }
+  function passTurn() {
+    if (gameOver) { render(); return; }
+    ply++;
+    if (ply >= PLY_CAP) { const w = countPieces(0) >= countPieces(1) ? 0 : 1; win(w, 'count'); render(); return; }
+    selCard = null; selPiece = null; validDests = []; phase = 'pickCard';
+    current = 1 - current;
+    if (skip[current]) { skip[current] = false; addLog(`${LBL()[current]}'s turn is skipped!`); current = 1 - current; }
+    render();
+    if (llMode === 'ai' && current === 1 && !gameOver) setTimeout(aiTurn, 750);
+  }
+  function applyMovementCard(i, m) {
+    const who = current, card = hands[who][i];
+    hands[who].splice(i, 1); discard.push(card);
+    const res = execMove(m);
+    addLog(`${LBL()[who]} plays ${cardName(card)} — ${res.cap ? 'LEAPS and captures! ⚔️' : 'moves a piece.'}`);
+    if (res.crown) addLog(`👑 ${LBL()[who]} crowns a King!`);
+    if (card.kind === 'grandleap') { deal(1 - who, 2); addLog(`🐸 Grand Leap — ${LBL()[1 - who]} draws 2!`); }
+    if (countPieces(1 - who) === 0) { win(who, 'capture'); render(); return; }
+    deal(who, 1);
+    passTurn();
+  }
+
+  // ── Human handlers ─────────────────────────────────────────────────
+  window.llCard = function (i) {
+    if (gameOver || phase !== 'pickCard') return;
+    if (llMode === 'ai' && current !== 0) return;
+    const card = hands[current][i]; if (!card) return;
+    if (card.kind === 'skip')   { hands[current].splice(i, 1); discard.push(card); skip[1 - current] = true; addLog(`${LBL()[current]} plays Skip ⊘ — ${LBL()[1 - current]} loses a turn!`); deal(current, 1); passTurn(); return; }
+    if (card.kind === 'draw2')  { hands[current].splice(i, 1); discard.push(card); deal(1 - current, 2); addLog(`${LBL()[current]} plays +2 — ${LBL()[1 - current]} draws 2!`); deal(current, 1); passTurn(); return; }
+    if (card.kind === 'reverse'){ hands[current].splice(i, 1); discard.push(card); addLog(`${LBL()[current]} plays Reverse ↩ — takes another turn!`); selCard = null; phase = 'pickCard'; render(); return; }
+    const act = getActivatable(card, current);
+    if (!act.length) { addLog(`No piece can move with ${cardName(card)} — try another card or draw.`); render(); return; }
+    selCard = i; selPiece = null; validDests = []; phase = 'pickMove'; render();
+  };
+  window.llCell = function (r, c) {
+    if (gameOver || phase !== 'pickMove') return;
+    if (llMode === 'ai' && current !== 0) return;
+    const card = hands[current][selCard]; if (!card) { phase = 'pickCard'; render(); return; }
+    if (selPiece) { const m = validDests.find(x => x.tr === r && x.tc === c); if (m) { applyMovementCard(selCard, m); return; } }
+    const act = getActivatable(card, current);
+    if (act.some(p => p.r === r && p.c === c)) { selPiece = { r, c }; validDests = movesFor(r, c, current); render(); return; }
+    selPiece = null; validDests = []; render();
+  };
+  window.llDraw   = function () { if (gameOver || (llMode === 'ai' && current !== 0)) return; deal(current, 1); addLog(`${LBL()[current]} draws a card and passes.`); passTurn(); };
+  window.llCancel = function () { selCard = null; selPiece = null; validDests = []; phase = 'pickCard'; render(); };
+  window.llSetMode = function (m) { llMode = m; initGame(); render(); };
+  window.llRestart = function () { initGame(); render(); };
+
+  // ── AI ─────────────────────────────────────────────────────────────
+  function aiTurn() {
+    if (gameOver || llMode === '2p' || current !== 1) return;
+    const opts = [];
+    hands[1].forEach((card, i) => {
+      if (card.kind === 'num' || card.kind === 'wild' || card.kind === 'grandleap')
+        getActivatable(card, 1).forEach(({ r, c }) => movesFor(r, c, 1).forEach(m =>
+          opts.push({ i, m, score: scoreMove(m, 1) + (card.kind === 'grandleap' ? 4 : card.kind === 'wild' ? 1 : 0) })));
+    });
+    if (opts.length) {
+      const best = opts.sort((x, y) => y.score - x.score)[0];
+      // Only burn a Wild/Grand Leap if it actually captures; otherwise prefer a plain card if one ties.
+      applyMovementCard(best.i, best.m);
+      return;
+    }
+    // No move possible — use disruption or draw.
+    const behind = countPieces(1) <= countPieces(0);
+    const d2 = hands[1].findIndex(c => c.kind === 'draw2');
+    const sk = hands[1].findIndex(c => c.kind === 'skip');
+    if (behind && d2 >= 0) { const card = hands[1][d2]; hands[1].splice(d2, 1); discard.push(card); deal(0, 2); addLog(`${LBL()[1]} plays +2 — ${LBL()[0]} draws 2!`); deal(1, 1); passTurn(); return; }
+    if (sk >= 0) { const card = hands[1][sk]; hands[1].splice(sk, 1); discard.push(card); skip[0] = true; addLog(`${LBL()[1]} plays Skip ⊘ — ${LBL()[0]} loses a turn!`); deal(1, 1); passTurn(); return; }
+    deal(1, 1); addLog(`${LBL()[1]} draws a card and passes.`); passTurn();
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function boardHTML() {
+    const act = phase === 'pickMove' && selCard !== null ? getActivatable(hands[current][selCard], current) : [];
+    let h = `<div style="display:inline-grid;grid-template-columns:repeat(${BS},${CELL}px);gap:0;border:4px solid #3a3a4a;border-radius:8px;overflow:hidden;background:#3a3a4a;">`;
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) {
+      const dark = (r + c) % 2 === 1;
+      const piece = board[r][c];
+      const isAct = act.some(p => p.r === r && p.c === c);
+      const isSel = selPiece && selPiece.r === r && selPiece.c === c;
+      const isDest = validDests.some(m => m.tr === r && m.tc === c);
+      let bg = dark ? UNO_CSS[SQ_COLOR[r][c]] : '#11131a';
+      let ring = '';
+      if (isSel) ring = 'box-shadow:inset 0 0 0 3px #fff;';
+      else if (isDest) { bg = '#5fbf5f'; ring = 'box-shadow:inset 0 0 0 2px #fff;'; }
+      else if (isAct) ring = 'box-shadow:inset 0 0 0 3px #fff176;';
+      const clickable = (!gameOver && (llMode === '2p' || current === 0) && (isAct || isDest || isSel));
+      const pieceIcon = piece ? `<span style="position:relative;font-size:${Math.round(CELL * 0.6)}px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45));">${P_ICON[piece.p]}${piece.king ? '<span style="position:absolute;top:-6px;right:-8px;font-size:13px;">👑</span>' : ''}</span>` : '';
+      h += `<div onclick="llCell(${r},${c})" style="width:${CELL}px;height:${CELL}px;background:${bg};display:flex;align-items:center;justify-content:center;position:relative;cursor:${clickable ? 'pointer' : 'default'};${ring}">${pieceIcon}</div>`;
+    }
+    h += '</div>'; return h;
+  }
+  function handHTML() {
+    const reveal = true, myTurn = !gameOver && current === 0 || llMode === '2p';
+    let h = '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+    hands[0].forEach((card, i) => {
+      const armed = phase === 'pickMove' && selCard === i && current === 0;
+      const dim = phase === 'pickMove' && current === 0 && selCard !== i;
+      const clickable = !gameOver && phase === 'pickCard' && current === 0;
+      const bg = UNO_CSS[card.col], fg = UNO_TEXT[card.col];
+      const fs = card.kind === 'grandleap' ? 10 : card.kind === 'num' ? 16 : 14;
+      h += `<div ${clickable ? `onclick="llCard(${i})"` : ''} style="width:36px;height:52px;background:${bg};border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:800;color:${fg};cursor:${clickable ? 'pointer' : 'default'};opacity:${dim ? .4 : 1};border:2px solid ${armed ? '#fff' : 'rgba(255,255,255,.25)'};box-shadow:${clickable ? '0 2px 7px rgba(0,0,0,.5)' : 'none'};">${card.label}</div>`;
+    });
+    h += '</div>'; return h;
+  }
+  function render() {
+    const root = document.getElementById('ll-root'); if (!root) return;
+    const lbl = LBL(), is2p = llMode === '2p';
+    const status = gameOver ? `${lbl[winner]} wins the bloodline war!`
+      : phase === 'pickMove' ? (selPiece ? 'Click a highlighted square to move — green squares capture-leap!' : 'Click a glowing piece to move it.')
+      : (current === 0 && !is2p) ? 'Your turn — play a card from your hand.'
+      : is2p ? `${lbl[current]}'s turn — play a card.` : 'Rival is scheming…';
+
+    root.innerHTML = `
+    <style>
+      #ll-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #ll-right{flex:1;min-width:248px;display:flex;flex-direction:column;gap:10px;}
+      .ll-card{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:12px 14px;}
+      .ll-card h3{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+      .ll-seg{display:flex;border:1px solid #2a2a3a;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .ll-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a1a24;color:#888;cursor:pointer;font-family:inherit;}
+      .ll-seg button.active{background:#c9a84c;color:#1a1a24;font-weight:700;}
+      @keyframes ll-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="ll-wrap">
+      <div style="flex:0 0 auto;">
+        <div class="ll-seg">
+          <button class="${llMode === 'ai' ? 'active' : ''}" onclick="llSetMode('ai')">vs AI</button>
+          <button class="${llMode === '2p' ? 'active' : ''}" onclick="llSetMode('2p')">2 Player</button>
+        </div>
+        <div class="ll-card" style="width:fit-content;">
+          <h3>THE BATTLE BOARD</h3>
+          ${boardHTML()}
+        </div>
+        <div class="ll-card" style="margin-top:10px;width:${BS * CELL + 8}px;">
+          <h3>EVENT LOG</h3>
+          <div id="ll-log" style="font-size:10px;color:#888;line-height:1.8;max-height:96px;overflow-y:auto;">${log.slice(0, 11).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="ll-right">
+        <div style="display:flex;gap:10px;">
+          <div class="ll-card" style="flex:1;border-color:${current === 0 ? P_COLORS[0] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[0] : 'YOU'} 🔴</h3>
+            <div style="font-size:22px;font-weight:700;color:${P_COLORS[0]};">${countPieces(0)}</div>
+            <div style="font-size:10px;color:#555;">pieces · ${hands[0].length} cards</div>
+            ${skip[0] ? '<div style="font-size:10px;color:#FF9800;margin-top:3px;">⊘ Turn skipped</div>' : ''}
+          </div>
+          <div class="ll-card" style="flex:1;border-color:${current === 1 ? P_COLORS[1] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[1] : 'RIVAL'} 🔵</h3>
+            <div style="font-size:22px;font-weight:700;color:${P_COLORS[1]};">${countPieces(1)}</div>
+            <div style="font-size:10px;color:#555;">pieces · ${hands[1].length} cards</div>
+            ${skip[1] ? '<div style="font-size:10px;color:#FF9800;margin-top:3px;">⊘ Turn skipped</div>' : ''}
+          </div>
+        </div>
+        <div class="ll-card" style="border-color:#3a3320;">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#ccc;line-height:1.6;">${status}</div>
+          ${!gameOver && (current === 0 || is2p) ? `<div style="display:flex;gap:8px;margin-top:10px;">
+            ${phase === 'pickMove' ? `<button class="btn" onclick="llCancel()">⟲ Cancel</button>` : `<button class="btn" onclick="llDraw()">🃏 Draw &amp; Pass</button>`}
+          </div>` : ''}
+        </div>
+        <div class="ll-card">
+          <h3>${is2p ? lbl[current === 1 ? 1 : 0] : 'YOUR'} HAND (${hands[0].length})</h3>
+          ${handHTML()}
+        </div>
+        <div class="ll-card">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#c9a84c;">Goal:</b> Capture every enemy piece.<br><br>
+            <b style="color:#c9a84c;">Move = a card:</b> Play a <b>colored card</b> to awaken one of your pieces standing on a square of that color, then move or jump it (diagonals; jumps capture).<br>
+            <b style="color:#c9a84c;">Wild 🌈:</b> Move <i>any</i> piece, any color.<br>
+            <b style="color:#c9a84c;">Grand Leap:</b> Move any piece + rival draws 2.<br>
+            <b style="color:#c9a84c;">Skip ⊘:</b> Rival loses a turn. &nbsp;<b style="color:#c9a84c;">Reverse ↩:</b> Take another turn.<br>
+            <b style="color:#c9a84c;">+2:</b> Rival draws 2 cards.<br>
+            <b style="color:#c9a84c;">King 👑:</b> Reach the far row to move both directions.<br>
+            <b style="color:#888;">Stuck? Draw &amp; Pass.</b>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    if (gameOver) {
+      root.insertAdjacentHTML('beforeend', `
+        <div class="ll-card" style="margin-top:16px;text-align:center;padding:24px;animation:ll-rise .4s ease both;">
+          <h2 style="font-size:24px;font-weight:700;color:#c9a84c;margin-bottom:8px;">🏆 ${lbl[winner]} wins!</h2>
+          <p style="color:#888;margin-bottom:18px;">${winBy === 'capture' ? 'Captured the last enemy piece.' : 'Outlasted the rival with the stronger line.'}</p>
+          <button class="btn primary" onclick="llRestart()">Play Again</button>
+          <button class="btn" onclick="goToSelect()">Pick New Games</button>
+        </div>`);
+    }
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────
+  document.getElementById('game-root').innerHTML = `<div id="ll-root"></div>`;
+  render();
+  addLog('Lineage Leap! Spend cards to move your pieces and capture the rival.');
 }
 
 // ══════════════════════════════════════════════════════════════════════
