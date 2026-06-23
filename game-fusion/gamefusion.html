@@ -3240,7 +3240,7 @@ function startTowerTycoon(a, b) {
   function endGame(collapsed) {
     gameOver = true;
     const p1=LABELS[ttMode][0], p2=LABELS[ttMode][1];
-    const verb=n=>n==='You'?'win':'wins';
+    const verb=n=>n==='You'?'Win':'Wins';
     const winner=money[0]>money[1]?`${p1} ${verb(p1)}!`:money[1]>money[0]?`${p2} ${verb(p2)}!`:'Tie game!';
     if (collapsed) animateCollapse(()=>showEndCard(winner,p1,p2));
     else showEndCard(winner,p1,p2);
