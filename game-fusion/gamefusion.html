@@ -389,6 +389,7 @@ const HYBRID_NAMES = {
   'jenga+monopoly':'Tower Tycoon','monopoly+jenga':'Tower Tycoon',
   'jenga+uno':'Toppling Colors','uno+jenga':'Toppling Colors',
   'candyland+jenga':'Toffee Tower','jenga+candyland':'Toffee Tower',
+  'candyland+uno':'Sweet Dispute','uno+candyland':'Sweet Dispute',
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
@@ -440,6 +441,16 @@ const GAME_FLAVOR = {
 
 // ── Curated stories for popular combos ───────────────────────────────
 const HYBRID_STORIES = {
+  'candyland+uno': {
+    tagline: 'Sweetest race. Sourest tricks.',
+    story: 'The peppermint path to the Candy Castle has never been this cutthroat. Instead of flipping a card from a deck, you hold a hand of color cards and choose exactly how to advance — match the licorice path\'s color for a Sugar Rush and surge ahead. But your rival can drop a Sour Reverse to fling you backward, a +2 to clog your hand, or a Rainbow Lollipop to warp straight to the next candy landmark. First pawn to the castle wins — if your opponent doesn\'t spoil the trip first.',
+    players: '2', time: '8–15 min', age: '6+',
+  },
+  'uno+candyland': {
+    tagline: 'Sweetest race. Sourest tricks.',
+    story: 'The peppermint path to the Candy Castle has never been this cutthroat. Instead of flipping a card from a deck, you hold a hand of color cards and choose exactly how to advance — match the licorice path\'s color for a Sugar Rush and surge ahead. But your rival can drop a Sour Reverse to fling you backward, a +2 to clog your hand, or a Rainbow Lollipop to warp straight to the next candy landmark. First pawn to the castle wins — if your opponent doesn\'t spoil the trip first.',
+    players: '2', time: '8–15 min', age: '6+',
+  },
   'chess+dominoes': {
     tagline: 'Ancient moves. Matched tiles.',
     story: 'Two classics collide on a single board. Draw domino-style tiles of chess pieces and place them strategically — each piece captures enemies using its full movement rules the moment it lands. A Rook clears an entire rank. A Queen sweeps eight directions. But your King is also your liability: let the opponent capture it and the game ends instantly. Plan deep. Place smart. Own the board.',
@@ -929,6 +940,7 @@ function buildBoxArtSVG(a, b) {
 
 // Template tags — used to pick themed animations on the artwork page
 const GAME_TEMPLATE = {
+  'candyland+uno':      'path-race',
   'monopoly+uno': 'economy',
   'candyland+monopoly': 'economy',
   'monopoly+sorry':     'economy',
@@ -944,6 +956,7 @@ const CUSTOM_ART = {
   'jenga+monopoly':  'TowerTycoon.png',
   'jenga+uno':       'TopplingColors.png',
   'candyland+jenga': 'ToffeeTower.png',
+  'candyland+uno':   'SweetDispute.png',
   'jenga+sorry':     'ToweringTreachery.png',
   'checkers+jenga':  'TowerTactics.png',
   'monopoly+uno':    'DeedorDispute.png',
@@ -1356,6 +1369,38 @@ function beginWithAnimation() {
       }
       requestAnimationFrame(animCrumble);
 
+    } else if (tmpl === 'path-race') {
+      // ── Path Race: vertical strips race off to the right in a wave ───
+      const N = 16;
+      const stripW = W / N;
+      const strips = Array.from({ length: N }, (_, i) => ({
+        srcX: i * stripW, x: i * stripW,
+        vx: 0, op: 1, going: false,
+        delay: i * 70,            // left-to-right stagger, like pawns leaving the start
+      }));
+      let elapsed = 0, last = null;
+      function animRace(ts) {
+        if (!last) last = ts;
+        elapsed += ts - last; last = ts;
+        ctx.clearRect(0, 0, W, H);
+        let alive = 0;
+        strips.forEach(s => {
+          if (s.op <= 0) return;
+          alive++;
+          if (!s.going && elapsed >= s.delay) { s.going = true; s.vx = 6; }
+          if (s.going) {
+            s.vx += 1.6; s.x += s.vx;
+            if (s.x > W * 0.35) s.op -= 0.05;
+          }
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, s.op);
+          ctx.drawImage(offscreen, s.srcX, 0, stripW, H, s.x, 0, stripW, H);
+          ctx.restore();
+        });
+        alive > 0 ? requestAnimationFrame(animRace) : (cv.remove(), startGame());
+      }
+      requestAnimationFrame(animRace);
+
     } else {
       // ── Default: horizontal floor strips fall and fade ──────────────
       const N = 13;
@@ -1405,6 +1450,7 @@ const COMBO_GAMES = {
   'jenga+monopoly':  startTowerTycoon,
   'jenga+uno':       startTopplingColors,
   'candyland+jenga': startToffeeTower,
+  'candyland+uno':   startSweetDispute,
   'jenga+sorry':     startToweringTreachery,
   'checkers+jenga':  startTowerTactics,
   'monopoly+uno':    startDeedOrDispute,
@@ -1854,6 +1900,327 @@ function startDeedOrDispute(a, b) {
   render();
   addLog('Game started! Play a card to move around the board.');
   if(ddMode==='ai'&&current===1) setTimeout(aiTurn,800);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SWEET DISPUTE  (Candy Land × Uno)  — Path Race Template
+// ══════════════════════════════════════════════════════════════════════
+function startSweetDispute(a, b) {
+  // ── Candy track ────────────────────────────────────────────────────
+  // Serpentine licorice path of colored squares. Uno colors == Candy
+  // Land colors so cards and path share one palette.
+  const CANDY = ['red', 'blue', 'green', 'yellow'];
+  const CANDY_CSS  = { red:'#e53935', blue:'#1e88e5', green:'#43a047', yellow:'#f9a825' };
+  const CANDY_TEXT = { red:'#fff', blue:'#fff', green:'#fff', yellow:'#111' };
+
+  const N = 36;                 // squares incl. start (0) and castle (N-1)
+  const FINISH = N - 1;
+  const COLS = 6;               // serpentine width
+
+  // Build the track: rotating candy colors, then overlay special candies.
+  const TRACK = [];
+  for (let i = 0; i < N; i++) {
+    TRACK.push({ color: CANDY[i % CANDY.length], special: null, icon: null, label: null });
+  }
+  TRACK[0]      = { color:'green',  special:'start',  icon:'🏁', label:'Start' };
+  TRACK[6]      = { color:'red',    special:'shortcut', to:12, icon:'🍭', label:'Lollipop Woods' };
+  TRACK[13]     = { color:'yellow', special:'sticky',  icon:'🍫', label:'Chocolate Swamp' };
+  TRACK[20]     = { color:'blue',   special:'shortcut', to:26, icon:'🌈', label:'Rainbow Trail' };
+  TRACK[24]     = { color:'green',  special:'landmark', icon:'🍬', label:'Gumdrop Pass' };
+  TRACK[30]     = { color:'red',    special:'back', to:23, icon:'🥨', label:'Licorice Tangle' };
+  TRACK[FINISH] = { color:'yellow', special:'castle', icon:'🏰', label:'Candy Castle' };
+
+  // Serpentine pixel coords for the board SVG.
+  const BW = 244, pad = 16, cell = (BW - pad * 2) / (COLS - 1);
+  function cellXY(i) {
+    const row = Math.floor(i / COLS);
+    let col = i % COLS;
+    if (row % 2 === 1) col = COLS - 1 - col;      // snake back the other way
+    return { x: pad + col * cell, y: pad + row * cell };
+  }
+  const ROWS = Math.ceil(N / COLS);
+  const BH = pad * 2 + (ROWS - 1) * cell;
+
+  // ── Uno deck ───────────────────────────────────────────────────────
+  const ACTIONS = ['skip', 'reverse', 'draw2'];
+  function buildDeck() {
+    const d = [];
+    for (const col of CANDY) {
+      for (let n = 1; n <= 6; n++) { d.push({ col, val:n, label:`${n}`, type:'num' }); d.push({ col, val:n, label:`${n}`, type:'num' }); }
+      for (const act of ACTIONS) { d.push({ col, val:act, type:'action', label: act==='draw2'?'+2':act==='skip'?'⊘':'↩' }); }
+    }
+    for (let i = 0; i < 4; i++) d.push({ col:'rainbow', val:'wild', type:'wild', label:'🌈' });
+    return d.sort(() => Math.random() - 0.5);
+  }
+  const P_COLORS = ['#f06292', '#7F77DD'];   // pink pawn (you) / purple pawn (rival)
+  const P_ICON   = ['🔴', '🔵'];
+
+  // ── State ──────────────────────────────────────────────────────────
+  let deck = [], discard = [], hands = [[], []], pos = [0, 0];
+  let stuck = [false, false];                 // on a sticky candy → lose next turn
+  let current = 0, gameOver = false, winner = -1;
+  const log = [];
+  let sdMode = 'ai';                          // 'ai' | '2p'
+  function LBL() { return sdMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'Rival']; }
+
+  function deal(p, n = 1) {
+    for (let i = 0; i < n; i++) {
+      if (!deck.length) { deck = discard.splice(0).sort(() => Math.random() - 0.5); }
+      if (deck.length) hands[p].push(deck.pop());
+    }
+  }
+  function initGame() {
+    deck = buildDeck(); discard = []; hands = [[], []]; pos = [0, 0];
+    stuck = [false, false]; current = 0; gameOver = false; winner = -1;
+    log.length = 0;
+    deal(0, 5); deal(1, 5);
+  }
+  initGame();
+
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('sd-log'); if (el) el.innerHTML = log.slice(0, 12).join('<br>'); }
+
+  // ── Movement helpers ───────────────────────────────────────────────
+  function advance(p, steps) { pos[p] = Math.min(FINISH, pos[p] + steps); }
+  function setBack(p, steps)  { pos[p] = Math.max(0, pos[p] - steps); }
+  function nextColorSquare(from, color) {
+    for (let i = from + 1; i <= FINISH; i++) if (TRACK[i].color === color && TRACK[i].special !== 'castle') return i;
+    return -1;
+  }
+
+  // Resolve whatever square a pawn ended on (called after a move).
+  function resolveLanding(p) {
+    if (pos[p] >= FINISH) { win(p); return; }
+    const sq = TRACK[pos[p]];
+    if (sq.special === 'shortcut') { addLog(`${sq.icon} ${LBL()[p]} hits ${sq.label} — sweet shortcut to ${TRACK[sq.to].label || 'square ' + sq.to}!`); pos[p] = sq.to; resolveLanding(p); return; }
+    if (sq.special === 'back')     { addLog(`${sq.icon} ${LBL()[p]} is snared in ${sq.label} — back to ${TRACK[sq.to].label}!`); pos[p] = sq.to; return; }
+    if (sq.special === 'sticky')   { stuck[p] = true; addLog(`${sq.icon} ${LBL()[p]} is stuck in ${sq.label} — loses a turn!`); return; }
+    if (sq.special === 'landmark') { addLog(`${sq.icon} ${LBL()[p]} rests at ${sq.label}.`); return; }
+  }
+
+  // ── Card play ──────────────────────────────────────────────────────
+  function playCard(idx, isAI = false) {
+    if (gameOver) return;
+    if (!isAI && sdMode === 'ai' && current !== 0) return;   // humans can't act on the AI's turn
+    const card = hands[current][idx];
+    if (!card) return;
+    const p = current, opp = 1 - p;
+    hands[p].splice(idx, 1); discard.push(card);
+
+    if (card.type === 'num') {
+      advance(p, card.val);
+      addLog(`${LBL()[p]} plays ${card.col} ${card.val} — advances ${card.val}.`);
+      if (pos[p] < FINISH && TRACK[pos[p]].color === card.col && !TRACK[pos[p]].special) {
+        const j = nextColorSquare(pos[p], card.col);
+        if (j !== -1) { addLog(`🍭 Sugar Rush! Color match sends ${LBL()[p]} ahead to the next ${card.col} square.`); pos[p] = j; }
+      }
+      resolveLanding(p);
+    } else if (card.type === 'action') {
+      if (card.val === 'skip') {
+        stuck[opp] = true; advance(p, 2);
+        addLog(`${LBL()[p]} plays Skip ⊘ — ${LBL()[opp]} loses a turn, and races ahead 2!`);
+        resolveLanding(p);
+      } else if (card.val === 'reverse') {
+        setBack(opp, 4);
+        addLog(`${LBL()[p]} plays Sour Reverse ↩ — flings ${LBL()[opp]} back 4 squares!`);
+      } else if (card.val === 'draw2') {
+        deal(opp, 2); setBack(opp, 2); advance(p, 1);
+        addLog(`${LBL()[p]} plays +2 — ${LBL()[opp]} eats 2 cards & slides back 2!`);
+        resolveLanding(p);
+      }
+    } else if (card.type === 'wild') {
+      const j = nextSpecialAhead(pos[p]);
+      if (j !== -1) { pos[p] = j; addLog(`${LBL()[p]} plays Rainbow Lollipop 🌈 — warps to ${TRACK[j].label}!`); }
+      else { advance(p, 5); addLog(`${LBL()[p]} plays Rainbow Lollipop 🌈 — surges ahead 5!`); }
+      resolveLanding(p);
+    }
+
+    if (!gameOver) endTurn();
+    render();
+    if (!gameOver && sdMode === 'ai' && current === 1) setTimeout(aiTurn, 800);
+  }
+
+  function nextSpecialAhead(from) {
+    for (let i = from + 1; i <= FINISH; i++) {
+      const sp = TRACK[i].special;
+      if (sp === 'shortcut' || sp === 'landmark' || sp === 'castle') return i;
+    }
+    return -1;
+  }
+
+  function endTurn() {
+    deal(current, 1);
+    while (hands[current].length > 8) hands[current].shift();
+    current = 1 - current;
+    if (stuck[current]) { stuck[current] = false; addLog(`${LBL()[current]} is stuck in the sweets — turn skipped!`); current = 1 - current; }
+  }
+
+  function win(p) {
+    gameOver = true; winner = p; pos[p] = FINISH;
+    addLog(`🏰 ${LBL()[p]} reaches the Candy Castle and wins!`);
+  }
+
+  // ── AI ─────────────────────────────────────────────────────────────
+  function aiTurn() {
+    if (gameOver || sdMode === '2p' || current !== 1) return;
+    const hand = hands[1];
+    if (!hand.length) { endTurn(); render(); if (sdMode === 'ai' && current === 1) setTimeout(aiTurn, 800); return; }
+    const behind = pos[1] <= pos[0];
+    // Rough value of each card for the AI.
+    const score = (c) => {
+      if (c.type === 'wild') return 7;
+      if (c.type === 'num') {
+        let s = c.val;
+        const land = Math.min(FINISH, pos[1] + c.val);
+        if (TRACK[land].color === c.col && !TRACK[land].special) s += 4;   // sugar rush
+        if (TRACK[land].special === 'shortcut') s += 6;
+        if (TRACK[land].special === 'back' || TRACK[land].special === 'sticky') s -= 5;
+        return s;
+      }
+      if (c.val === 'skip')    return 8;
+      if (c.val === 'draw2')   return behind ? 9 : 4;   // setback shines when behind
+      if (c.val === 'reverse') return behind ? 10 : 3;
+      return 1;
+    };
+    const idx = hand.map((c, i) => [score(c), i]).sort((x, y) => y[0] - x[0])[0][1];
+    playCard(idx, true);
+  }
+
+  // ── Render: board ──────────────────────────────────────────────────
+  function boardSVG() {
+    let svg = `<svg width="${BW}" height="${BH}" style="display:block;margin:auto;">`;
+    // connecting path
+    let d = '';
+    for (let i = 0; i < N; i++) { const { x, y } = cellXY(i); d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1) + ' '; }
+    svg += `<path d="${d}" fill="none" stroke="#3a2a3a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+    for (let i = 0; i < N; i++) {
+      const { x, y } = cellXY(i);
+      const sq = TRACK[i];
+      const r = sq.special ? 8.5 : 6;
+      svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${CANDY_CSS[sq.color]}" stroke="${sq.special ? '#fff' : '#1a1a24'}" stroke-width="${sq.special ? 2 : 1}"/>`;
+      if (sq.icon) svg += `<text x="${x.toFixed(1)}" y="${(y + 3.5).toFixed(1)}" text-anchor="middle" font-size="10">${sq.icon}</text>`;
+    }
+    // pawns
+    for (let p = 0; p < 2; p++) {
+      const { x, y } = cellXY(pos[p]);
+      const ox = pos[0] === pos[1] ? (p === 0 ? -5 : 5) : 0;
+      svg += `<text x="${(x + ox).toFixed(1)}" y="${(y - 9).toFixed(1)}" text-anchor="middle" font-size="13">${P_ICON[p]}</text>`;
+    }
+    svg += `</svg>`;
+    return svg;
+  }
+
+  // ── Render: hand ───────────────────────────────────────────────────
+  function handHTML(p) {
+    const isHuman = p === 0 || sdMode === '2p';
+    const canPlay = !gameOver && current === p && (sdMode === '2p' || p === 0);
+    const reveal = isHuman;
+    let h = '<div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;">';
+    hands[p].forEach((card, i) => {
+      const bg = reveal ? (CANDY_CSS[card.col] || '#7e57c2') : '#1a1a24';
+      const fg = reveal ? (CANDY_TEXT[card.col] || '#fff') : '#444';
+      const big = card.type !== 'num';
+      h += `<div ${canPlay ? `onclick="sdPlay(${i})"` : ''} style="width:38px;height:54px;background:${bg};border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:${big ? '15px' : '16px'};font-weight:700;color:${fg};cursor:${canPlay ? 'pointer' : 'default'};box-shadow:${canPlay && reveal ? '0 2px 8px rgba(0,0,0,.5)' : 'none'};border:2px solid ${canPlay ? 'rgba(255,255,255,.35)' : 'transparent'};transition:transform .1s;" ${canPlay ? `onmousedown="this.style.transform='scale(.92)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''"` : ''}>${reveal ? card.label : '🍬'}</div>`;
+    });
+    h += '</div>';
+    return h;
+  }
+
+  // ── Render: main ───────────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('sd-root');
+    if (!root) return;
+    const lbl = LBL(), is2p = sdMode === '2p';
+    const status = gameOver
+      ? `${lbl[winner]} wins the race to the Candy Castle!`
+      : current === 0 && !is2p ? 'Your turn — play a card to move along the path.'
+      : `${lbl[current]}'s turn — play a card.`;
+    const distTo = (p) => FINISH - pos[p];
+
+    root.innerHTML = `
+    <style>
+      #sd-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #sd-right{flex:1;min-width:248px;display:flex;flex-direction:column;gap:10px;}
+      .sd-card{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:12px 14px;}
+      .sd-card h3{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+      .sd-seg{display:flex;border:1px solid #2a2a3a;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .sd-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a1a24;color:#888;cursor:pointer;font-family:inherit;}
+      .sd-seg button.active{background:#f06292;color:#1a1a24;font-weight:700;}
+      @keyframes sd-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="sd-wrap">
+      <div style="flex:0 0 auto;">
+        <div class="sd-seg">
+          <button class="${sdMode === 'ai' ? 'active' : ''}" onclick="sdSetMode('ai')">vs AI</button>
+          <button class="${sdMode === '2p' ? 'active' : ''}" onclick="sdSetMode('2p')">2 Player</button>
+        </div>
+        <div class="sd-card" style="width:272px;">
+          <h3>CANDY PATH → 🏰</h3>
+          ${boardSVG()}
+        </div>
+        <div class="sd-card" style="margin-top:10px;width:272px;">
+          <h3>EVENT LOG</h3>
+          <div id="sd-log" style="font-size:10px;color:#888;line-height:1.8;max-height:118px;overflow-y:auto;">${log.slice(0, 12).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="sd-right">
+        <div style="display:flex;gap:10px;">
+          <div class="sd-card" style="flex:1;border-color:${current === 0 ? P_COLORS[0] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[0] : 'YOU'} 🔴</h3>
+            <div style="font-size:22px;font-weight:700;color:${P_COLORS[0]};">${distTo(0)}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">squares from castle</div>
+            ${stuck[0] ? '<div style="font-size:10px;color:#FF9800;margin-top:3px;">🍫 Stuck — loses next turn</div>' : ''}
+          </div>
+          <div class="sd-card" style="flex:1;border-color:${current === 1 ? P_COLORS[1] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[1] : 'RIVAL'} 🔵</h3>
+            <div style="font-size:22px;font-weight:700;color:${P_COLORS[1]};">${distTo(1)}</div>
+            <div style="font-size:10px;color:#555;margin-top:2px;">squares from castle</div>
+            ${stuck[1] ? '<div style="font-size:10px;color:#FF9800;margin-top:3px;">🍫 Stuck — loses next turn</div>' : ''}
+          </div>
+        </div>
+        <div class="sd-card" style="border-color:#3a1a2a;">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#ccc;line-height:1.6;">${status}</div>
+        </div>
+        <div class="sd-card">
+          <h3>${is2p ? lbl[0] : 'YOUR'} HAND (${hands[0].length})</h3>
+          ${handHTML(0)}
+        </div>
+        ${is2p ? `<div class="sd-card"><h3>${lbl[1]} HAND (${hands[1].length})</h3>${handHTML(1)}</div>` : ''}
+        <div class="sd-card">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#f06292;">Goal:</b> First pawn to the Candy Castle 🏰 wins.<br><br>
+            <b style="color:#f06292;">Number cards 1–6:</b> Advance that many squares. Land on a square matching the card's color for a <b style="color:#f06292;">Sugar Rush</b> jump ahead!<br>
+            <b style="color:#f06292;">Skip ⊘:</b> Opponent loses a turn + you move 2.<br>
+            <b style="color:#f06292;">Sour Reverse ↩:</b> Fling opponent back 4.<br>
+            <b style="color:#f06292;">+2:</b> Opponent draws 2 & slides back 2; you move 1.<br>
+            <b style="color:#f06292;">Rainbow Lollipop 🌈:</b> Warp to the next candy landmark.<br><br>
+            <b style="color:#f06292;">Candy spots:</b> 🍭🌈 shortcuts speed you up, 🍫 sticks you for a turn, 🥨 drags you back.
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    if (gameOver) {
+      root.insertAdjacentHTML('beforeend', `
+        <div class="sd-card" style="margin-top:16px;text-align:center;padding:24px;animation:sd-rise .4s ease both;">
+          <h2 style="font-size:24px;font-weight:700;color:#f06292;margin-bottom:8px;">🏰 ${lbl[winner]} wins!</h2>
+          <p style="color:#888;margin-bottom:18px;">First to reach the Candy Castle.</p>
+          <button class="btn primary" onclick="sdRestart()">Play Again</button>
+          <button class="btn" onclick="goToSelect()">Pick New Games</button>
+        </div>`);
+    }
+  }
+
+  // ── Global handlers ────────────────────────────────────────────────
+  window.sdPlay    = function (i) { playCard(i); };
+  window.sdSetMode = function (m) { sdMode = m; initGame(); render(); };
+  window.sdRestart = function () { initGame(); render(); };
+
+  // ── Boot ───────────────────────────────────────────────────────────
+  document.getElementById('game-root').innerHTML = `<div id="sd-root"></div>`;
+  render();
+  addLog('The sweet race begins! Play a card to leave the Start.');
 }
 
 // ══════════════════════════════════════════════════════════════════════
