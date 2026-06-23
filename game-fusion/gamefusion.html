@@ -3240,16 +3240,19 @@ function startTowerTycoon(a, b) {
   function endGame(collapsed) {
     gameOver = true;
     const p1=LABELS[ttMode][0], p2=LABELS[ttMode][1];
-    const winner=money[0]>money[1]?`${p1} wins!`:money[1]>money[0]?`${p2} wins!`:'Tie game!';
+    const verb=n=>n==='You'?'win':'wins';
+    const winner=money[0]>money[1]?`${p1} ${verb(p1)}!`:money[1]>money[0]?`${p2} ${verb(p2)}!`:'Tie game!';
     if (collapsed) animateCollapse(()=>showEndCard(winner,p1,p2));
     else showEndCard(winner,p1,p2);
   }
 
   function showEndCard(winner, p1, p2) {
-    document.getElementById('game-root').insertAdjacentHTML('beforeend', `
-      <div class="tt-card tt-gameover" style="animation:tt-rise .4s ease both;">
-        <h2>${winner}</h2>
-        <p style="color:#888;margin-bottom:16px;">${p1}: $${money[0]} &nbsp;·&nbsp; ${p2}: $${money[1]}</p>
+    // Compact result card placed directly under the tower so it's visible without scrolling.
+    const col = document.getElementById('tt-tower-col') || document.getElementById('game-root');
+    col.insertAdjacentHTML('beforeend', `
+      <div class="tt-card tt-gameover" style="animation:tt-rise .4s ease both;margin-top:12px;max-width:${CV_W}px;padding:14px 16px;">
+        <h2 style="font-size:20px;margin-bottom:4px;">${winner}</h2>
+        <p style="color:#aaa;margin-bottom:12px;font-size:13px;">${p1}: $${money[0]} &nbsp;·&nbsp; ${p2}: $${money[1]}</p>
         <button class="btn primary" onclick="startTowerTycoon(activeGameA,activeGameB)">Play Again</button>
         <button class="btn" onclick="goToSelect()">Pick New Games</button>
       </div>`);
