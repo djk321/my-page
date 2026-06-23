@@ -189,7 +189,7 @@
   <div id="intro">
     <div class="intro-inner">
       <div class="poster-wrap" id="poster-wrap">
-        <img id="poster-img" src="Chess-Monopoly.png" alt="Boardwalk Blitz" crossorigin="anonymous" />
+        <img id="poster-img" src="Chess-Monopoly.png" alt="Boardwalk Blitz" />
       </div>
       <button class="play-btn" id="play-btn" onclick="startCrumble()">▶ Play Game</button>
     </div>
@@ -337,15 +337,32 @@ function setDiff(d) {
 }
 
 // ============ CRUMBLE ANIMATION ============
+function revealGame() {
+  const intro = document.getElementById('intro');
+  intro.style.transition = 'opacity 0.3s';
+  intro.style.opacity = '0';
+  setTimeout(() => { intro.style.display = 'none'; }, 350);
+  const gameRoot = document.getElementById('game-root');
+  gameRoot.style.display = 'block';
+  gameRoot.classList.add('visible');
+  gameRoot.style.opacity = '1';
+  document.getElementById('crumble-canvas').style.display = 'none';
+  initGame();
+}
+
 function startCrumble() {
   document.getElementById('play-btn').disabled = true;
+  const img = document.getElementById('poster-img');
+  // If the poster image failed to load, drawImage() would throw and the game
+  // would never start — skip the animation and reveal the board directly.
+  if (!img.complete || !img.naturalWidth) { revealGame(); return; }
+
   const canvas = document.getElementById('crumble-canvas');
   const ctx = canvas.getContext('2d');
   canvas.style.display = 'block';
   const W = window.innerWidth, H = window.innerHeight;
   canvas.width = W; canvas.height = H;
 
-  const img = document.getElementById('poster-img');
   const rect = document.getElementById('poster-wrap').getBoundingClientRect();
   const COLS = 14, ROWS = 18;
   const sw = rect.width / COLS, sh = rect.height / ROWS;
@@ -390,6 +407,16 @@ function startCrumble() {
   gameRoot.style.display = 'block';
   setTimeout(() => gameRoot.classList.add('visible'), 400);
   initGame();
+
+  // Failsafe: the crumble animation hides the cover canvas and the CSS
+  // transition reveals the board — but requestAnimationFrame and CSS
+  // transitions are paused when the tab isn't focused, which would leave the
+  // board hidden behind the canvas forever. Guarantee the reveal regardless.
+  setTimeout(() => {
+    canvas.style.display = 'none';
+    gameRoot.classList.add('visible');
+    gameRoot.style.opacity = '1';
+  }, 3200);
 
   let startTime = null;
   function animate(ts) {
