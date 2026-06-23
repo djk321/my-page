@@ -1323,8 +1323,13 @@ function beginWithAnimation() {
   // reveal screen is left showing hidden art and the game never launches: a blank
   // screen on "some" combinations depending on timing/focus.
   let launched = false;
-  const launch = () => { if (launched) return; launched = true; startGame(); };
-  setTimeout(launch, 3500);   // failsafe — longer than the slowest animation (economy ≈3s), so it only fires when genuinely stuck
+  let revealCv = null;   // the canvas overlay; launch() must clear it so a failsafe-launch never leaves it covering the game
+  const launch = () => { if (launched) return; launched = true; if (revealCv) { try { revealCv.remove(); } catch (e) {} } startGame(); };
+  // Failsafe: if the slice animation never finishes (tab backgrounded → requestAnimationFrame
+  // pauses, slow device, or a frame throws), the reveal screen is fully blanked (art hidden,
+  // name/meta/button faded) until something launches the game. Keep this short so that gap can
+  // never feel like a hang — the foreground animations all finish in ≈1s, well under it.
+  setTimeout(launch, 1800);
 
   // Phase 1: shake the art
   const img = artEl.querySelector('img') || artEl.querySelector('svg');
@@ -1340,6 +1345,7 @@ function beginWithAnimation() {
     cv.width = W; cv.height = H;
     cv.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;z-index:1001;pointer-events:none;border-radius:16px;`;
     document.body.appendChild(cv);
+    revealCv = cv;
     const ctx = cv.getContext('2d');
 
     // Draw the art element into an offscreen canvas so we can slice it
