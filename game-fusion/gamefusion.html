@@ -4977,9 +4977,22 @@ function startTopplingColors(a, b) {
   const blocks = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      blocks.push({ row: r, col: c, color: COLOR_SEQ[r % 4][c], removed: false });
+      blocks.push({ row: r, col: c, color: COLOR_SEQ[r % 4][c], num: null, removed: false });
     }
   }
+
+  // Scatter UNO numbers 1-9 across a subset of blocks so number cards can match by value.
+  function assignNumbers() {
+    blocks.forEach(b => b.num = null);
+    const NUMBERED = 18; // half of the 36 blocks carry a number
+    const order = blocks.map((_, i) => i);
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+    const pool = []; // even spread: each of 1-9 appears twice
+    while (pool.length < NUMBERED) for (let n = 1; n <= 9 && pool.length < NUMBERED; n++) pool.push(n);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+    order.slice(0, NUMBERED).forEach((bi, k) => { blocks[bi].num = pool[k]; });
+  }
+  assignNumbers();
 
   // Build deck
   function makeDeck() {
@@ -5027,7 +5040,7 @@ function startTopplingColors(a, b) {
 
   function ttPos(r, c) { return { x: TTX + c*(BW+PX), y: TTY - (r+1)*(BH+PY) }; }
 
-  function drawOneBlock(ctx, x, y, col, alpha, highlight) {
+  function drawOneBlock(ctx, x, y, col, alpha, highlight, num) {
     const theme = UNO[col] || UNO.red;
     ctx.globalAlpha = alpha ?? 1;
     const fc = highlight ? lighten(theme.fc, 60) : theme.fc;
@@ -5042,6 +5055,16 @@ function startTopplingColors(a, b) {
     ctx.moveTo(x+BW,y); ctx.lineTo(x+BW+DX,y-DY);
     ctx.lineTo(x+BW+DX,y-DY+BH); ctx.lineTo(x+BW,y+BH);
     ctx.closePath(); ctx.fill(); ctx.stroke();
+    // UNO number on the block face — outlined so it reads on any color
+    if (num != null) {
+      ctx.font = 'bold 15px system-ui';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.strokeText(num, x + BW/2, y + BH/2 + 1);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(num, x + BW/2, y + BH/2 + 1);
+      ctx.textBaseline = 'alphabetic';
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -5050,48 +5073,100 @@ function startTopplingColors(a, b) {
     return `rgb(${Math.min(255,r+amt)},${Math.min(255,g+amt)},${Math.min(255,b+amt)})`;
   }
 
-  function validColors() {
-    if (selectedCardIdx === null) return new Set();
-    const card = hands[currentPlayer][selectedCardIdx];
-    if (!card) return new Set();
-    if (card.type === 'wild' || card.type === 'draw4') {
-      if (chosenWildColor) return new Set([chosenWildColor]);
-      return new Set(COLOR_NAMES); // highlight all until color chosen
-    }
-    return new Set([card.color]);
+  function selectedCard() {
+    if (selectedCardIdx === null) return null;
+    return hands[currentPlayer][selectedCardIdx] || null;
   }
 
-  function fullDraw() {
-    if (!tcCtx) return;
-    const ctx = tcCtx;
+  // Real UNO matching: a card takes a block by COLOR — and number cards also by NUMBER.
+  function canPull(card, blk) {
+    if (!card) return false;
+    if (card.type === 'wild' || card.type === 'draw4') {
+      return chosenWildColor ? blk.color === chosenWildColor : true; // glow all until a color is chosen
+    }
+    if (card.type === 'number') {
+      return blk.color === card.color || (blk.num != null && blk.num === card.value);
+    }
+    return blk.color === card.color; // skip / reverse / draw2 match by color only
+  }
+
+  // Same matching rule but independent of the chosen-wild-color global — used for AI planning.
+  function canPullBy(card, blk) {
+    if (card.type === 'wild' || card.type === 'draw4') return true; // wild can target any block (color picked on play)
+    if (card.type === 'number') return blk.color === card.color || (blk.num != null && blk.num === card.value);
+    return blk.color === card.color;
+  }
+
+  function drawBg(ctx) {
     const bg = ctx.createLinearGradient(0,0,0,CV_H);
     bg.addColorStop(0,'#0e2a4a'); bg.addColorStop(1,'#1a3a60');
     ctx.fillStyle = bg; ctx.fillRect(0,0,CV_W,CV_H);
+  }
 
+  function drawTowerBody(ctx, angle) {
+    ctx.save();
+    if (angle) {
+      // Pivot the whole tower about its base so it sways like a real stack.
+      ctx.translate(TTX + COLS*(BW+PX)/2, TTY);
+      ctx.rotate(angle * Math.PI/180);
+      ctx.translate(-(TTX + COLS*(BW+PX)/2), -TTY);
+    }
     ctx.fillStyle = '#221508';
     ctx.fillRect(TTX-8, TTY+2, COLS*(BW+PX)+DX+4, 10);
     ctx.fillStyle = '#3a2210';
     ctx.fillRect(TTX-8, TTY-2, COLS*(BW+PX)+DX+4, 4);
 
-    const valid = validColors();
+    const card = selectedCard();
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const blk = blocks[r*COLS+c];
         if (blk.removed) continue;
         const isHov = hovBlock && hovBlock.row===r && hovBlock.col===c;
-        const isValid = valid.has(blk.color);
-        drawOneBlock(ctx, ...Object.values(ttPos(r,c)), blk.color, 1, isHov && isValid);
+        const isValid = canPull(card, blk);
+        const {x,y} = ttPos(r,c);
+        drawOneBlock(ctx, x, y, blk.color, 1, isHov && isValid, blk.num);
         if (!isValid && selectedCardIdx !== null) {
           ctx.fillStyle = 'rgba(0,0,0,0.45)';
-          const {x,y} = ttPos(r,c);
           ctx.fillRect(x,y,BW,BH);
         }
       }
     }
+    ctx.restore();
+  }
 
+  function drawLabels(ctx) {
     ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
     ctx.fillStyle = '#4CAF50'; ctx.fillText('⬆ SAFER · LOWER VALUE', CV_W/2, 16);
     ctx.fillStyle = '#f44336'; ctx.fillText('⬇ RISKIER · HIGHER VALUE', CV_W/2, CV_H-8);
+  }
+
+  function fullDraw() {
+    if (!tcCtx) return;
+    const ctx = tcCtx;
+    drawBg(ctx);
+    drawTowerBody(ctx, 0);
+    drawLabels(ctx);
+  }
+
+  // Small wobble: the tower sways a few times with decaying amplitude, then settles.
+  function animateWobble(done) {
+    if (!tcCtx) { if (done) done(); return; }
+    const ctx = tcCtx;
+    const FRAMES = 42;
+    let f = 0;
+    function step() {
+      drawBg(ctx);
+      const t = f / FRAMES;
+      const amp = 4.5 * (1 - t);                     // degrees, decays to 0
+      const angle = amp * Math.sin(t * Math.PI * 6); // ~3 swings
+      drawTowerBody(ctx, angle);
+      drawLabels(ctx);
+      f++;
+      if (f < FRAMES) { animRaf = requestAnimationFrame(step); }
+      else { animRaf = null; fullDraw(); if (done) done(); }
+    }
+    if (animRaf) cancelAnimationFrame(animRaf);
+    animRaf = requestAnimationFrame(step);
   }
 
   function addLog(msg) {
@@ -5127,7 +5202,7 @@ function startTopplingColors(a, b) {
     const needsColor = card && (card.type==='wild'||card.type==='draw4') && !chosenWildColor;
     const wildPicker = needsColor ? `
       <div style="margin-top:8px;">
-        <div style="font-size:10px;color:#888;margin-bottom:6px;letter-spacing:1px;">CHOOSE COLOR</div>
+        <div style="font-size:12px;color:#9a9aac;margin-bottom:6px;letter-spacing:1px;">CHOOSE COLOR</div>
         <div style="display:flex;gap:6px;">
           ${COLOR_NAMES.map(c=>`<div onclick="tcChooseWild('${c}')" style="width:28px;height:28px;border-radius:50%;background:${UNO[c].fc};cursor:pointer;border:2px solid rgba(255,255,255,0.3);"></div>`).join('')}
         </div>
@@ -5140,7 +5215,7 @@ function startTopplingColors(a, b) {
 
     const p1label = is2p ? lbl[0] : 'YOU';
     const p2label = is2p ? lbl[1] : 'AI';
-    const p2extra = is2p ? '' : `&nbsp;<span style="font-size:10px;color:#555;">(${hands[1].length} cards)</span>`;
+    const p2extra = is2p ? '' : `&nbsp;<span style="font-size:12px;color:#888;">(${hands[1].length} cards)</span>`;
     const handLabel = is2p ? `${lbl[currentPlayer].toUpperCase()} HAND` : 'YOUR HAND';
     const activeHand = hands[currentPlayer];
 
@@ -5155,7 +5230,7 @@ function startTopplingColors(a, b) {
       </div>
       <div class="tt-card">
         <h3>STATUS</h3>
-        <div class="tt-msg" style="font-size:13px;color:#aaa;line-height:1.6;">${statusMsg}</div>
+        <div class="tt-msg" style="font-size:16px;color:#d8d8e0;line-height:1.6;">${statusMsg}</div>
       </div>
       <div class="tt-card">
         <h3>${handLabel}</h3>
@@ -5166,13 +5241,14 @@ function startTopplingColors(a, b) {
       </div>
       <div class="tt-card">
         <h3>PULL LOG</h3>
-        <div id="tc-log" style="font-size:11px;color:#666;line-height:1.9;max-height:100px;overflow-y:auto;">${log.slice(0,10).join('<br>')}</div>
+        <div id="tc-log" style="font-size:14px;color:#a8a8b4;line-height:1.9;max-height:140px;overflow-y:auto;">${log.slice(0,10).join('<br>')}</div>
       </div>
       <div class="tt-card">
         <h3>HOW TO PLAY</h3>
-        <div style="font-size:12px;color:#888;line-height:1.8;">
+        <div style="font-size:14px;color:#bcbcc8;line-height:1.8;">
           <b style="color:#c9a84c;">Goal:</b> Score the most points pulling colored blocks. First to <b style="color:#fff;">500 pts</b> wins — or most points when the tower empties.<br><br>
-          <b style="color:#c9a84c;">Your Turn:</b> Click a card from your hand, then click a matching colored block on the tower to pull it. Lower blocks = more points but riskier.<br><br>
+          <b style="color:#c9a84c;">Your Turn:</b> Click a card, then pull a block it matches — same <b style="color:#fff;">color</b>, or for a number card the same <b style="color:#fff;">number</b> (some blocks are numbered 1–9). Lower blocks = more points but riskier.<br><br>
+          <b style="color:#c9a84c;">Number Bonus:</b> Pulling a block by matching its number scores a bonus on top of the block's points — chase the numbers!<br><br>
           <b style="color:#c9a84c;">Wild / Draw 4:</b> Lights up all blocks — pick a color circle first, then pull any block of that color.<br><br>
           <b style="color:#c9a84c;">Action Cards:</b><br>
           <span style="color:#ef5350;">⊘ Skip</span> &amp; <span style="color:#ef5350;">↺ Reverse</span> — opponent loses their next turn.<br>
@@ -5190,12 +5266,12 @@ function startTopplingColors(a, b) {
         #tc { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; padding:4px 0; }
         #tc-tower-col { flex:0 0 auto; }
         #tc-side { flex:1; min-width:220px; display:flex; flex-direction:column; gap:10px; }
-        .tt-card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:12px; padding:12px 14px; }
-        .tt-card h3 { font-size:11px; letter-spacing:1px; color:#555; margin-bottom:8px; }
-        .tt-score { font-size:26px; font-weight:700; }
-        .tt-msg { font-size:13px; color:#aaa; }
+        .tt-card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:12px; padding:14px 16px; }
+        .tt-card h3 { font-size:14px; letter-spacing:1px; color:#9a9aac; margin-bottom:8px; }
+        .tt-score { font-size:32px; font-weight:700; }
+        .tt-msg { font-size:16px; color:#d8d8e0; line-height:1.6; }
         .tt-gameover { text-align:center; padding:20px; }
-        .tt-gameover h2 { font-size:26px; font-weight:700; color:#c9a84c; margin-bottom:8px; }
+        .tt-gameover h2 { font-size:28px; font-weight:700; color:#c9a84c; margin-bottom:8px; }
         .tt-mode-seg { display:flex; border:1px solid #2a2a3a; border-radius:8px; overflow:hidden; margin-bottom:12px; width:fit-content; }
         .tt-mode-seg button { padding:6px 18px; font-size:12px; border:none; background:#1a1a24; color:#888; cursor:pointer; font-family:inherit; }
         .tt-mode-seg button.active { background:#c9a84c; color:#000; font-weight:700; }
@@ -5207,7 +5283,7 @@ function startTopplingColors(a, b) {
             <button class="${tcMode==='ai'?'active':''}" onclick="tcSetMode('ai')">vs AI</button>
             <button class="${tcMode==='2p'?'active':''}" onclick="tcSetMode('2p')">2 Player</button>
           </div>
-          <div style="font-size:10px;color:#555;letter-spacing:1px;margin-bottom:6px;">TOWER — SELECT A CARD, THEN PULL A BLOCK</div>
+          <div style="font-size:12px;color:#9a9aac;letter-spacing:1px;margin-bottom:6px;">TOWER — SELECT A CARD, THEN PULL A BLOCK</div>
           <canvas id="tc-canvas" width="${CV_W}" height="${CV_H}" style="border-radius:12px;border:1px solid #3a6090;cursor:pointer;display:block;box-shadow:0 8px 40px rgba(14,42,74,0.7);"></canvas>
         </div>
         <div id="tc-side"></div>
@@ -5222,12 +5298,12 @@ function startTopplingColors(a, b) {
       const rect = cv.getBoundingClientRect();
       const mx = (e.clientX-rect.left)*(CV_W/rect.width);
       const my = (e.clientY-rect.top)*(CV_H/rect.height);
-      const valid = validColors();
+      const card = selectedCard();
       let found = null;
       for (let r=ROWS-1;r>=0;r--) for (let c=COLS-1;c>=0;c--) {
         const blk=blocks[r*COLS+c]; if(blk.removed) continue;
         const {x,y}=ttPos(r,c);
-        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH&&valid.has(blk.color)){found={row:r,col:c};break;}
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH&&canPull(card,blk)){found={row:r,col:c};break;}
         if(found) break;
       }
       if(JSON.stringify(found)!==JSON.stringify(hovBlock)){hovBlock=found;fullDraw();}
@@ -5240,11 +5316,10 @@ function startTopplingColors(a, b) {
       const rect=cv.getBoundingClientRect();
       const mx=(e.clientX-rect.left)*(CV_W/rect.width);
       const my=(e.clientY-rect.top)*(CV_H/rect.height);
-      const valid=validColors();
       for(let r=ROWS-1;r>=0;r--) for(let c=COLS-1;c>=0;c--){
         const blk=blocks[r*COLS+c]; if(blk.removed) continue;
         const {x,y}=ttPos(r,c);
-        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH&&valid.has(blk.color)){
+        if(mx>=x&&mx<=x+BW&&my>=y&&my<=y+BH&&canPull(card,blk)){
           doPlayerPull(blk,r); return;
         }
       }
@@ -5270,6 +5345,7 @@ function startTopplingColors(a, b) {
     currentPlayer=0; gameOver=false; selectedCardIdx=null;
     chosenWildColor=null; pendingExtra=0; skipNext=false;
     log.length=0; blocks.forEach(b=>b.removed=false);
+    assignNumbers();
     dealHands(); render();
   };
 
@@ -5309,37 +5385,41 @@ function startTopplingColors(a, b) {
     }
 
     // Pull the block
+    const numberMatch = card.type === 'number' && blk.num != null && blk.num === card.value;
     blk.removed = true;
     const risk = collapseRisk(row);
     const collapsed = Math.random() < risk;
-    const pts = (ROWS - row) * 10;
+    const numberBonus = numberMatch ? 20 + blk.num * 5 : 0; // reward pulling by card number
+    const pts = (ROWS - row) * 10 + numberBonus;
 
     if (collapsed) {
       addLog(`💥 Tower collapsed on ${name}'s pull! ${LABELS()[opponent]} wins!`);
-      fullDraw(); updateSidebar();
-      setTimeout(() => tcEndGame(opponent, true), 400);
+      updateSidebar();
+      animateWobble(() => setTimeout(() => tcEndGame(opponent, true), 200));
       return;
     }
 
     scores[playerIdx] += pts;
-    addLog(`✅ ${name} pulled ${card.color==='wild'?chosenWildColor||'wild':card.color} block (+${pts})`);
+    const matchTxt = numberMatch ? `number ${blk.num}` : (card.color==='wild'?chosenWildColor||'wild':card.color);
+    addLog(`✅ ${name} pulled ${matchTxt} block (+${pts}${numberBonus?` · +${numberBonus} number bonus`:''})`);
 
     const remaining = blocks.filter(b=>!b.removed).length;
     if (remaining === 0 || scores[playerIdx] >= WIN_SCORE) {
-      fullDraw(); updateSidebar();
-      setTimeout(() => tcEndGame(playerIdx, false), 400);
+      updateSidebar();
+      animateWobble(() => setTimeout(() => tcEndGame(playerIdx, false), 200));
       return;
     }
 
     pendingExtra = extraOpponent;
     currentPlayer = opponent;
-    fullDraw(); updateSidebar();
+    updateSidebar();
+    animateWobble(); // small wobble after every successful pull
 
     if (skipNext) {
       skipNext = false;
       addLog(`${LABELS()[currentPlayer]} is skipped!`);
       currentPlayer = playerIdx;
-      fullDraw(); updateSidebar();
+      updateSidebar();
       if (tcMode === 'ai' && currentPlayer === 1) setTimeout(aiTurn, 800);
       return;
     }
@@ -5353,31 +5433,24 @@ function startTopplingColors(a, b) {
     for (let p = 0; p < pulls; p++) {
       const available = blocks.filter(b=>!b.removed);
       if (!available.length) { tcEndGame(0, false); return; }
-      // Choose best card: prefer number cards matching available colors
-      const availColors = new Set(available.map(b=>b.color));
-      let bestCard = null, bestIdx = -1;
-      // Prefer action cards last, prefer colors that exist
+
+      // Evaluate every (card, reachable block) pair and pick the best expected value.
+      let best = null; // { cardIdx, card, blk, wildColor, score }
       for (let i = 0; i < hands[1].length; i++) {
         const c = hands[1][i];
-        if (c.type==='wild'||c.type==='draw4') { if(!bestCard){bestCard=c;bestIdx=i;} continue; }
-        if (availColors.has(c.color)) { bestCard=c; bestIdx=i; break; }
+        for (const blk of available) {
+          if (!canPullBy(c, blk)) continue;
+          const numberMatch = c.type === 'number' && blk.num != null && blk.num === c.value;
+          const bonus = numberMatch ? 20 + blk.num * 5 : 0;
+          const ev = ((ROWS - blk.row) * 10 + bonus) * (1 - collapseRisk(blk.row));
+          if (!best || ev > best.score) best = { cardIdx: i, card: c, blk, wildColor: (c.color==='wild'?blk.color:null), score: ev };
+        }
       }
-      if (!bestCard) { bestCard=hands[1][0]; bestIdx=0; }
-      // Choose color for wild
-      const pullColor = (bestCard.color==='wild')
-        ? [...availColors][Math.floor(Math.random()*availColors.size)]
-        : bestCard.color;
-      // Pick a block — prefer higher rows (more points) but not too risky
-      const candidates = available.filter(b=>b.color===pullColor);
-      if (!candidates.length) { hands[1].splice(bestIdx,1); hands[1].push(drawCard()); continue; }
-      const pick = candidates.slice().sort((x,y)=>{
-        const sx=((ROWS-x.row)*10)*(1-collapseRisk(x.row));
-        const sy=((ROWS-y.row)*10)*(1-collapseRisk(y.row));
-        return sy-sx;
-      })[0];
-      selectedCardIdx = bestIdx;
-      if(bestCard.color==='wild'||bestCard.type==='draw4') chosenWildColor=pullColor;
-      applyCard(bestCard, 1, pick, pick.row);
+
+      if (!best) { hands[1].splice(0,1); hands[1].push(drawCard()); continue; } // no play — swap a card
+      selectedCardIdx = best.cardIdx;
+      if (best.wildColor) chosenWildColor = best.wildColor;
+      applyCard(best.card, 1, best.blk, best.blk.row);
       if (gameOver) return;
     }
   }
@@ -5385,10 +5458,12 @@ function startTopplingColors(a, b) {
   function tcEndGame(winnerIdx, byCollapse) {
     gameOver = true;
     const lbl = LABELS();
-    document.getElementById('game-root').insertAdjacentHTML('beforeend', `
-      <div class="tt-card tt-gameover" style="animation:tc-rise .4s ease both;margin-top:16px;">
-        <h2>${lbl[winnerIdx]} wins!</h2>
-        <p style="color:#888;margin-bottom:16px;">${lbl[0]}: ${scores[0]} pts &nbsp;·&nbsp; ${lbl[1]}: ${scores[1]} pts${byCollapse?' · Tower collapsed!':''}</p>
+    // Compact result card placed directly under the tower so it's visible without scrolling.
+    const col = document.getElementById('tc-tower-col') || document.getElementById('game-root');
+    col.insertAdjacentHTML('beforeend', `
+      <div class="tt-card tt-gameover" style="animation:tc-rise .4s ease both;margin-top:12px;max-width:${CV_W}px;padding:14px 16px;">
+        <h2 style="font-size:20px;margin-bottom:4px;">${lbl[winnerIdx]} wins!</h2>
+        <p style="color:#aaa;margin-bottom:12px;font-size:13px;">${lbl[0]}: ${scores[0]} pts &nbsp;·&nbsp; ${lbl[1]}: ${scores[1]} pts${byCollapse?' · Tower collapsed!':''}</p>
         <button class="btn primary" onclick="startTopplingColors(activeGameA,activeGameB)">Play Again</button>
         <button class="btn" onclick="goToSelect()">Pick New Games</button>
       </div>`);
