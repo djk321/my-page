@@ -298,6 +298,13 @@
 
 <script>
 (function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();
+// Snapshot the generic board scaffold. Curated combo games replace
+// #game-root's HTML wholesale, which destroys the elements the generic
+// board game needs (#boardNote, #kingWarn, #boardWrap, etc.). We restore
+// this before launching a generic game so switching from a curated combo
+// to a non-curated pair doesn't crash on missing elements (blank page).
+const GENERIC_ROOT_HTML = document.getElementById('game-root').innerHTML;
+
 // ══════════════════════════════════════════════════════════════════════
 // GAME DEFINITIONS
 // Units: [role0=val1, role1=val3, role2=val3, role3=val5, role4=val9, role5=val0(instant-win)]
@@ -2975,6 +2982,12 @@ function startGame() {
   document.getElementById('modeSegment').style.display = '';
   document.getElementById('diffRow').style.display = '';
   document.getElementById('soundBtn').style.display = '';
+
+  // A previously-played curated combo may have overwritten #game-root's
+  // contents. Rebuild the generic board scaffold so the elements below exist.
+  if (!document.getElementById('boardNote')) {
+    document.getElementById('game-root').innerHTML = GENERIC_ROOT_HTML;
+  }
 
   const name = hybridName(activeGameA, activeGameB);
   document.getElementById('gameTitle').textContent = name.toUpperCase();
