@@ -391,6 +391,7 @@ const HYBRID_NAMES = {
   'candyland+jenga':'Toffee Tower','jenga+candyland':'Toffee Tower',
   'candyland+uno':'Sweet Dispute','uno+candyland':'Sweet Dispute',
   'candyland+sorry':'Sweet Revenge Rally','sorry+candyland':'Sweet Revenge Rally',
+  'candyland+checkers':'Frosted Fiefdom','checkers+candyland':'Frosted Fiefdom',
   'jenga+sorry':'Towering Treachery','sorry+jenga':'Towering Treachery',
   'checkers+jenga':'Tower Tactics','jenga+checkers':'Tower Tactics',
   'monopoly+uno':'Deed or Dispute','uno+monopoly':'Deed or Dispute',
@@ -442,6 +443,16 @@ const GAME_FLAVOR = {
 
 // ── Curated stories for popular combos ───────────────────────────────
 const HYBRID_STORIES = {
+  'candyland+checkers': {
+    tagline: 'Jump your rivals. Frost the land. Rule the candy kingdom.',
+    story: 'Two houses fight for the throne of a sugar kingdom on a board of frosted candy squares. Slide your gumdrop pieces diagonally and leap over a rival to capture it — and every square you conquer is frosted in your color, claimed forever as part of your fiefdom. Reach the far edge to crown a piece as royalty, free to roam both directions. Win by claiming enough candy lands to dominate the realm, or by sweeping every last rival off the board. Sweet, strategic, and utterly ruthless.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
+  'checkers+candyland': {
+    tagline: 'Jump your rivals. Frost the land. Rule the candy kingdom.',
+    story: 'Two houses fight for the throne of a sugar kingdom on a board of frosted candy squares. Slide your gumdrop pieces diagonally and leap over a rival to capture it — and every square you conquer is frosted in your color, claimed forever as part of your fiefdom. Reach the far edge to crown a piece as royalty, free to roam both directions. Win by claiming enough candy lands to dominate the realm, or by sweeping every last rival off the board. Sweet, strategic, and utterly ruthless.',
+    players: '2', time: '10–20 min', age: '8+',
+  },
   'candyland+sorry': {
     tagline: 'It\'s a sweet race — until someone gets bumped.',
     story: 'The peppermint path to the Candy Castle is paved with payback. Draw a card and race forward — but land on a rival\'s square and you bump them all the way back to Start. Draw a SORRY! gumdrop and fling them back from anywhere. An 11 lets you swap places at the cruelest moment, a 4 yanks you backward, and the candy slides launch you ahead while sweeping any pawn in your path back to square one. You must land on the castle by exact count. The sweetest victories are the pettiest ones.',
@@ -953,6 +964,7 @@ function buildBoxArtSVG(a, b) {
 const GAME_TEMPLATE = {
   'candyland+uno':      'path-race',
   'candyland+sorry':    'path-race',
+  'candyland+checkers': 'capture',
   'monopoly+uno': 'economy',
   'candyland+monopoly': 'economy',
   'monopoly+sorry':     'economy',
@@ -970,6 +982,7 @@ const CUSTOM_ART = {
   'candyland+jenga': 'ToffeeTower.png',
   'candyland+uno':   'SweetDispute.png',
   'candyland+sorry': 'SweetRevengeRally.png',
+  'candyland+checkers': 'FrostedFiefdom.png',
   'jenga+sorry':     'ToweringTreachery.png',
   'checkers+jenga':  'TowerTactics.png',
   'monopoly+uno':    'DeedorDispute.png',
@@ -1414,6 +1427,38 @@ function beginWithAnimation() {
       }
       requestAnimationFrame(animRace);
 
+    } else if (tmpl === 'capture') {
+      // ── Board Capture: art breaks into a checkerboard that flips away ─
+      const COLS = 8, ROWS = 8;
+      const tw = W / COLS, th = H / ROWS;
+      const tiles = [];
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        tiles.push({ r, c, op: 1, scale: 1,
+          delay: ((r + c) % 2 === 0 ? 0 : 260) + (r + c) * 26 });  // dark squares "captured" first
+      }
+      let elapsed = 0, last = null;
+      function animCapture(ts) {
+        if (!last) last = ts;
+        elapsed += ts - last; last = ts;
+        ctx.clearRect(0, 0, W, H);
+        let alive = 0;
+        tiles.forEach(t => {
+          if (t.op <= 0) return;
+          alive++;
+          if (elapsed >= t.delay) { t.op -= 0.06; t.scale -= 0.05; }
+          const x = t.c * tw, y = t.r * th;
+          const s = Math.max(0, t.scale);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, t.op);
+          ctx.translate(x + tw / 2, y + th / 2);
+          ctx.scale(s, s);
+          ctx.drawImage(offscreen, x, y, tw, th, -tw / 2, -th / 2, tw, th);
+          ctx.restore();
+        });
+        alive > 0 ? requestAnimationFrame(animCapture) : (cv.remove(), startGame());
+      }
+      requestAnimationFrame(animCapture);
+
     } else {
       // ── Default: horizontal floor strips fall and fade ──────────────
       const N = 13;
@@ -1465,6 +1510,7 @@ const COMBO_GAMES = {
   'candyland+jenga': startToffeeTower,
   'candyland+uno':   startSweetDispute,
   'candyland+sorry': startSweetRevengeRally,
+  'candyland+checkers': startFrostedFiefdom,
   'jenga+sorry':     startToweringTreachery,
   'checkers+jenga':  startTowerTactics,
   'monopoly+uno':    startDeedOrDispute,
@@ -2595,6 +2641,289 @@ function startSweetRevengeRally(a, b) {
   document.getElementById('game-root').innerHTML = `<div id="srr-root"></div>`;
   render();
   addLog('The revenge rally begins! Draw a card to leave the Start.');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// FROSTED FIEFDOM  (Candy Land × Checkers)  — Board Capture Template
+// ══════════════════════════════════════════════════════════════════════
+function startFrostedFiefdom(a, b) {
+  const BS = 6;                  // 6×6 candy board
+  const TERR_GOAL = 5;           // claim this many candy lands to seize the fiefdom
+  const CELL = 42;
+
+  // Candy frosting for the dark (playable) squares — Candy Land palette.
+  const FROST = ['#e26aa6', '#9b6dd6', '#5fb878', '#e0a13a'];
+  function frostColor(r, c) { return FROST[(Math.floor(r / 1) + c) % FROST.length]; }
+  const LIGHT_SQ = '#fff3f8';
+  const P_COLORS = ['#d81b60', '#3949ab'];   // red house / blue house
+  const P_NAME   = ['🔴', '🔵'];
+
+  // board[r][c] = null | {p:0|1, king:bool};  claimed[r][c] = null|0|1
+  const board = Array.from({ length: BS }, () => Array(BS).fill(null));
+  const claimed = Array.from({ length: BS }, () => Array(BS).fill(null));
+  let terr = [0, 0];
+
+  function initBoard() {
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) { board[r][c] = null; claimed[r][c] = null; }
+    for (let r = 0; r < 2; r++)      for (let c = 0; c < BS; c++) if ((r + c) % 2 === 1) board[r][c] = { p: 1, king: false };
+    for (let r = BS - 2; r < BS; r++) for (let c = 0; c < BS; c++) if ((r + c) % 2 === 1) board[r][c] = { p: 0, king: false };
+    terr = [0, 0];
+  }
+
+  let phase = 'select', current = 0, gameOver = false, winner = -1, winBy = '';
+  let selPiece = null, validDests = [];
+  let ffMode = 'ai';
+  const log = [];
+  function LBL() { return ffMode === '2p' ? ['Player 1', 'Player 2'] : ['You', 'Rival']; }
+
+  function initGame() {
+    initBoard();
+    phase = 'select'; current = 0; gameOver = false; winner = -1; winBy = '';
+    selPiece = null; validDests = []; log.length = 0;
+  }
+  initGame();
+
+  function addLog(msg) { log.unshift(msg); const el = document.getElementById('ff-log'); if (el) el.innerHTML = log.slice(0, 11).join('<br>'); }
+
+  // ── Checkers logic ─────────────────────────────────────────────────
+  function movesFor(pr, pc, who) {
+    const piece = board[pr][pc]; if (!piece || piece.p !== who) return [];
+    const moves = [], dirs = [];
+    if (piece.p === 0 || piece.king) dirs.push(-1);
+    if (piece.p === 1 || piece.king) dirs.push(1);
+    for (const dr of dirs) for (const dc of [-1, 1]) {
+      const nr = pr + dr, nc = pc + dc;
+      if (nr < 0 || nr >= BS || nc < 0 || nc >= BS) continue;
+      if (!board[nr][nc]) {
+        moves.push({ fr: pr, fc: pc, tr: nr, tc: nc, cr: null, cc: null, jump: false });
+      } else if (board[nr][nc].p !== piece.p) {
+        const jr = pr + 2 * dr, jc = pc + 2 * dc;
+        if (jr >= 0 && jr < BS && jc >= 0 && jc < BS && !board[jr][jc])
+          moves.push({ fr: pr, fc: pc, tr: jr, tc: jc, cr: nr, cc: nc, jump: true });
+      }
+    }
+    return moves;
+  }
+  function allMoves(who) {
+    const all = [];
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++)
+      if (board[r][c] && board[r][c].p === who) movesFor(r, c, who).forEach(m => all.push(m));
+    return all;
+  }
+  function countPieces(who) { let n = 0; for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) if (board[r][c] && board[r][c].p === who) n++; return n; }
+
+  function execMove(m, who) {
+    const piece = board[m.fr][m.fc];
+    board[m.tr][m.tc] = piece; board[m.fr][m.fc] = null;
+    let captured = false, crowned = false;
+    if (m.cr !== null) {
+      board[m.cr][m.cc] = null;
+      claimed[m.cr][m.cc] = who;     // frost the conquered square as your territory
+      terr[who]++; captured = true;
+    }
+    if (piece.p === 0 && m.tr === 0 && !piece.king) { piece.king = true; crowned = true; }
+    if (piece.p === 1 && m.tr === BS - 1 && !piece.king) { piece.king = true; crowned = true; }
+    return { captured, crowned };
+  }
+
+  // ── End / win ──────────────────────────────────────────────────────
+  function win(p, by) { gameOver = true; winner = p; winBy = by; phase = 'over';
+    addLog(`🏰 ${LBL()[p]} ${by === 'territory' ? `claims ${TERR_GOAL} candy lands and` : by === 'capture' ? 'sweeps the board and' : 'leaves the rival stranded and'} rules the fiefdom!`);
+  }
+  function checkEnd(mover) {
+    const opp = 1 - mover;
+    if (terr[mover] >= TERR_GOAL) { win(mover, 'territory'); return true; }
+    if (countPieces(opp) === 0)   { win(mover, 'capture');   return true; }
+    if (allMoves(opp).length === 0) { win(mover, 'stalemate'); return true; }
+    return false;
+  }
+
+  // ── Apply a move (shared by human + AI) ────────────────────────────
+  function doMove(m, who) {
+    const res = execMove(m, who);
+    if (res.captured) addLog(`⚔️ ${LBL()[who]} captures a rival and frosts the square!`);
+    else addLog(`▶ ${LBL()[who]} advances a gumdrop.`);
+    if (res.crowned) addLog(`👑 ${LBL()[who]} crowns a Candy King!`);
+    if (checkEnd(who)) { render(); return; }
+    current = 1 - who; phase = 'select'; selPiece = null; validDests = [];
+    render();
+    if (ffMode === 'ai' && current === 1 && !gameOver) setTimeout(aiTurn, 750);
+  }
+
+  // ── AI ─────────────────────────────────────────────────────────────
+  function capturableAfter(m, who) {
+    // Simulate the move on a shallow clone; does any opponent jump capture the moved piece?
+    const opp = 1 - who;
+    const snap = board.map(row => row.map(cell => cell ? { ...cell } : null));
+    const pc = board[m.fr][m.fc];
+    board[m.tr][m.tc] = pc; board[m.fr][m.fc] = null; if (m.cr !== null) board[m.cr][m.cc] = null;
+    let danger = false;
+    outer: for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++)
+      if (board[r][c] && board[r][c].p === opp)
+        for (const jm of movesFor(r, c, opp)) if (jm.jump && jm.cr === m.tr && jm.cc === m.tc) { danger = true; break outer; }
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) board[r][c] = snap[r][c];
+    return danger;
+  }
+  function scoreMove(m, who) {
+    let s = Math.random() * 0.5;
+    if (m.jump) {
+      s += 100;
+      if (terr[who] + 1 >= TERR_GOAL) s += 500;          // winning capture
+    }
+    const piece = board[m.fr][m.fc];
+    if (!piece.king) {                                    // progress toward kinging
+      if (who === 1 && m.tr === BS - 1) s += 14;
+      if (who === 0 && m.tr === 0) s += 14;
+      s += (who === 1 ? m.tr : BS - 1 - m.tr) * 0.8;
+    }
+    if (capturableAfter(m, who)) s -= m.jump ? 40 : 18;   // avoid hanging the piece
+    return s;
+  }
+  function aiTurn() {
+    if (gameOver || ffMode === '2p' || current !== 1) return;
+    const moves = allMoves(1);
+    if (!moves.length) { win(0, 'stalemate'); render(); return; }
+    const best = moves.map(m => [scoreMove(m, 1), m]).sort((x, y) => y[0] - x[0])[0][1];
+    doMove(best, 1);
+  }
+
+  // ── Click handling ─────────────────────────────────────────────────
+  window.ffClick = function (r, c) {
+    if (gameOver) return;
+    if (ffMode === 'ai' && current !== 0) return;
+    if (phase === 'select') {
+      const piece = board[r][c];
+      if (!piece || piece.p !== current) return;
+      const mv = movesFor(r, c, current);
+      if (!mv.length) return;
+      selPiece = { r, c }; validDests = mv; phase = 'dest'; render();
+    } else if (phase === 'dest') {
+      const m = validDests.find(x => x.tr === r && x.tc === c);
+      if (m) { phase = 'select'; doMove(m, current); return; }
+      // re-select
+      selPiece = null; validDests = []; phase = 'select';
+      const piece = board[r][c];
+      if (piece && piece.p === current) {
+        const mv = movesFor(r, c, current);
+        if (mv.length) { selPiece = { r, c }; validDests = mv; phase = 'dest'; }
+      }
+      render();
+    }
+  };
+  window.ffSetMode = function (m) { ffMode = m; initGame(); render(); };
+  window.ffRestart = function () { initGame(); render(); };
+
+  // ── Render ─────────────────────────────────────────────────────────
+  function boardHTML() {
+    let h = `<div style="display:inline-grid;grid-template-columns:repeat(${BS},${CELL}px);gap:0;border:4px solid #6a1b3a;border-radius:8px;overflow:hidden;background:#6a1b3a;">`;
+    for (let r = 0; r < BS; r++) for (let c = 0; c < BS; c++) {
+      const dark = (r + c) % 2 === 1;
+      const piece = board[r][c];
+      const sel = selPiece && selPiece.r === r && selPiece.c === c;
+      const dest = validDests.some(m => m.tr === r && m.tc === c);
+      const canSel = phase === 'select' && dark && piece && piece.p === current && (ffMode === '2p' || current === 0);
+      let bg = dark ? frostColor(r, c) : LIGHT_SQ;
+      let inner = '';
+      if (claimed[r][c] !== null) inner += `<div style="position:absolute;inset:0;background:${P_COLORS[claimed[r][c]]}44;box-shadow:inset 0 0 0 2px ${P_COLORS[claimed[r][c]]};"></div><span style="position:absolute;top:1px;left:2px;font-size:9px;opacity:.85;">❄️</span>`;
+      if (sel) bg = '#fff176';
+      else if (dest) bg = '#7cd67c';
+      const cur = canSel || dest ? 'pointer' : 'default';
+      const pieceIcon = piece
+        ? `<span style="position:relative;font-size:${Math.round(CELL * 0.62)}px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));z-index:1;">${P_NAME[piece.p]}${piece.king ? '<span style="position:absolute;top:-6px;right:-7px;font-size:13px;">👑</span>' : ''}</span>`
+        : '';
+      h += `<div onclick="ffClick(${r},${c})" style="width:${CELL}px;height:${CELL}px;background:${bg};display:flex;align-items:center;justify-content:center;cursor:${cur};position:relative;">${inner}${pieceIcon}</div>`;
+    }
+    h += '</div>';
+    return h;
+  }
+  function terrBar(p) {
+    const pct = Math.min(100, terr[p] / TERR_GOAL * 100);
+    return `<div style="height:6px;background:#2a2a3a;border-radius:3px;overflow:hidden;margin-top:5px;"><div style="height:100%;width:${pct}%;background:${P_COLORS[p]};transition:width .3s;"></div></div>`;
+  }
+
+  function render() {
+    const root = document.getElementById('ff-root');
+    if (!root) return;
+    const lbl = LBL(), is2p = ffMode === '2p';
+    const status = gameOver
+      ? `${lbl[winner]} rules the candy kingdom!`
+      : phase === 'dest' ? `${lbl[current]}: pick a frosted square (green) to move — jumps capture!`
+      : (current === 0 && !is2p) ? 'Your turn — select one of your 🔴 gumdrops.'
+      : is2p ? `${lbl[current]}'s turn — select a gumdrop.` : 'Rival is plotting…';
+
+    root.innerHTML = `
+    <style>
+      #ff-wrap{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:4px 0;}
+      #ff-right{flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px;}
+      .ff-card{background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:12px 14px;}
+      .ff-card h3{font-size:11px;letter-spacing:1px;color:#555;margin-bottom:8px;}
+      .ff-seg{display:flex;border:1px solid #2a2a3a;border-radius:8px;overflow:hidden;margin-bottom:12px;width:fit-content;}
+      .ff-seg button{padding:6px 18px;font-size:12px;border:none;background:#1a1a24;color:#888;cursor:pointer;font-family:inherit;}
+      .ff-seg button.active{background:#d81b60;color:#fff;font-weight:700;}
+      @keyframes ff-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+    <div id="ff-wrap">
+      <div style="flex:0 0 auto;">
+        <div class="ff-seg">
+          <button class="${ffMode === 'ai' ? 'active' : ''}" onclick="ffSetMode('ai')">vs AI</button>
+          <button class="${ffMode === '2p' ? 'active' : ''}" onclick="ffSetMode('2p')">2 Player</button>
+        </div>
+        <div class="ff-card" style="width:fit-content;">
+          <h3>THE CANDY FIEFDOM</h3>
+          ${boardHTML()}
+        </div>
+        <div class="ff-card" style="margin-top:10px;width:${BS * CELL + 8}px;">
+          <h3>EVENT LOG</h3>
+          <div id="ff-log" style="font-size:10px;color:#888;line-height:1.8;max-height:104px;overflow-y:auto;">${log.slice(0, 11).join('<br>')}</div>
+        </div>
+      </div>
+      <div id="ff-right">
+        <div style="display:flex;gap:10px;">
+          <div class="ff-card" style="flex:1;border-color:${current === 0 ? P_COLORS[0] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[0] : 'YOU'} 🔴</h3>
+            <div style="font-size:12px;color:#888;">${countPieces(0)} gumdrops</div>
+            <div style="font-size:11px;color:${P_COLORS[0]};margin-top:4px;">🏰 ${terr[0]}/${TERR_GOAL} candy lands</div>
+            ${terrBar(0)}
+          </div>
+          <div class="ff-card" style="flex:1;border-color:${current === 1 ? P_COLORS[1] : '#2a2a3a'};">
+            <h3>${is2p ? lbl[1] : 'RIVAL'} 🔵</h3>
+            <div style="font-size:12px;color:#888;">${countPieces(1)} gumdrops</div>
+            <div style="font-size:11px;color:${P_COLORS[1]};margin-top:4px;">🏰 ${terr[1]}/${TERR_GOAL} candy lands</div>
+            ${terrBar(1)}
+          </div>
+        </div>
+        <div class="ff-card" style="border-color:#3a1a2a;">
+          <h3>STATUS</h3>
+          <div style="font-size:12px;color:#ccc;line-height:1.6;">${status}</div>
+        </div>
+        <div class="ff-card">
+          <h3>HOW TO PLAY</h3>
+          <div style="font-size:11px;color:#888;line-height:1.7;">
+            <b style="color:#d81b60;">Goal:</b> Be first to claim <b>${TERR_GOAL}</b> candy lands 🏰 — or capture every rival gumdrop.<br><br>
+            <b style="color:#d81b60;">Move:</b> Click a 🔴 gumdrop, then a green square. Pieces step diagonally forward.<br>
+            <b style="color:#d81b60;">Capture:</b> Jump over a rival to a square beyond it. The conquered square is frosted ❄️ as <i>your</i> candy land.<br>
+            <b style="color:#d81b60;">Candy King 👑:</b> Reach the far row to crown a piece — it can move both directions.<br>
+            <b style="color:#d81b60;">Win:</b> Claim ${TERR_GOAL} lands, sweep the board, or strand the rival with no moves.
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    if (gameOver) {
+      root.insertAdjacentHTML('beforeend', `
+        <div class="ff-card" style="margin-top:16px;text-align:center;padding:24px;animation:ff-rise .4s ease both;">
+          <h2 style="font-size:24px;font-weight:700;color:#d81b60;margin-bottom:8px;">🏰 ${lbl[winner]} wins!</h2>
+          <p style="color:#888;margin-bottom:18px;">${winBy === 'territory' ? `Claimed ${TERR_GOAL} candy lands.` : winBy === 'capture' ? 'Swept every rival off the board.' : 'Left the rival with no legal moves.'}</p>
+          <button class="btn primary" onclick="ffRestart()">Play Again</button>
+          <button class="btn" onclick="goToSelect()">Pick New Games</button>
+        </div>`);
+    }
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────
+  document.getElementById('game-root').innerHTML = `<div id="ff-root"></div>`;
+  render();
+  addLog('The war for the Frosted Fiefdom begins! Capture rivals to frost their land.');
 }
 
 // ══════════════════════════════════════════════════════════════════════
