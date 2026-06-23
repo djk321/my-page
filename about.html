@@ -123,6 +123,17 @@
       color: #c9a84c;
     }
 
+    .email-fallback {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      word-break: break-all;
+    }
+
+    .email-fallback .addr {
+      color: #c9a84c;
+    }
+
     /* RIGHT COLUMN */
     .right-col {
       display: flex;
@@ -257,6 +268,8 @@
         <div class="tagline">Vibe Coding some apps using Claude Code &amp; GitHub</div>
         <div class="socials">
           <a class="social-btn" href="mailto:djk321@gmail.com">✉️ Email me</a>
+          <button class="social-btn" type="button" onclick="copyEmail(this)">📋 Copy address</button>
+          <div class="email-fallback">or copy: <span class="addr">djk321@gmail.com</span></div>
         </div>
       </div>
 
