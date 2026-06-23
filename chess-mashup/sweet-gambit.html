@@ -259,46 +259,77 @@
 </div>
 
 <script>
+// Reveal the game directly, skipping the dissolve animation. Used as a
+// fallback whenever the fancy transition can't run.
+function sgRevealGame() {
+  const splash = document.getElementById('splash');
+  const canvas = document.getElementById('dissolve-canvas');
+  if (canvas) canvas.style.display = 'none';
+  if (splash) splash.style.display = 'none';
+  const game = document.getElementById('game');
+  game.classList.add('visible');
+  sgInitGame();
+}
+
 function startGame() {
   const splash = document.getElementById('splash');
   const imgEl = document.querySelector('#splash-img-wrap img');
   const canvas = document.getElementById('dissolve-canvas');
 
-  // Position canvas exactly over the box art image
-  const rect = imgEl.getBoundingClientRect();
-  const W = rect.width, H = rect.height;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-  canvas.style.left = rect.left + 'px'; canvas.style.top = rect.top + 'px';
-  canvas.style.display = 'block';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
+  let particles, ctx, offscreen, W, H, dpr;
+  try {
+    // If the box art never loaded, there is nothing to dissolve.
+    if (!imgEl.complete || !imgEl.naturalWidth) throw new Error('image not ready');
 
-  // Draw the actual image onto the canvas, then hide the original
-  const offscreen = document.createElement('canvas');
-  offscreen.width = W * dpr; offscreen.height = H * dpr;
-  const oc = offscreen.getContext('2d');
-  oc.scale(dpr, dpr);
-  oc.drawImage(imgEl, 0, 0, W, H);
+    // Position canvas exactly over the box art image
+    const rect = imgEl.getBoundingClientRect();
+    W = rect.width; H = rect.height;
+    dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    canvas.style.left = rect.left + 'px'; canvas.style.top = rect.top + 'px';
+    canvas.style.display = 'block';
+    ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
 
-  // Pre-sample particle colours
-  const N = 900;
-  const particles = Array.from({length: N}, () => {
-    const x = Math.random() * W, y = Math.random() * H;
-    const id = oc.getImageData((x * dpr) | 0, (y * dpr) | 0, 1, 1).data;
-    return {
-      ox: x, oy: y,
-      vx: (Math.random() - 0.5) * 1.8,
-      vy: -Math.random() * 1.8 - 0.5,
-      delay: Math.random() * 0.6,
-      size: 2 + Math.random() * 3.5,
-      color: `rgb(${id[0]},${id[1]},${id[2]})`
-    };
-  });
+    // Draw the actual image onto the canvas, then hide the original
+    offscreen = document.createElement('canvas');
+    offscreen.width = W * dpr; offscreen.height = H * dpr;
+    const oc = offscreen.getContext('2d');
+    oc.scale(dpr, dpr);
+    oc.drawImage(imgEl, 0, 0, W, H);
+
+    // Pre-sample particle colours. getImageData() throws a SecurityError if
+    // the canvas is tainted — which happens when the page is opened from disk
+    // (file://), since local images count as cross-origin.
+    const N = 900;
+    particles = Array.from({length: N}, () => {
+      const x = Math.random() * W, y = Math.random() * H;
+      const id = oc.getImageData((x * dpr) | 0, (y * dpr) | 0, 1, 1).data;
+      return {
+        ox: x, oy: y,
+        vx: (Math.random() - 0.5) * 1.8,
+        vy: -Math.random() * 1.8 - 0.5,
+        delay: Math.random() * 0.6,
+        size: 2 + Math.random() * 3.5,
+        color: `rgb(${id[0]},${id[1]},${id[2]})`
+      };
+    });
+  } catch (e) {
+    // Tainted canvas (file://) or image not ready — skip the animation.
+    sgRevealGame();
+    return;
+  }
 
   // Fade out everything except the image (handled by canvas)
   splash.classList.add('vanish');
+
+  // Failsafe: the dissolve animation reveals the game from inside its rAF
+  // loop, but requestAnimationFrame is paused when the tab isn't focused,
+  // which would leave the player stuck on the splash. Guarantee the reveal.
+  setTimeout(() => {
+    if (!document.getElementById('game').classList.contains('visible')) sgRevealGame();
+  }, 2200);
 
   let start = null;
   function frame(ts) {
