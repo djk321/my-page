@@ -1265,7 +1265,16 @@ function beginWithAnimation() {
 
     const source = artEl.querySelector('img');
     if (source) {
-      oCtx.drawImage(source, 0, 0, W, H);
+      // The art <img> may not be fully decoded yet (custom PNGs are inserted without
+      // awaiting load, and Begin is clickable immediately). Drawing an incomplete image
+      // throws InvalidStateError, which would abort this whole sequence and leave a blank
+      // screen — so if it isn't ready, skip the slice animation and just start the game.
+      if (!source.complete || source.naturalWidth === 0) { cv.remove(); startGame(); return; }
+      try {
+        oCtx.drawImage(source, 0, 0, W, H);
+      } catch (e) {
+        cv.remove(); startGame(); return;
+      }
     } else {
       // SVG fallback: just fade out normally
       artEl.style.transition = 'opacity 0.4s';
@@ -2948,7 +2957,17 @@ function startGame() {
     document.getElementById('modeSegment').style.display = 'none';
     document.getElementById('diffRow').style.display = 'none';
     document.getElementById('soundBtn').style.display = 'none';
-    COMBO_GAMES[comboKey](activeGameA, activeGameB);
+    try {
+      COMBO_GAMES[comboKey](activeGameA, activeGameB);
+    } catch (e) {
+      console.error('Game launch failed:', e);
+      document.getElementById('game-root').innerHTML =
+        `<div style="text-align:center;padding:40px;color:#e8e8f0;">
+           <p style="font-size:16px;margin-bottom:16px;">Something went wrong starting this game.</p>
+           <button class="btn primary" onclick="startGame()">Retry</button>
+           <button class="btn" onclick="goToSelect()">Pick New Games</button>
+         </div>`;
+    }
     return;
   }
 
