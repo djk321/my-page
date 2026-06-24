@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dominance — Chess Meets Dominoes</title>
+  <title>Dominance — Game Arcade</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background:#0f0f14; color:#e8e8f0; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:76px 20px 48px; }
@@ -148,10 +148,23 @@
     #introBack { margin-top:14px; background:rgba(201,168,76,0.1); border:1px solid #c9a84c; border-radius:8px; color:#c9a84c; font-size:13px; font-weight:600; cursor:pointer; padding:8px 20px; letter-spacing:0.3px; transition:background 0.2s; }
     #introBack:hover { background:rgba(201,168,76,0.22); }
   </style>
+  <style>
+    /* Mobile hamburger nav */
+    .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 4px; font-family: inherit; }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; align-items: center; gap: 0; padding-top: 12px; padding-bottom: 12px; }
+      .nav-toggle { display: block; }
+      nav a { display: none; width: 100%; text-align: center; padding: 11px 0; }
+      nav.open a { display: block; }
+    }
+  </style>  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">  <meta name="theme-color" content="#1a1a24">
 </head>
 <body>
 
 <nav>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="var n=this.parentNode,o=n.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
   <a href="../index.html">Home</a>
   <a href="../about.html">About</a>
   <a href="../chess-games/index.html">Chess Tools</a>
