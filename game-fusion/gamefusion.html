@@ -1017,9 +1017,10 @@ const CUSTOM_ART = {
   'checkers+monopoly':  'TycoonTakedown.png',
 };
 
+// Box-art PNGs live in the Artwork/ subfolder next to this page.
 function customArtUrl(a, b) {
   const key = [a.id, b.id].sort().join('+');
-  return CUSTOM_ART[key] ? CUSTOM_ART[key] : null;
+  return CUSTOM_ART[key] ? 'Artwork/' + CUSTOM_ART[key] : null;
 }
 
 function startEconomyArtAnim() {
