@@ -15,9 +15,33 @@
     min-height: 100vh;
     font-family: 'Segoe UI', sans-serif;
     color: #e0e0e0;
-    padding: 20px;
+    padding: 100px 20px 40px;
   }
   h1 { margin-bottom: 16px; font-size: 1.4rem; letter-spacing: 2px; color: #a0c4ff; }
+
+  nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: #1a1a24;
+    padding: 16px 40px;
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    border-bottom: 1px solid #2a2a3a;
+    z-index: 100;
+    flex-wrap: wrap;
+  }
+  nav a {
+    color: #c9a84c;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+  nav a:hover { color: #fff; }
+  nav a.active { color: #fff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
 
   .board-wrap { display: flex; align-items: center; gap: 6px; }
   .rank-labels, .file-labels-row { display: flex; color: #888; font-size: 12px; font-weight: bold; }
@@ -91,6 +115,15 @@
 </style>
 </head>
 <body>
+<nav>
+  <a href="../index.html">Home</a>
+  <a href="../about.html">About</a>
+  <a href="index.html" class="active">Chess Tools</a>
+  <a href="../chess-mashup/index.html">Chess Mashup</a>
+  <a href="../game-fusion/index.html">Game Fusion</a>
+  <a href="../pickleball/index.html">Pickleball</a>
+  <a href="../bocce/rules.html">Bocce Ball</a>
+</nav>
 <h1>CHESS BOARD</h1>
 
 <div style="display:flex;gap:10px;align-items:flex-start">

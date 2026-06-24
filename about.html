@@ -268,7 +268,6 @@
         <div class="tagline">Vibe Coding some apps using Claude Code &amp; GitHub</div>
         <div class="socials">
           <a class="social-btn" href="mailto:djk321@gmail.com">✉️ Email me</a>
-          <button class="social-btn" type="button" onclick="copyEmail(this)">📋 Copy address</button>
           <div class="email-fallback">or copy: <span class="addr">djk321@gmail.com</span></div>
         </div>
       </div>
@@ -278,7 +277,7 @@
 
         <div class="bio-text">
           <div class="section-label">About</div>
-          <p>Hi! I'm a former computer programmer learning to vibe code my way into the future<p>Inspired by my grandkids to keep up-to-date<p>This arcade is my corner of the internet to try somethings out.</p>
+          <p>Hi! I'm a former computer programmer learning to vibe code my way into the future<p>Inspired by my grandkids to keep up-to-date<p>This arcade is my corner of the internet to try some things out.</p>
         </div>
 
         <div>
@@ -345,31 +344,6 @@
         label=null;
       for(var i=0;i<map.length;i++) if(map[i][0].test(r)){label=map[i][1];break;}
     })();
-
-    function copyEmail(btn) {
-      const email = 'djk321@gmail.com';
-      const done = () => {
-        const original = btn.textContent;
-        btn.textContent = '✅ Copied!';
-        setTimeout(() => { btn.textContent = original; }, 1500);
-      };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(email).then(done).catch(() => fallbackCopy(email, done));
-      } else {
-        fallbackCopy(email, done);
-      }
-    }
-
-    function fallbackCopy(text, done) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); done(); } catch (e) {}
-      document.body.removeChild(ta);
-    }
   </script>
 
 </body>
