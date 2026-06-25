@@ -149,20 +149,36 @@
     .hat-tip a { color: #c9a84c; text-decoration: none; border-bottom: 1px solid rgba(201,168,76,0.4); }
     .hat-tip a:hover { color: #fff; border-bottom-color: #fff; }
 
-    .cta-row { margin: 36px 0 8px; display: flex; flex-wrap: wrap; gap: 14px; }
-    .cta-btn {
-      padding: 12px 22px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 15px;
-      background: #c9a84c;
-      color: #1a1a24;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    details.collapse {
+      border: 1px solid #2a2a3a;
+      border-radius: 14px;
+      margin: 14px 0;
+      background: #16161d;
     }
-    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(201,168,76,0.25); }
-    .cta-btn.secondary { background: transparent; color: #c9a84c; border: 1px solid rgba(201,168,76,0.4); }
-    .cta-btn.secondary:hover { color: #fff; border-color: #fff; box-shadow: none; }
+    details.collapse summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 18px 22px;
+      font-size: 21px;
+      font-weight: 700;
+      color: #e8d5a3;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: color 0.2s ease;
+    }
+    details.collapse summary:hover { color: #fff; }
+    details.collapse summary::-webkit-details-marker { display: none; }
+    details.collapse summary::after {
+      content: '▾';
+      font-size: 20px;
+      color: #c9a84c;
+      transition: transform 0.2s ease;
+    }
+    details.collapse[open] summary::after { transform: rotate(180deg); }
+    details.collapse .body { padding: 4px 22px 8px; }
+    details.collapse .body p:last-child { margin-bottom: 8px; }
 
     footer { margin-top: 56px; font-size: 12px; color: #666; letter-spacing: 1px; text-align: center; }
   </style>
@@ -214,33 +230,44 @@
       <a class="video-link" href="https://youtu.be/RoheCHp6IDw?si=cFY1OzWgJaqyWjxG" target="_blank" rel="noopener"><span class="play">▶</span> Pickleball scoring rules</a>
     </div>
 
-    <h2>What to bring, what to wear</h2>
-    <p>Shoes (tennis or court shoes), balls, and a paddle are all you need to play. Depending on where you play, you may be able to borrow a paddle and ball. Wear athletic clothes with layers to use as you warm up or cool down. Also bring a water bottle so you can stay hydrated.</p>
-    <p>Different balls are used for outdoor play vs. indoor play. Indoor balls are made from softer, lighter plastic with larger holes (about 26 of them) that provide a better bounce on indoor surfaces. Outdoor balls are made with harder plastic, are heavier, and have more holes (usually 40) to offer better durability, wind resistance, and bounce.</p>
+    <details class="collapse">
+      <summary>What to bring, what to wear</summary>
+      <div class="body">
+        <p>Shoes (tennis or court shoes), balls, and a paddle are all you need to play. Depending on where you play, you may be able to borrow a paddle and ball. Wear athletic clothes with layers to use as you warm up or cool down. Also bring a water bottle so you can stay hydrated.</p>
+        <p>Different balls are used for outdoor play vs. indoor play. Indoor balls are made from softer, lighter plastic with larger holes (about 26 of them) that provide a better bounce on indoor surfaces. Outdoor balls are made with harder plastic, are heavier, and have more holes (usually 40) to offer better durability, wind resistance, and bounce.</p>
+      </div>
+    </details>
 
-    <h2>How not to get hurt</h2>
-    <p><strong style="color:#fff;">Listen to your body.</strong> When starting out, a few games will wear you out. But over time your stamina will increase, and you'll discover that playing all morning on a regular basis works out great.</p>
-    <p><strong style="color:#fff;">Know your (mobility) limits.</strong> No single point is worth an injury. Remember the goal is fun, not a local championship, so take it easy when first starting out. Pretty soon returning a tricky dink or a perfect lob is no problem.</p>
-    <p><strong style="color:#fff;">"Ball on!"</strong> Frequently a ball from one court flies or rolls onto another. This can be dangerous — when someone unexpectedly steps on a ball, they can easily twist an ankle or fall. So when you hit a ball wide, stop play and call out "ball on" to the folks on the adjoining court. The same goes for when a ball makes its way to your court. Also, never run onto another court; that's obviously even more dangerous.</p>
+    <details class="collapse">
+      <summary>How not to get hurt</summary>
+      <div class="body">
+        <p><strong style="color:#fff;">Listen to your body.</strong> When starting out, a few games will wear you out. But over time your stamina will increase, and you'll discover that playing all morning on a regular basis works out great.</p>
+        <p><strong style="color:#fff;">Know your (mobility) limits.</strong> No single point is worth an injury. Remember the goal is fun, not a local championship, so take it easy when first starting out. Pretty soon returning a tricky dink or a perfect lob is no problem.</p>
+        <p><strong style="color:#fff;">"Ball on!"</strong> Frequently a ball from one court flies or rolls onto another. This can be dangerous — when someone unexpectedly steps on a ball, they can easily twist an ankle or fall. So when you hit a ball wide, stop play and call out "ball on" to the folks on the adjoining court. The same goes for when a ball makes its way to your court. Also, never run onto another court; that's obviously even more dangerous.</p>
+      </div>
+    </details>
 
-    <h2>Where to play</h2>
-    <p>The SIR PB group plays on Monday and Thursday mornings (9:00) at Beresford Park. It has a nice set of courts, not too crowded, easy parking, and — most importantly — a good mix of friendly players who are very welcoming to players at all skill levels.</p>
-    <p>In addition, there are lots of other locations you can check out to find a convenient "drop-in" game. Popular local outdoor PB courts include Washington Park, Leo J. Ryan, Highlands, Hallmark, and Red Morton. Indoor courts include San Mateo HS, San Carlos rec center, Red Morton, and the YMCA.</p>
+    <details class="collapse">
+      <summary>Where to play</summary>
+      <div class="body">
+        <p>The SIR PB group plays on Monday and Thursday mornings (9:00) at Beresford Park. It has a nice set of courts, not too crowded, easy parking, and — most importantly — a good mix of friendly players who are very welcoming to players at all skill levels.</p>
+        <p>In addition, there are lots of other locations you can check out to find a convenient "drop-in" game. Popular local outdoor PB courts include Washington Park, Leo J. Ryan, Highlands, Hallmark, and Red Morton. Indoor courts include San Mateo HS, San Carlos rec center, Red Morton, and the YMCA.</p>
+      </div>
+    </details>
 
-    <h2>How to play nicely with others</h2>
-    <p>Each set of courts will have some convention for how to get yourself into a game. Some places have a paddle queue by skill level for each court, while others have one main rack for all the paddles. Once a game finishes, a shout of "court open!" often goes out and the next four players are up.</p>
-    <p>Some courts embrace mixed-skill-level play while others tend to segment players by level. Some places allow singles games, though most courts prioritize 2x2 team matches. You'll find that some advanced players are happy to play with beginners to help them learn the game, while others not-so-much — no reason to take it personally.</p>
-    <p>This can all be confusing, so the best approach is to just ask. You'll soon learn who is helpful and quickly understand the local protocol and — even more importantly — the park's vibe.</p>
-    <p>Once you're on the court, introduce yourself to the other players and exchange names. If you're a beginner, it's good to let the other players know so the teams can be set accordingly. If it's the first game for any of the players, a few minutes of practicing to warm up is often requested.</p>
-    <p>The side where the ball lands is responsible for calling the ball in or out. Your sight line makes a big difference in determining if the ball is in or out. It's very bad form to argue a call even if you know you're right — remember, it's about having fun, not winning each and every point.</p>
-    <p>After the game, everyone meets at the net, taps paddles (gently), and announces "good game" to the winners and to the players not so lucky but who have improved a little bit.</p>
+    <details class="collapse">
+      <summary>How to play nicely with others</summary>
+      <div class="body">
+        <p>Each set of courts will have some convention for how to get yourself into a game. Some places have a paddle queue by skill level for each court, while others have one main rack for all the paddles. Once a game finishes, a shout of "court open!" often goes out and the next four players are up.</p>
+        <p>Some courts embrace mixed-skill-level play while others tend to segment players by level. Some places allow singles games, though most courts prioritize 2x2 team matches. You'll find that some advanced players are happy to play with beginners to help them learn the game, while others not-so-much — no reason to take it personally.</p>
+        <p>This can all be confusing, so the best approach is to just ask. You'll soon learn who is helpful and quickly understand the local protocol and — even more importantly — the park's vibe.</p>
+        <p>Once you're on the court, introduce yourself to the other players and exchange names. If you're a beginner, it's good to let the other players know so the teams can be set accordingly. If it's the first game for any of the players, a few minutes of practicing to warm up is often requested.</p>
+        <p>The side where the ball lands is responsible for calling the ball in or out. Your sight line makes a big difference in determining if the ball is in or out. It's very bad form to argue a call even if you know you're right — remember, it's about having fun, not winning each and every point.</p>
+        <p>After the game, everyone meets at the net, taps paddles (gently), and announces "good game" to the winners and to the players not so lucky but who have improved a little bit.</p>
+      </div>
+    </details>
 
     <blockquote>See you on the court!</blockquote>
-
-    <div class="cta-row">
-      <a class="cta-btn" href="rules.html">Learn the rules →</a>
-      <a class="cta-btn secondary" href="etiquette.html">Court etiquette</a>
-    </div>
 
     <p class="hat-tip">Major "hat tip" to SIR Jeff McFadden — most of the details in this article come from his blog: <a href="https://alwaysmakenewmistakes.com/2020/12/17/life-is-too-short-to-live-without-pickleball/" target="_blank" rel="noopener">Always Make New Mistakes</a>.</p>
   </article>
