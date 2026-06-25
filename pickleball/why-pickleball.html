@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Why Pickleball — Game Arcade</title>
+  <meta property="og:title" content="Life is too short without Pickleball">
+  <meta property="og:description" content="Why pickleball is the friendliest, fastest-growing sport around — and how to get started.">
+  <meta property="og:type" content="article">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      padding: 100px 20px 60px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      flex-wrap: wrap;
+      z-index: 100;
+    }
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+    .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 4px; font-family: inherit; }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; align-items: center; gap: 0; padding-top: 12px; padding-bottom: 12px; }
+      .nav-toggle { display: block; }
+      nav a { display: none; width: 100%; text-align: center; padding: 11px 0; }
+      nav.open a { display: block; }
+    }
+
+    .article { max-width: 760px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 48px; }
+    header h1 {
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p.kicker { margin-top: 12px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .article h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e8d5a3;
+      margin: 40px 0 14px;
+    }
+    .article p { font-size: 16px; line-height: 1.75; color: #cfcfd6; margin-bottom: 16px; }
+    .article .lead { font-size: 18px; color: #e8e8ee; }
+
+    .article ol { margin: 0 0 16px 0; padding: 0; list-style: none; counter-reset: reasons; }
+    .article ol li {
+      position: relative;
+      counter-increment: reasons;
+      padding: 16px 20px 16px 64px;
+      margin-bottom: 12px;
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 14px;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #cfcfd6;
+    }
+    .article ol li::before {
+      content: counter(reasons);
+      position: absolute;
+      left: 18px;
+      top: 16px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(201,168,76,0.15);
+      border: 1px solid rgba(201,168,76,0.4);
+      color: #e8d5a3;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .article ol li strong { color: #fff; font-weight: 700; }
+
+    .videos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 8px 0 16px;
+    }
+    .video-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      text-decoration: none;
+      background: rgba(201,168,76,0.10);
+      border: 1px solid rgba(201,168,76,0.30);
+      color: #e8d5a3;
+      font-size: 15px;
+      font-weight: 600;
+      transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .video-link:hover { transform: translateY(-2px); border-color: #c9a84c; background: rgba(201,168,76,0.18); }
+    .video-link .play { font-size: 18px; }
+
+    blockquote {
+      margin: 28px 0;
+      padding: 18px 24px;
+      border-left: 3px solid #c9a84c;
+      background: rgba(201,168,76,0.06);
+      border-radius: 0 12px 12px 0;
+      font-size: 18px;
+      font-style: italic;
+      color: #e8d5a3;
+    }
+
+    .hat-tip {
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid #2a2a3a;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #9a9aa5;
+    }
+    .hat-tip a { color: #c9a84c; text-decoration: none; border-bottom: 1px solid rgba(201,168,76,0.4); }
+    .hat-tip a:hover { color: #fff; border-bottom-color: #fff; }
+
+    .cta-row { margin: 36px 0 8px; display: flex; flex-wrap: wrap; gap: 14px; }
+    .cta-btn {
+      padding: 12px 22px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 15px;
+      background: #c9a84c;
+      color: #1a1a24;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(201,168,76,0.25); }
+    .cta-btn.secondary { background: transparent; color: #c9a84c; border: 1px solid rgba(201,168,76,0.4); }
+    .cta-btn.secondary:hover { color: #fff; border-color: #fff; box-shadow: none; }
+
+    footer { margin-top: 56px; font-size: 12px; color: #666; letter-spacing: 1px; text-align: center; }
+  </style>
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <meta name="theme-color" content="#1a1a24">
+  <link rel="manifest" href="../site.webmanifest">
+</head>
+<body>
+  <nav>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="var n=this.parentNode,o=n.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="index.html" class="active">Pickleball</a>
+    <a href="../bocce/rules.html">Bocce Ball</a>
+  </nav>
+
+  <article class="article">
+    <header>
+      <h1>Life is too short without Pickleball</h1>
+      <p class="kicker">Why I play — and why you should too</p>
+    </header>
+
+    <p class="lead">No one should try to live life without Pickleball. This is a pretty bold statement, but unless you are already too fit, have too many friends, and are having just too much fun in life, pickleball needs to be on your weekly to-do list. I started playing because of SIR and can hardly imagine life without playing PB on a regular basis.</p>
+
+    <h2>What the heck is Pickleball?</h2>
+    <p>It's a paddleball sport that's sort of a mash-up of tennis and table tennis. It's played outdoors or indoors on what looks like a miniature tennis court that's 20 feet wide and 44 feet long, using a Wiffle ball. Pickleball was "invented" in 1965 by two fathers vacationing with their families on Bainbridge Island (near Seattle) who wanted an activity the whole family could enjoy. The result is a game that people of all ages can learn quickly to play competently in 3 to 12 months (unlike tennis or golf).</p>
+    <p>Despite its humble beginnings, players now range from a steady stream of beginners to professionals who make their living playing Pickleball.</p>
+
+    <h2>Why is Pickleball so popular?</h2>
+    <p>Pickleball is the fastest growing sport in the world. Key reasons for its popularity are:</p>
+    <ol>
+      <li><strong>It's easy to learn and easy on your body</strong> (knees, hips, shoulders) so you can play often. I play three to five times a week.</li>
+      <li><strong>The culture is welcoming and inclusive.</strong> Most play takes place on public courts and is drop-in, meaning you can show up by yourself and almost always find a game. First-timers are welcomed, and someone will likely help you learn the game right on the spot! As you get more involved, you'll find yourself compelled to protect and propagate this welcoming culture.</li>
+      <li><strong>It's the most social sport ever!</strong> Because there are often more players than the courts will accommodate, you'll wait a few minutes between games chatting and getting acquainted. Remembering everyone's name is the biggest — yet shared — challenge. There's a real sense of community, and you'll be welcome almost everywhere you play, both locally and when you're traveling.</li>
+      <li><strong>It's serious fun!</strong> Most sports competitors want to win, but for most Pickleball players, fun is the highest priority. Unlike golf or tennis, you'll hear constant chatter, joking, and laughter on the courts. When you get home you'll remember some of your great shots but not have a clue how many games you won or lost.</li>
+      <li><strong>It's great exercise!</strong> Even though it's easier on your body than tennis, you'll work up a sweat. Many folks play 3 to 5 times a week, getting more and more fit along the way. Some former self-described "gym rats" will tell you they now play Pickleball in lieu of going to the gym.</li>
+    </ol>
+    <p>No wonder the game has become so popular. More and more people — from retirees to pros — say that Pickleball "changed their lives," largely because they've made a lot of new friends while becoming more fit, enjoying the sunshine, and feeling part of a community.</p>
+
+    <h2>Getting started: how to play</h2>
+    <p>Before heading to the court, you can get up to speed by watching some online videos. There are tons of them on YouTube, from silly to serious. Here are a couple of informative ones:</p>
+    <div class="videos">
+      <a class="video-link" href="https://youtu.be/fTvPYdKZqO0?si=sVG1hQEngGab7l8K" target="_blank" rel="noopener"><span class="play">▶</span> How to play pickleball</a>
+      <a class="video-link" href="https://youtu.be/RoheCHp6IDw?si=cFY1OzWgJaqyWjxG" target="_blank" rel="noopener"><span class="play">▶</span> Pickleball scoring rules</a>
+    </div>
+
+    <h2>What to bring, what to wear</h2>
+    <p>Shoes (tennis or court shoes), balls, and a paddle are all you need to play. Depending on where you play, you may be able to borrow a paddle and ball. Wear athletic clothes with layers to use as you warm up or cool down. Also bring a water bottle so you can stay hydrated.</p>
+    <p>Different balls are used for outdoor play vs. indoor play. Indoor balls are made from softer, lighter plastic with larger holes (about 26 of them) that provide a better bounce on indoor surfaces. Outdoor balls are made with harder plastic, are heavier, and have more holes (usually 40) to offer better durability, wind resistance, and bounce.</p>
+
+    <h2>How not to get hurt</h2>
+    <p><strong style="color:#fff;">Listen to your body.</strong> When starting out, a few games will wear you out. But over time your stamina will increase, and you'll discover that playing all morning on a regular basis works out great.</p>
+    <p><strong style="color:#fff;">Know your (mobility) limits.</strong> No single point is worth an injury. Remember the goal is fun, not a local championship, so take it easy when first starting out. Pretty soon returning a tricky dink or a perfect lob is no problem.</p>
+    <p><strong style="color:#fff;">"Ball on!"</strong> Frequently a ball from one court flies or rolls onto another. This can be dangerous — when someone unexpectedly steps on a ball, they can easily twist an ankle or fall. So when you hit a ball wide, stop play and call out "ball on" to the folks on the adjoining court. The same goes for when a ball makes its way to your court. Also, never run onto another court; that's obviously even more dangerous.</p>
+
+    <h2>Where to play</h2>
+    <p>The SIR PB group plays on Monday and Thursday mornings (9:00) at Beresford Park. It has a nice set of courts, not too crowded, easy parking, and — most importantly — a good mix of friendly players who are very welcoming to players at all skill levels.</p>
+    <p>In addition, there are lots of other locations you can check out to find a convenient "drop-in" game. Popular local outdoor PB courts include Washington Park, Leo J. Ryan, Highlands, Hallmark, and Red Morton. Indoor courts include San Mateo HS, San Carlos rec center, Red Morton, and the YMCA.</p>
+
+    <h2>How to play nicely with others</h2>
+    <p>Each set of courts will have some convention for how to get yourself into a game. Some places have a paddle queue by skill level for each court, while others have one main rack for all the paddles. Once a game finishes, a shout of "court open!" often goes out and the next four players are up.</p>
+    <p>Some courts embrace mixed-skill-level play while others tend to segment players by level. Some places allow singles games, though most courts prioritize 2x2 team matches. You'll find that some advanced players are happy to play with beginners to help them learn the game, while others not-so-much — no reason to take it personally.</p>
+    <p>This can all be confusing, so the best approach is to just ask. You'll soon learn who is helpful and quickly understand the local protocol and — even more importantly — the park's vibe.</p>
+    <p>Once you're on the court, introduce yourself to the other players and exchange names. If you're a beginner, it's good to let the other players know so the teams can be set accordingly. If it's the first game for any of the players, a few minutes of practicing to warm up is often requested.</p>
+    <p>The side where the ball lands is responsible for calling the ball in or out. Your sight line makes a big difference in determining if the ball is in or out. It's very bad form to argue a call even if you know you're right — remember, it's about having fun, not winning each and every point.</p>
+    <p>After the game, everyone meets at the net, taps paddles (gently), and announces "good game" to the winners and to the players not so lucky but who have improved a little bit.</p>
+
+    <blockquote>See you on the court!</blockquote>
+
+    <div class="cta-row">
+      <a class="cta-btn" href="rules.html">Learn the rules →</a>
+      <a class="cta-btn secondary" href="etiquette.html">Court etiquette</a>
+    </div>
+
+    <p class="hat-tip">Major "hat tip" to SIR Jeff McFadden — most of the details in this article come from his blog: <a href="https://alwaysmakenewmistakes.com/2020/12/17/life-is-too-short-to-live-without-pickleball/" target="_blank" rel="noopener">Always Make New Mistakes</a>.</p>
+  </article>
+
+  <footer>Pickleball &mdash; Why We Play</footer>
+</body>
+</html>
