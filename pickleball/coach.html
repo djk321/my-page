@@ -42,12 +42,16 @@
     .typing span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes blink { 0%, 60%, 100% { opacity: 0.2; } 30% { opacity: 1; } }
 
+    .related { align-self: flex-start; max-width: 92%; display: flex; flex-wrap: wrap; gap: 7px; margin-top: -4px; }
+    .related .rlabel { width: 100%; font-size: 0.72rem; color: #7c8aa0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+
     .suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
     .chip {
       background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: #e8d5a3;
       padding: 7px 13px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;
       transition: background 0.18s, border-color 0.18s;
     }
+    .related .chip { font-size: 0.78rem; padding: 6px 11px; }
     .chip:hover { background: rgba(201,168,76,0.22); border-color: #c9a84c; }
 
     .input-row { display: flex; gap: 10px; }
@@ -118,157 +122,202 @@
   <footer>Pickleball &mdash; Train &amp; Play<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify tips with a qualified coach or official USA Pickleball rules.</span></footer>
 
   <script>
-    /* ---------- Knowledge base ----------
-       Each entry: keywords to match against + an answer (HTML allowed).
-       Matching is keyword-overlap scored, so phrasing doesn't have to be exact. */
+    /* ===========================================================
+       Ask the Coach — built-in pickleball knowledge base.
+       Each entry: { cat, q (canonical question), keys (match terms),
+       a (answer HTML), src ([label, page] or null) }.
+       Matching uses synonym expansion + light stemming + keyword
+       overlap, returns the best answer plus related questions.
+       To add a Q&A: copy an entry and fill in the fields.
+       =========================================================== */
+    const RULES = ["Rules","rules.html"], DRILLS = ["Drills","drills.html"],
+          ETIQ = ["Etiquette","etiquette.html"], TERMS = ["Helpful Terms","helpful-terms.html"],
+          WHY = ["Why Pickleball","why-pickleball.html"];
+
     const KB = [
-      {
-        keys: ["kitchen", "non volley", "nonvolley", "non-volley", "nvz", "no volley zone", "7 foot", "seven foot"],
-        a: "The <b>kitchen</b> (officially the <b>Non-Volley Zone</b>) is the 7-foot area on each side of the net. You may not <b>volley</b> (hit the ball out of the air) while standing in the kitchen or touching its line — including the moment your momentum carries you in after the volley. You <i>can</i> step into the kitchen anytime to play a ball that has already bounced.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["volley in kitchen", "volley kitchen", "can i volley", "hit out of air kitchen", "volley non volley"],
-        a: "No — you can't volley while standing in the kitchen or on its line. If the ball has bounced, you may step in and hit it. Just make sure both feet are out of the kitchen (and your momentum has stopped) before you volley.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["two bounce", "double bounce", "2 bounce", "bounce rule", "let it bounce"],
-        a: "The <b>two-bounce rule</b>: after the serve, the receiving team must let it bounce once, and the serving team must let the return bounce once too. So the ball bounces at least twice (once per side) before anyone can volley. This neutralizes the serve-and-volley advantage.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["serve", "serving", "how to serve", "serve rules", "underhand", "drop serve"],
-        a: "<b>Serving basics:</b> the serve must be hit underhand with contact below your waist (navel), made diagonally cross-court, and must land beyond the kitchen in the correct service box. Keep both feet behind the baseline at contact. The <b>drop serve</b> (dropping the ball and hitting it after a bounce) is also legal and has no height/motion restriction.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["score", "scoring", "keep score", "how scoring works", "points", "win game", "11 points", "call score"],
-        a: "<b>Scoring:</b> only the serving side can score a point. Games are usually to <b>11, win by 2</b> (tournaments may play to 15 or 21). In doubles you call <b>three numbers</b>: your score, the opponent's score, and the server number (1 or 2) — e.g. \"4–2–1.\"",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["server number", "second server", "first server", "two servers", "side out", "0 0 2", "0-0-2"],
-        a: "In doubles, both players on a team serve before a <b>side out</b> — except the very first service turn of the game, where only one player serves (that's why it starts <b>0–0–2</b>). The third number you call (1 or 2) tells everyone which server is up. When the second server faults, it's a side out and the ball goes to the other team.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["dink", "dinking", "soft shot", "what is a dink"],
-        a: "A <b>dink</b> is a soft shot hit from near the kitchen line that arcs over the net and lands in your opponent's kitchen. Because it bounces low and short, it can't be attacked — dinking is how points are patiently set up at the net. Practice keeping it low over the net with a relaxed grip and a gentle lifting motion.",
-        src: ["Drills", "drills.html"]
-      },
-      {
-        keys: ["third shot drop", "3rd shot", "third shot", "drop shot", "popping up", "pops up"],
-        a: "The <b>third-shot drop</b> is a soft shot from near the baseline that lands in the opponent's kitchen, giving your team time to move up to the net. If yours keeps popping up: contact the ball lower and out front, use a gentle upward lift (not a punch), keep a loose grip, and aim for a high arc that peaks on your side of the net. Get under it — don't swing hard.",
-        src: ["Drills", "drills.html"]
-      },
-      {
-        keys: ["atp", "around the post", "around post"],
-        a: "An <b>ATP (Around The Post)</b> is a legal shot where you hit a wide, low ball around the outside of the net post — the ball never has to clear the net height-wise. It's perfectly legal as long as it lands in. A great answer to a ball that pulls you wide off the court.",
-        src: ["Helpful Terms", "helpful-terms.html"]
-      },
-      {
-        keys: ["erne", "ernie"],
-        a: "An <b>Erne</b> is an aggressive net play where you hit the ball while standing just outside the sideline next to the net (or jump from outside the kitchen and land outside it), letting you volley a dink without breaking the kitchen rule. Named after player Erne Perry. It's legal as long as you don't touch the kitchen or the net.",
-        src: ["Helpful Terms", "helpful-terms.html"]
-      },
-      {
-        keys: ["line call", "out call", "in or out", "ball on line", "line in", "who calls"],
-        a: "Pickleball is usually <b>self-officiated</b>. You make calls on your own side of the court. A ball touching <b>any part of the line is IN</b> (except the kitchen line on a serve, which is a fault). If you're not sure, the ball is good — give the benefit of the doubt to your opponent.",
-        src: ["Etiquette", "etiquette.html"]
-      },
-      {
-        keys: ["fault", "faults", "what is a fault", "lose rally"],
-        a: "A <b>fault</b> ends the rally. Common faults: hitting the ball out of bounds, into the net, volleying from the kitchen, volleying before the two-bounce rule is satisfied, serving into the wrong box or into the net, or a serve that lands in the kitchen. A fault by the serving team is a side out; a fault by the receiving team is a point for the server.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["court size", "court dimensions", "how big", "net height", "court measurements", "20 by 44"],
-        a: "A pickleball court is <b>20 ft × 44 ft</b> (same size for singles and doubles) — identical to a doubles badminton court. The net is <b>36 inches at the sidelines and 34 inches in the middle</b>. The kitchen extends 7 ft from the net on each side.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["paddle", "what paddle", "gear", "equipment", "ball", "best paddle", "beginner paddle"],
-        a: "<b>Gear:</b> you need a solid <b>paddle</b> (larger than a ping-pong paddle, no strings) and a plastic <b>pickleball</b> with holes — outdoor balls are harder with smaller holes, indoor balls are softer with larger holes. For a first paddle, look for a mid-weight (7.6–8.4 oz) all-around paddle; you don't need anything expensive to start.",
-        src: ["Helpful Terms", "helpful-terms.html"]
-      },
-      {
-        keys: ["singles", "play singles", "one on one"],
-        a: "<b>Singles</b> uses the same court but is far more physical — you cover the whole court alone. Your serving position is based on your score: serve from the <b>right/even</b> side when your score is even, and the <b>left/odd</b> side when it's odd. Only two numbers are called (your score, opponent's score), since there's no server number.",
-        src: ["Rules", "rules.html"]
-      },
-      {
-        keys: ["stacking", "stack"],
-        a: "<b>Stacking</b> is a doubles strategy where partners line up on the same side before the serve/return, then switch to their preferred sides (e.g. to keep a player's forehand in the middle). It's legal — there are no rules requiring you to stand in particular spots, only about who serves/receives from where.",
-        src: ["Helpful Terms", "helpful-terms.html"]
-      },
-      {
-        keys: ["etiquette", "manners", "sportsmanship", "rude", "courtesy", "paddle tap"],
-        a: "<b>Good etiquette:</b> call the score clearly before serving, make honest line calls in your opponent's favor when unsure, don't walk behind a court during an active point, retrieve and return stray balls, and tap paddles at the end of the game to say \"good game.\" Friendliness is a big part of pickleball culture.",
-        src: ["Etiquette", "etiquette.html"]
-      },
-      {
-        keys: ["drill", "drills", "practice", "improve", "get better", "what should i practice"],
-        a: "Great practice priorities for improving fast: <b>dinking</b> (control at the net), <b>third-shot drops</b> (getting to the net), <b>resets</b> (absorbing hard shots softly), and <b>footwork</b>. The Drills page has 10 drills with animated court diagrams covering exactly these.",
-        src: ["Drills", "drills.html"]
-      },
-      {
-        keys: ["reset", "resetting", "block", "absorb", "soft hands"],
-        a: "A <b>reset</b> is a soft, controlled shot — usually from a defensive position — that drops the ball into the opponent's kitchen to neutralize their attack and buy time to get back to the net. The key is <b>soft hands</b>: loosen your grip and let the paddle absorb the pace rather than swinging at the ball.",
-        src: ["Drills", "drills.html"]
-      },
-      {
-        keys: ["poach", "poaching"],
-        a: "<b>Poaching</b> is when, in doubles, you cross over to cut off a ball that would normally be your partner's — usually an aggressive volley at the net to surprise opponents. Communicate with your partner so you don't both go for it (or both leave it).",
-        src: ["Helpful Terms", "helpful-terms.html"]
-      },
-      {
-        keys: ["what is pickleball", "about pickleball", "explain pickleball", "new to", "beginner", "getting started", "how to play"],
-        a: "<b>Pickleball</b> is a paddle sport that blends tennis, badminton, and ping-pong. You play on a small court with a paddle and a plastic ball with holes, hitting it over a low net. It's easy to learn, easy on the body, and very social — which is why it's the fastest-growing sport around. Check the <b>Why Pickleball</b> page for a friendly intro.",
-        src: ["Why Pickleball", "why-pickleball.html"]
-      }
+      /* ---------- KITCHEN / NON-VOLLEY ZONE ---------- */
+      {cat:"Kitchen", q:"What is the kitchen?", keys:["kitchen","nvz","non volley zone","non-volley","no volley zone","seven foot zone","what is the kitchen"], a:"The <b>kitchen</b> (officially the <b>Non-Volley Zone</b>) is the 7-foot area on each side of the net, including the line itself. You can't volley while standing in it — you may only play balls there that have already bounced.", src:RULES},
+      {cat:"Kitchen", q:"Can I volley in the kitchen?", keys:["volley in the kitchen","can i volley","hit out of the air in the kitchen","volley while standing in kitchen"], a:"No. You may not <b>volley</b> (hit the ball before it bounces) while standing in the kitchen or touching the kitchen line. If the ball has bounced, you can step in and play it.", src:RULES},
+      {cat:"Kitchen", q:"What about momentum into the kitchen?", keys:["momentum","fall into kitchen","carry into kitchen","step in after a volley","follow through into kitchen"], a:"If your <b>momentum</b> carries you into the kitchen or onto the line right after a volley — even after the ball is dead — it's a <b>fault</b>. You must come to a stop with both feet out of the zone.", src:RULES},
+      {cat:"Kitchen", q:"Can I step into the kitchen?", keys:["step in the kitchen","enter the kitchen","stand in the kitchen","am i allowed in the kitchen"], a:"Yes — you can step into the kitchen any time to play a ball that has <b>bounced</b>. Just get both feet back out of the zone before you volley again.", src:RULES},
+      {cat:"Kitchen", q:"Is a serve that lands in the kitchen a fault?", keys:["serve in the kitchen","serve lands in kitchen","serve on kitchen line","serve hits the kitchen"], a:"Yes. A serve must clear the kitchen, so a serve that lands <b>in the kitchen or on the kitchen line is a fault</b>. (On any other shot, the kitchen is fair territory once the ball has bounced.)", src:RULES},
+
+      /* ---------- SERVING ---------- */
+      {cat:"Serving", q:"How do I serve?", keys:["serve","serving","how do i serve","serve rules","underhand serve","how to serve"], a:"The serve must be hit <b>underhand</b> with the paddle below your wrist and contact below the waist, made <b>diagonally cross-court</b> into the opposite service box past the kitchen. Keep both feet behind the baseline at contact.", src:RULES},
+      {cat:"Serving", q:"What is the drop serve?", keys:["drop serve","bounce serve","drop the ball serve"], a:"The <b>drop serve</b> is legal: you drop the ball and hit it after it bounces. There's <b>no restriction on swing direction or contact height</b>, which makes it a popular, low-stress way to serve.", src:RULES},
+      {cat:"Serving", q:"What is a foot fault on the serve?", keys:["foot fault","feet behind baseline","step on line serving","baseline fault"], a:"At the moment you strike the serve, both feet must be <b>behind the baseline</b> and within the sideline/centerline extensions. Touching the baseline or court before contact is a <b>foot fault</b>.", src:RULES},
+      {cat:"Serving", q:"Where does the serve have to land?", keys:["where does the serve go","which service box","diagonal serve","cross court serve","serve placement box"], a:"The serve goes to the <b>diagonally opposite service box</b> — past the kitchen line and inside the sidelines. Serve from the right when your score is even, the left when it's odd.", src:RULES},
+      {cat:"Serving", q:"Is there a let serve?", keys:["let serve","net serve","serve clips the net","does a let count"], a:"There is <b>no let</b> in pickleball. If the serve clips the net and still lands in the correct service box, it's live and in play. It's only a fault if it lands in the kitchen or out of bounds.", src:RULES},
+      {cat:"Serving", q:"Why does the first server start at 0-0-2?", keys:["first serve one serve","0-0-2","why start second server","first team only one serve"], a:"To balance the game, the <b>very first service turn of the game</b> gets only one server (the team starts as \"server 2\"). After that, both partners serve before a side out. That's why the opening score is called <b>0–0–2</b>.", src:RULES},
+      {cat:"Serving", q:"Is a spin serve legal?", keys:["spin serve","chainsaw serve","finger spin serve","pre spin"], a:"You can put spin on the ball with your <b>paddle stroke</b>, but pre-spinning the ball with your hand/fingers before contact (the old \"chainsaw\" serve) is <b>no longer legal</b>. The release must be a simple drop or toss.", src:RULES},
+      {cat:"Serving", q:"Should my serve be deep?", keys:["deep serve","serve deep","serve placement","hit serve deep","serve target"], a:"Yes — aim your serves <b>deep</b>, near the baseline. Deep serves push the returner back and buy time, making their third-shot and approach to the net harder.", src:DRILLS},
+
+      /* ---------- SCORING ---------- */
+      {cat:"Scoring", q:"How does scoring work?", keys:["score","scoring","how does scoring work","keep score","points","win by two"], a:"Only the <b>serving team</b> can score. Games are played to <b>11, win by 2</b> (tournaments may go to 15 or 21). In doubles you announce three numbers before serving.", src:RULES},
+      {cat:"Scoring", q:"How do I call the score?", keys:["call the score","three numbers","what numbers do i say","server number","announce score"], a:"In doubles you call <b>three numbers</b>: your team's score, the opponents' score, and the server number (1 or 2) — e.g. \"4–2–1.\" In singles you call just two (your score, their score).", src:RULES},
+      {cat:"Scoring", q:"Who is allowed to score points?", keys:["who can score","only serving team score","can the receiver score","does receiving team score"], a:"Only the <b>serving side</b> can score a point. If the receiving team wins the rally, they don't score — they earn the serve (a side out) instead.", src:RULES},
+      {cat:"Scoring", q:"What is a side out?", keys:["side out","sideout","lose the serve","second server faults"], a:"A <b>side out</b> is when the serve passes to the other team. In doubles it happens after <b>both partners</b> have served and faulted; then the opponents serve.", src:RULES},
+      {cat:"Scoring", q:"What is rally scoring?", keys:["rally scoring","rally point scoring","point every rally"], a:"In traditional (<b>side-out</b>) scoring only the server scores. <b>Rally scoring</b> — used in some leagues and shorter formats — awards a point on every rally regardless of who served. Most rec and tournament play still uses side-out scoring to 11.", src:null},
+      {cat:"Scoring", q:"How many points do you need to win?", keys:["how many points to win","game to 11","play to 15","play to 21","points to win"], a:"Standard games go to <b>11 points, win by 2</b>. Some tournament matches are played to 15 or 21 (still win by 2).", src:RULES},
+
+      /* ---------- TWO-BOUNCE ---------- */
+      {cat:"Rules", q:"What is the two-bounce rule?", keys:["two bounce rule","double bounce rule","two-bounce","let it bounce","bounce once each side"], a:"After the serve, the ball must <b>bounce once on each side</b> before anyone may volley: the receiver lets the serve bounce, then the serving team lets the return bounce. This stops serve-and-volley dominance.", src:RULES},
+
+      /* ---------- FAULTS ---------- */
+      {cat:"Faults", q:"What is a fault?", keys:["fault","what is a fault","lose the rally","lose the point","ways to fault"], a:"A <b>fault</b> ends the rally. Common faults: hitting the ball out, into the net, volleying in the kitchen, breaking the two-bounce rule, a bad serve, letting the ball bounce twice, or touching the net.", src:RULES},
+      {cat:"Faults", q:"Is touching the net a fault?", keys:["touch the net","hit the net","paddle touches net","net fault","cross the net"], a:"Yes. If you, your clothing, or your paddle <b>touch the net</b> or the opponent's court while the ball is in play, it's a fault — even on a great shot.", src:RULES},
+      {cat:"Faults", q:"What if the ball hits me?", keys:["ball hits me","ball hits a player","hit by the ball","ball hits my body"], a:"If a live ball <b>hits you or anything you're wearing/carrying</b> (other than the paddle), it's a fault against you — even if you're standing behind the baseline.", src:RULES},
+      {cat:"Faults", q:"Is a double hit or carry legal?", keys:["double hit","carry","sling","two hits","scoop the ball"], a:"A <b>double hit</b> is legal only if it happens in one continuous, unintentional stroke. A <b>carry</b> or sling — where the ball visibly rides or is scooped on the paddle — is a fault.", src:null},
+
+      /* ---------- LINE CALLS ---------- */
+      {cat:"Line Calls", q:"Is a ball on the line in or out?", keys:["ball on the line","line call","on the line in or out","is the line in","line is good"], a:"A ball that touches <b>any part of a line is IN</b> — the only exception is a serve landing on the kitchen line, which is a fault. To be \"out,\" the ball must land completely outside the line.", src:RULES},
+      {cat:"Line Calls", q:"Who makes the line calls?", keys:["who calls the lines","self officiate","who makes line calls","your side calls"], a:"Pickleball is <b>self-officiated</b>: you call the lines on <b>your own side</b> of the court. Make the call promptly and honestly.", src:ETIQ},
+      {cat:"Line Calls", q:"What if I'm not sure a ball was out?", keys:["not sure if out","benefit of the doubt","unsure line call","100 percent sure","close call"], a:"Only call a ball <b>out if you're 100% sure</b>. If there's any doubt, give your opponent the benefit and play it in — you win by playing better, not by close calls.", src:ETIQ},
+
+      /* ---------- SHOTS & TECHNIQUE ---------- */
+      {cat:"Shots", q:"What is a dink?", keys:["dink","dinking","what is a dink","soft shot over net"], a:"A <b>dink</b> is a soft shot from near the kitchen line that arcs just over the net and lands in the opponent's kitchen. Because it's low and short it can't be attacked — dinking is how net points are patiently set up.", src:TERMS},
+      {cat:"Shots", q:"How do I dink better?", keys:["how to dink","dink technique","improve my dink","better dinks","dink tips"], a:"Use a <b>relaxed grip</b>, contact the ball out in front with a gentle <b>lifting</b> motion (not a swing), keep it low over the net, and aim cross-court. Bend your knees instead of dropping the paddle head.", src:DRILLS},
+      {cat:"Shots", q:"What is the third shot drop?", keys:["third shot drop","3rd shot","third shot","drop shot","third-shot"], a:"The <b>third-shot drop</b> is a soft arc from near the baseline that lands in the opponent's kitchen, giving the serving team time to move up to the net. It's widely considered the most important shot to master.", src:DRILLS},
+      {cat:"Shots", q:"My third shot drop keeps popping up — how do I fix it?", keys:["drop pops up","popping up","drop too high","fix my drop","drop floats"], a:"Contact the ball <b>lower and further in front</b>, keep a loose grip, and use a gentle upward lift so the ball <b>peaks on your side</b> of the net and falls into the kitchen. Don't punch or swing hard — let your legs do the lifting.", src:DRILLS},
+      {cat:"Shots", q:"What is a reset?", keys:["reset","resetting","soft hands","absorb pace","block back into kitchen"], a:"A <b>reset</b> is a soft, controlled shot — usually from a defensive spot — that drops the ball into the opponent's kitchen to neutralize their attack and buy time to advance. The key is <b>soft hands</b>: loosen your grip and absorb the pace.", src:DRILLS},
+      {cat:"Shots", q:"What is a volley?", keys:["volley","what is a volley","hit before it bounces"], a:"A <b>volley</b> is hitting the ball <b>out of the air</b> before it bounces on your side. Legal anywhere except while standing in the kitchen (non-volley zone).", src:TERMS},
+      {cat:"Shots", q:"What is a drive?", keys:["drive","power shot","flat shot","hit hard"], a:"A <b>drive</b> is a fast, flat, powerful shot aimed at your opponent — often used as an aggressive third shot or to attack a high ball.", src:TERMS},
+      {cat:"Shots", q:"What is a lob?", keys:["lob","high shot","over their heads","lob shot"], a:"A <b>lob</b> is a high, arcing shot meant to sail over opponents at the net and land deep in their backcourt. Use it sparingly and when opponents are crowding the net.", src:TERMS},
+      {cat:"Shots", q:"What is a speed-up?", keys:["speed up","speedup","attack the dink","accelerate the ball"], a:"A <b>speed-up</b> is suddenly accelerating a dink into a fast attack to catch opponents off guard — usually aimed at the body, shoulder, or backhand hip.", src:TERMS},
+      {cat:"Shots", q:"What is an ATP (around the post)?", keys:["atp","around the post","around post"], a:"An <b>ATP</b> (Around-The-Post) is a shot that travels <b>around the outside of the net post</b> instead of over the net. It's fully legal and deadly when you're pulled wide off the court.", src:TERMS},
+      {cat:"Shots", q:"What is an Erne?", keys:["erne","ernie"], a:"An <b>Erne</b> is a volley hit while standing or jumping <b>beside the net post, outside the kitchen</b>, letting you attack a dink without breaking the kitchen rule. A surprise play that's tough to defend.", src:TERMS},
+      {cat:"Shots", q:"What is a chicken wing?", keys:["chicken wing","bent elbow shot","body attack defense"], a:"The <b>chicken wing</b> is an awkward, bent-elbow defensive shot you're forced into when the ball is driven at your dominant shoulder/hip. Counter it by moving your feet so you can take the ball with a clean backhand.", src:TERMS},
+      {cat:"Shots", q:"What is a split step?", keys:["split step","ready hop","split-step","balance hop"], a:"A <b>split step</b> is a small hop that lands you balanced on the balls of your feet just as your opponent contacts the ball, so you can push off quickly in any direction.", src:TERMS},
+      {cat:"Shots", q:"Should I dink cross-court or straight ahead?", keys:["cross court dink","straight dink","dink direction","crosscourt vs straight"], a:"<b>Cross-court</b> dinks are usually safer and more reliable — the net is lower in the middle and you have more court to work with diagonally. Mix in straight-ahead dinks to keep opponents honest.", src:null},
+      {cat:"Shots", q:"How should I grip the paddle?", keys:["grip","how to hold the paddle","continental grip","paddle grip"], a:"Most players use a <b>continental grip</b> (like shaking hands with the paddle) for both forehand and backhand. Keep the grip <b>relaxed</b> — gripping tight kills your soft game and pops dinks up.", src:null},
+      {cat:"Shots", q:"Should I drop or drive the third shot?", keys:["drop or drive","when to drive","when to drop","third shot choice"], a:"<b>Drop</b> when you have time and want to get to the net safely; <b>drive</b> when the return is short/high and you can pressure them. Many players drive then drop the fifth — both aim to win the net.", src:null},
+
+      /* ---------- STRATEGY & POSITIONING ---------- */
+      {cat:"Strategy", q:"Where should I stand on the court?", keys:["where to stand","positioning","court position","where do i go","where should i be"], a:"Your goal is to get to the <b>kitchen line</b> with your partner and hold it. Until you're there, your shots (drops/resets) should buy time to advance. Move <b>side-to-side as a pair</b>, staying about one arm-length apart.", src:null},
+      {cat:"Strategy", q:"Why is the kitchen line so important?", keys:["why get to the net","get to the kitchen line","move up to net","advance to net","control the net"], a:"Whoever controls the <b>kitchen line</b> usually wins the point — you can hit down on balls and take time away from opponents. Getting up there (via the third-shot drop) is the central goal of a rally.", src:null},
+      {cat:"Strategy", q:"What is stacking?", keys:["stacking","stack","stay on same side"], a:"<b>Stacking</b> is a doubles strategy where partners line up on the <b>same side</b> before the serve or return, then switch positions, so a player can keep their forehand in the middle or stay on a preferred side. It's legal.", src:TERMS},
+      {cat:"Strategy", q:"How do my partner and I move together?", keys:["move with partner","move as a team","partner spacing","cover the middle gap","stay connected"], a:"Move as a <b>connected unit</b>: when the ball pulls one of you wide, the other slides the same direction to protect the middle. A tether of about 8–10 feet between you closes the gap attackers love.", src:null},
+      {cat:"Strategy", q:"Who takes the ball down the middle?", keys:["who takes the middle","middle ball","down the middle","ball between us"], a:"Generally the player with the <b>forehand in the middle</b> takes it (or the player moving toward the ball). Call it — \"mine/yours\" — so you don't both freeze. \"Middle solves the muddle,\" but communication solves it better.", src:null},
+      {cat:"Strategy", q:"Where should I aim my shots?", keys:["where to aim","target","aim at feet","hit at the body","aim low"], a:"Aim at your opponents' <b>feet</b> or just in front of them — low balls are hardest to attack. When trading dinks, target the backhand; when speeding up, go at the body.", src:null},
+      {cat:"Strategy", q:"What is poaching?", keys:["poach","poaching","cross in front of partner","cut off the ball"], a:"<b>Poaching</b> is crossing over to cut off a ball that would normally be your partner's — usually an aggressive net volley to surprise opponents. Communicate so you don't both go (or both leave it).", src:TERMS},
+      {cat:"Strategy", q:"Should I rush the net after I serve?", keys:["rush the net after serve","stay back after serving","serving team position","when to come in"], a:"No — the <b>serving team must stay back</b> for the return because of the two-bounce rule. The <b>receiving team</b>, however, should send the returner straight to the kitchen line behind a deep return.", src:null},
+      {cat:"Strategy", q:"When should I lob?", keys:["when to lob","lob strategy","good time to lob"], a:"Lob <b>occasionally</b> and when opponents are pressed tight to the net (especially over their backhand). It's a low-percentage shot if overused — a great change-up, not a primary play.", src:null},
+
+      /* ---------- TERMS / VOCAB ---------- */
+      {cat:"Terms", q:"What does NVZ mean?", keys:["nvz meaning","what does nvz stand for","non volley zone abbreviation"], a:"<b>NVZ</b> stands for <b>Non-Volley Zone</b> — the official name for the kitchen, the 7-foot zone on each side of the net where volleys are illegal.", src:TERMS},
+      {cat:"Terms", q:"What do common pickleball acronyms mean?", keys:["acronyms","abbreviations","what does atp mean","what does dupr mean","pickleball terms list"], a:"Quick ones: <b>NVZ</b> = Non-Volley Zone (kitchen), <b>ATP</b> = Around-The-Post, <b>DUPR</b> = Dynamic Universal Pickleball Rating. The Helpful Terms page has the full glossary.", src:TERMS},
+      {cat:"Terms", q:"What is no-man's land?", keys:["no mans land","transition zone","midcourt","no-man's land"], a:"<b>No-man's land</b> (the transition zone) is the mid-court area between the baseline and kitchen. It's the most vulnerable spot — move through it quickly to the kitchen line rather than camping there.", src:null},
+
+      /* ---------- EQUIPMENT ---------- */
+      {cat:"Equipment", q:"What paddle should I buy?", keys:["what paddle should i buy","best paddle","beginner paddle","which paddle","buy a paddle"], a:"For a first paddle, get a <b>mid-weight (7.6–8.4 oz), all-around composite paddle</b> with a comfortable grip. You don't need anything expensive to start — fit and feel matter more than price.", src:null},
+      {cat:"Equipment", q:"Does paddle weight matter?", keys:["paddle weight","heavy paddle","light paddle","ounces","how heavy"], a:"Yes. <b>Lighter</b> paddles (≈7.3–7.8 oz) give more control and quicker hands; <b>heavier</b> paddles (≈8.0–8.5 oz) give more power and stability with less effort. Mid-weight is the safe all-around choice.", src:null},
+      {cat:"Equipment", q:"What's the difference between indoor and outdoor balls?", keys:["indoor ball","outdoor ball","ball difference","which ball","indoor vs outdoor"], a:"<b>Outdoor balls</b> are harder with smaller, more numerous holes (better in wind, wear out faster). <b>Indoor balls</b> are softer and lighter with bigger holes (more control, longer dinks). Match the ball to where you play.", src:null},
+      {cat:"Equipment", q:"What shoes should I wear?", keys:["shoes","court shoes","sneakers","footwear","running shoes"], a:"Wear <b>court shoes</b> (tennis/pickleball) made for <b>lateral movement</b>. Avoid running shoes — they're built for forward motion and can roll your ankle on quick side-to-side play.", src:null},
+      {cat:"Equipment", q:"What gear do I need to start?", keys:["what do i need to start","gear to start","equipment for beginners","what equipment","start playing gear"], a:"Just a <b>paddle</b>, a few <b>pickleballs</b>, <b>court shoes</b>, and comfortable athletic clothes. Most places have nets and lined courts already. That's enough to play and learn.", src:null},
+      {cat:"Equipment", q:"What are paddles made of?", keys:["paddle materials","graphite paddle","carbon fiber","fiberglass","paddle core"], a:"Most paddles have a <b>polymer honeycomb core</b> with a <b>graphite, carbon-fiber, or fiberglass</b> face. Carbon/graphite leans toward control and touch; fiberglass adds a bit of pop/power.", src:null},
+
+      /* ---------- GETTING STARTED / GENERAL ---------- */
+      {cat:"Getting Started", q:"What is pickleball?", keys:["what is pickleball","explain pickleball","about pickleball","describe pickleball"], a:"<b>Pickleball</b> is a paddle sport that blends tennis, badminton, and ping-pong. You use a solid paddle and a plastic ball with holes on a small court with a low net. It's easy to learn, social, and easy on the body.", src:WHY},
+      {cat:"Getting Started", q:"How do I get started?", keys:["how do i get started","new to pickleball","beginner","how to play","just starting","first time playing"], a:"Grab a paddle, learn the serve, the two-bounce rule, and the kitchen, then just play — it's quick to pick up. Start with the Why Pickleball page for an intro, and use the Drills page once you're rallying.", src:WHY},
+      {cat:"Getting Started", q:"Is pickleball easy to learn?", keys:["easy to learn","is it hard","difficulty","hard to learn","learning curve"], a:"Very — most people are rallying within their first session. The court is small, the underhand serve is simple, and the slow plastic ball is forgiving. Mastering strategy and the soft game is the fun, long part.", src:WHY},
+      {cat:"Getting Started", q:"Where did pickleball come from?", keys:["history","origin","who invented","where did it come from","why is it called pickleball"], a:"It was invented in <b>1965 on Bainbridge Island, Washington</b> by three dads improvising a backyard game for their kids. The quirky name's origin is debated — a family dog named Pickles is the popular story.", src:null},
+      {cat:"Getting Started", q:"Why is pickleball so popular?", keys:["why popular","fastest growing sport","popularity","why everyone plays"], a:"It's easy to learn, gentle on the joints, intensely <b>social</b>, and playable across all ages and skill levels on a small court. That combination has made it the fastest-growing sport in the U.S.", src:WHY},
+      {cat:"Getting Started", q:"Is pickleball good exercise?", keys:["exercise","good workout","fitness","calories","is it good for you","cardio"], a:"Yes — it delivers real cardio, agility, and balance work while feeling like play, and it's lower-impact than tennis. The social side also keeps people coming back, which is the best fitness habit of all.", src:null},
+      {cat:"Getting Started", q:"Is pickleball good for all ages?", keys:["age","seniors","older players","kids","all ages","good for older"], a:"Absolutely. The small court and slow ball make it friendly for <b>kids, beginners, and older players</b>, while fast-paced play at the net keeps it challenging for athletes. It's one of the most multi-generational sports around.", src:null},
+
+      /* ---------- SINGLES ---------- */
+      {cat:"Singles", q:"How is singles different from doubles?", keys:["singles","play singles","one on one","singles rules","singles vs doubles"], a:"<b>Singles</b> uses the same court but is far more physical — you cover it alone. There's no server number, so you call only <b>two</b> scores, and your serve side is set by your score (right when even, left when odd).", src:RULES},
+      {cat:"Singles", q:"Which side do I serve from in singles?", keys:["singles serve side","even odd singles","serve position singles","which side singles"], a:"Serve from the <b>right/even</b> side when your score is even, and the <b>left/odd</b> side when it's odd. Your score alone tells you where to stand.", src:null},
+      {cat:"Singles", q:"What is skinny singles?", keys:["skinny singles","half court singles","practice singles"], a:"<b>Skinny singles</b> is 1v1 played on <b>half the court</b> (cross-court or straight). It's a great practice game for shot placement, consistency, and movement without needing a full four players.", src:DRILLS},
+
+      /* ---------- RATINGS / WHERE TO PLAY ---------- */
+      {cat:"Ratings", q:"What is DUPR?", keys:["dupr","rating system","what is my rating","pickleball rating"], a:"<b>DUPR</b> (Dynamic Universal Pickleball Rating) is a global rating from about <b>2.0 to 8.0</b> based on actual match results. It's becoming the standard way to measure skill and find balanced games.", src:null},
+      {cat:"Ratings", q:"What do skill levels like 3.0, 3.5, 4.0 mean?", keys:["3.0","3.5","4.0","skill level","what level am i","rating levels"], a:"They're skill tiers: <b>2.5</b> = advanced beginner, <b>3.0–3.5</b> = intermediate (consistent rallies, learning the soft game), <b>4.0</b> = solid all-court player, <b>4.5+</b> = advanced/tournament. Most rec players sit around 3.0–3.5.", src:null},
+      {cat:"Ratings", q:"Where can I play pickleball?", keys:["where can i play","find courts","courts near me","find a game","where to play"], a:"Look for <b>dedicated courts, tennis courts with pickleball lines, gyms, and rec centers</b> near you. Apps and sites like Pickleheads, Places2Play, or local Facebook groups list courts and open-play times.", src:null},
+      {cat:"Ratings", q:"What is open play?", keys:["open play","rec play","drop in","paddle stack","how do i join games"], a:"<b>Open play</b> is drop-in pickleball where you rotate in with whoever's there — usually managed by a <b>paddle stack</b> (line up your paddle to claim the next game). It's the easiest way to meet players and get lots of games.", src:null},
+      {cat:"Ratings", q:"How do tournaments work?", keys:["tournament","compete","bracket","round robin","how do tournaments work"], a:"Tournaments group players by <b>skill rating and age</b>, then run brackets — often <b>round-robin pools</b> feeding into single or double elimination. You typically register on platforms like PickleballTournaments or PickleballBrackets.", src:null},
+
+      /* ---------- ETIQUETTE ---------- */
+      {cat:"Etiquette", q:"What are the basics of pickleball etiquette?", keys:["etiquette","manners","sportsmanship","courtesy","good etiquette"], a:"Call the score clearly, make honest line calls (in the opponent's favor when unsure), call faults on yourself, don't walk through active courts, return stray balls, and tap paddles after the game. Friendliness is core to the culture.", src:ETIQ},
+      {cat:"Etiquette", q:"How should I call the score before serving?", keys:["call score loudly","announce the score","quick serve","wait before serving","ready position"], a:"Announce the score <b>loudly</b> so all four players hear it, then <b>wait until your opponents are set</b> and looking before you serve. Serving before they're ready (a \"quick serve\") is poor form.", src:ETIQ},
+      {cat:"Etiquette", q:"Should I call faults on myself?", keys:["call on yourself","self fault","honest play","call faults on myself","kitchen fault on self"], a:"Yes. If you break a rule — stepping in the kitchen on a volley, a foot fault, a double bounce — <b>call it on yourself</b> even if no one saw. It builds trust and is the heart of self-officiated play.", src:ETIQ},
+      {cat:"Etiquette", q:"What if my partner makes a mistake?", keys:["mad at partner","partner missed","encourage partner","partner mistake","get angry at partner"], a:"Never show frustration — your partner already feels bad. Say <b>\"next point\"</b> or <b>\"good try,\"</b> or just stay positive and quiet. A demoralized partner loses more points, not fewer.", src:ETIQ},
+      {cat:"Etiquette", q:"Should I give my partner advice during the game?", keys:["unsolicited advice","coaching my partner","tips during the game","telling partner what to do"], a:"Not unless they ask. Constant tips feel like <b>pressure</b>, not help, and add mental load. Save coaching for after the game — and only if they want it.", src:ETIQ},
+      {cat:"Etiquette", q:"How do I avoid being a sore winner or loser?", keys:["sore winner","sore loser","gloating","making excuses","bad sport"], a:"Don't over-celebrate or rub in a win, and don't make excuses (\"lucky shot,\" \"wasn't trying\") when you lose. Compliment your opponents and just have fun either way.", src:ETIQ},
+      {cat:"Etiquette", q:"Should I target the weakest player?", keys:["target the weak player","pick on weaker player","hit at the beginner","target weakest"], a:"In a tournament it's smart strategy. In a <b>rec game it's bad form</b> — it discourages the weaker player and bores the stronger one. Hit to both and treat rec games as practice for your own shots.", src:ETIQ},
+      {cat:"Etiquette", q:"What do I do if a ball rolls onto my court?", keys:["ball on court","ball rolls onto court","walk through court","retrieve a ball","ball on"], a:"If a stray ball enters your court mid-point, the rally is replayed for safety — call <b>\"ball on\"</b>. If you must cross another court to reach yours, wait for their point to end, ask, and pass through quickly.", src:ETIQ},
+      {cat:"Etiquette", q:"What is the paddle tap at the end?", keys:["paddle tap","good game","tap paddles","sportsmanship gesture"], a:"After a game, players gently <b>tap paddles</b> (often at the net) and say \"good game.\" It's pickleball's universal handshake — a small ritual that keeps the vibe friendly.", src:ETIQ},
+
+      /* ---------- DRILLS / PRACTICE ---------- */
+      {cat:"Drills", q:"What drills should I do to improve?", keys:["what drills","drills","practice","get better","what should i practice","improve my game"], a:"Prioritize <b>dinking</b>, <b>third-shot drops</b>, <b>resets</b>, and <b>hand-speed volleys</b> — the shots that win at the kitchen line. The Drills page has 10 partner drills with animated court diagrams for exactly these.", src:DRILLS},
+      {cat:"Drills", q:"How can I practice hand speed?", keys:["hand speed","fast hands","reflex volleys","quick hands drill"], a:"The <b>Fast Hands</b> drill: stand close at the kitchen and trade rapid-fire volleys. It trains reflexes and a compact paddle. Keep the paddle up and out front, and reset rather than swinging big.", src:DRILLS},
+      {cat:"Drills", q:"What is the Dingles drill?", keys:["dingles","two ball drill","four player drill","dingles game"], a:"<b>Dingles</b> is a 4-player game with <b>two balls</b> dinking cross-court at once; when someone misses a dink, \"dingles!\" is called and the remaining ball is played out for a point. Great for focus and fast hands.", src:DRILLS},
+      {cat:"Drills", q:"How do I practice the third shot drop?", keys:["third shot drop drill","practice the drop","drop drill"], a:"Use the <b>Third Shot Drop</b> drill: one player feeds from the kitchen while you drop from several spots (baseline, transition). Groove a soft arc that lands in the kitchen, then add movement up after each drop.", src:DRILLS},
+      {cat:"Drills", q:"Can I practice pickleball alone?", keys:["practice alone","solo practice","no partner","wall drills","practice by myself"], a:"Yes — practice <b>serves</b> to targets, <b>drop-and-hit</b> dinks/drops over the net, and <b>wall drills</b> (volley and dink against a wall) to groove control and footwork without a partner.", src:DRILLS}
     ];
 
-    /* common synonyms folded in so users' wording matches the KB */
+    /* category -> a representative starter question, used in the fallback */
+    const STARTERS = [
+      "How does scoring work?",
+      "Can I volley in the kitchen?",
+      "What is a third shot drop?",
+      "What paddle should I buy?",
+      "Where should I stand on the court?",
+      "What do skill levels like 3.5 mean?"
+    ];
+
+    /* synonyms folded in before matching so varied wording still hits */
     const SYNONYMS = {
-      "nvz": "kitchen", "non-volley": "non volley", "nonvolley": "non volley",
-      "pts": "points", "pt": "point", "serv": "serve", "rallys": "rally",
-      "3rd": "third", "vs": "versus", "u": "you"
+      "nvz":"kitchen", "non-volley":"non volley", "nonvolley":"non volley",
+      "pts":"points", "pt":"point", "vs":"versus", "u":"you", "ur":"your",
+      "3rd":"third", "2nd":"second", "1st":"first",
+      "doubles":"doubles", "rec":"recreational", "comp":"competitive",
+      "nm":"no mans", "img":"image"
     };
 
-    const STOP = new Set(["the","a","an","is","are","do","does","can","i","you","what","whats","how","to","of","in","on","my","me","it","for","and","or","be","with","when","if","this","that","at","as","about","please","tell","explain","question"]);
+    const STOP = new Set(["the","a","an","is","are","do","does","can","i","you","what","whats","how","to","of","in","on","my","me","it","for","and","or","be","with","when","if","this","that","at","as","about","please","tell","explain","question","should","would","could","will","there","they","them","your","yours","get","got","go"]);
+
+    /* very light stemmer so serve/serving/served all match */
+    function stem(w) {
+      w = w.toLowerCase();
+      if (w.length <= 3) return w;
+      if (w.endsWith("ies") && w.length > 4) return w.slice(0, -3) + "y";
+      for (const suf of ["ing", "ed", "es", "er", "ly", "s"]) {
+        if (w.endsWith(suf) && w.length - suf.length >= 3) { w = w.slice(0, -suf.length); break; }
+      }
+      if (w.length > 4 && w.endsWith("e")) w = w.slice(0, -1);
+      return w;
+    }
 
     function normalize(text) {
-      let t = text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ");
+      let t = " " + text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim() + " ";
       for (const [k, v] of Object.entries(SYNONYMS)) {
         t = t.replace(new RegExp("\\b" + k + "\\b", "g"), v);
       }
-      return t;
+      return t.trim();
     }
 
     function tokens(text) {
-      return normalize(text).split(/\s+/).filter(w => w && !STOP.has(w));
+      return normalize(text).split(/\s+/).filter(w => w && !STOP.has(w)).map(stem);
     }
 
-    function bestMatch(query) {
+    /* score every entry, return them sorted best-first */
+    function rank(query) {
       const qNorm = normalize(query);
-      const qTokens = tokens(query);
-      const qSet = new Set(qTokens);
-      let best = null, bestScore = 0;
-
-      for (const entry of KB) {
-        let score = 0;
-        for (const key of entry.keys) {
+      const qToks = new Set(tokens(query));
+      const scored = [];
+      for (const e of KB) {
+        let s = 0;
+        for (const key of e.keys) {
           const kNorm = normalize(key);
-          if (kNorm.includes(" ") && qNorm.includes(kNorm)) score += 5;
-          const kTokens = kNorm.split(/\s+/).filter(w => w && !STOP.has(w));
-          for (const kt of kTokens) {
-            if (qSet.has(kt)) score += kt.length > 3 ? 2 : 1;
-          }
+          if (kNorm.includes(" ") && qNorm.includes(kNorm)) s += 5;      // verbatim phrase
+          for (const kt of tokens(key)) { if (qToks.has(kt)) s += kt.length > 3 ? 2 : 1; }
         }
-        if (score > bestScore) { bestScore = score; best = entry; }
+        for (const qt of tokens(e.q)) { if (qToks.has(qt)) s += 1; }     // canonical-question overlap
+        if (s > 0) scored.push({ e, s });
       }
-      return bestScore >= 2 ? best : null;
+      scored.sort((a, b) => b.s - a.s);
+      return scored;
     }
 
     const chat = document.getElementById("chat");
@@ -289,6 +338,25 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
+    function addRelated(questions, label) {
+      if (!questions.length) return;
+      const wrap = document.createElement("div");
+      wrap.className = "related";
+      const lab = document.createElement("span");
+      lab.className = "rlabel";
+      lab.textContent = label || "You might also ask";
+      wrap.appendChild(lab);
+      questions.forEach(q => {
+        const c = document.createElement("div");
+        c.className = "chip";
+        c.textContent = q;
+        c.addEventListener("click", () => send(q));
+        wrap.appendChild(c);
+      });
+      chat.appendChild(wrap);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
     function showTyping() {
       const t = document.createElement("div");
       t.className = "typing";
@@ -302,16 +370,23 @@
       if (t) t.remove();
     }
 
-    const FALLBACK = "I'm not sure about that one yet — I answer from a built-in pickleball knowledge base. Try rephrasing, or ask me about the <b>kitchen</b>, <b>serving</b>, <b>scoring</b>, <b>the two-bounce rule</b>, <b>dinks</b>, <b>third-shot drops</b>, <b>line calls</b>, or <b>court size</b>. For the full details, the <a href='rules.html' style='color:#7dd3fc'>Rules</a> and <a href='helpful-terms.html' style='color:#7dd3fc'>Helpful Terms</a> pages have you covered.";
+    const FALLBACK = "I'm not sure about that one yet — I answer from a built-in pickleball knowledge base covering the rules, kitchen, scoring, shots, strategy, gear, etiquette, and drills. Try rephrasing, or pick one of these to get going:";
 
     function answer(query) {
-      const match = bestMatch(query);
+      const ranked = rank(query);
       showTyping();
       setTimeout(() => {
         clearTyping();
-        if (match) addMsg(match.a, "bot", match.src);
-        else addMsg(FALLBACK, "bot");
-      }, 450 + Math.random() * 350);
+        if (ranked.length && ranked[0].s >= 2) {
+          const best = ranked[0].e;
+          addMsg(best.a, "bot", best.src);
+          const related = ranked.slice(1).filter(x => x.s >= 2).slice(0, 3).map(x => x.e.q);
+          addRelated(related);
+        } else {
+          addMsg(FALLBACK, "bot");
+          addRelated(STARTERS, "Popular questions");
+        }
+      }, 420 + Math.random() * 320);
     }
 
     function send(text) {
@@ -325,14 +400,14 @@
     sendBtn.addEventListener("click", () => send());
     input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
 
-    /* suggestion chips */
+    /* starter suggestion chips under the input */
     const SUGGESTIONS = [
       "Can I volley in the kitchen?",
       "How does scoring work?",
       "What's the two-bounce rule?",
-      "How do I serve?",
-      "What is a third-shot drop?",
-      "How big is the court?"
+      "What is a third shot drop?",
+      "What paddle should I buy?",
+      "Where should I stand?"
     ];
     const sugBox = document.getElementById("suggestions");
     SUGGESTIONS.forEach(s => {
@@ -344,7 +419,7 @@
     });
 
     /* greeting */
-    addMsg("👋 Hey! I'm your pickleball coach. Ask me anything about the rules, the kitchen, scoring, shots, or strategy — or tap a question below to get started.", "bot");
+    addMsg("👋 Hey! I'm your pickleball coach. Ask me anything about the rules, the kitchen, scoring, shots, strategy, gear, etiquette, or drills — or tap a question below to get started.", "bot");
   </script>
 </body>
 </html>
