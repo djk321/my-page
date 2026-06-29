@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ask the Coach — Game Arcade</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 40px; }
+
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 28px; justify-content: center; border-bottom: 1px solid #2a2a3a; z-index: 100; flex-wrap: wrap; }
+    nav a { color: #c9a84c; text-decoration: none; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+
+    header { text-align: center; margin: 24px 0 24px; }
+    header h1 { font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #e8d5a3, #c9a84c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .chat-wrap { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px; }
+
+    .chat-window {
+      background: #131c2e; border: 1px solid #1e2a3a; border-radius: 16px;
+      padding: 20px; height: 60vh; min-height: 360px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth;
+    }
+    .chat-window::-webkit-scrollbar { width: 8px; }
+    .chat-window::-webkit-scrollbar-thumb { background: #2a3a52; border-radius: 8px; }
+
+    .msg { max-width: 85%; padding: 12px 16px; border-radius: 14px; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
+    .msg.bot { align-self: flex-start; background: #1e293b; border: 1px solid #2a3a52; border-bottom-left-radius: 4px; }
+    .msg.user { align-self: flex-end; background: linear-gradient(135deg, #c9a84c, #b08f3a); color: #1a1208; font-weight: 500; border-bottom-right-radius: 4px; }
+    .msg .src { display: block; margin-top: 8px; font-size: 0.78rem; }
+    .msg .src a { color: #7dd3fc; text-decoration: none; }
+    .msg .src a:hover { text-decoration: underline; }
+    .msg b, .msg strong { color: #e8d5a3; }
+    .msg.user b, .msg.user strong { color: #1a1208; }
+
+    .typing { align-self: flex-start; color: #94a3b8; font-size: 0.85rem; font-style: italic; padding: 4px 8px; }
+    .typing span { animation: blink 1.2s infinite; }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%, 60%, 100% { opacity: 0.2; } 30% { opacity: 1; } }
+
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: #e8d5a3;
+      padding: 7px 13px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;
+      transition: background 0.18s, border-color 0.18s;
+    }
+    .chip:hover { background: rgba(201,168,76,0.22); border-color: #c9a84c; }
+
+    .input-row { display: flex; gap: 10px; }
+    .input-row input {
+      flex: 1; background: #1e293b; border: 1px solid #2a3a52; color: #eee;
+      padding: 13px 16px; border-radius: 12px; font-size: 0.92rem; font-family: inherit;
+    }
+    .input-row input:focus { outline: none; border-color: #c9a84c; }
+    .input-row button {
+      background: linear-gradient(135deg, #c9a84c, #b08f3a); color: #1a1208; font-weight: 700;
+      border: none; padding: 0 22px; border-radius: 12px; cursor: pointer; font-size: 0.92rem;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .input-row button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(201,168,76,0.25); }
+    .input-row button:active { transform: translateY(0); }
+
+    .disclaimer { font-size: 11px; color: #64748b; text-align: center; line-height: 1.5; }
+    footer { margin-top: 40px; font-size: 12px; color: #888; letter-spacing: 1px; text-align: center; }
+  </style>
+  <style>
+    /* Mobile hamburger nav */
+    .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 4px; font-family: inherit; }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; align-items: center; gap: 0; padding-top: 12px; padding-bottom: 12px; }
+      .nav-toggle { display: block; }
+      nav a { display: none; width: 100%; text-align: center; padding: 11px 0; }
+      nav.open a { display: block; }
+    }
+  </style>
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <meta name="theme-color" content="#1a1a24">
+  <link rel="manifest" href="../site.webmanifest">
+</head>
+<body>
+  <nav>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="var n=this.parentNode,o=n.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="../chess-games/index.html">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="index.html" class="active">Pickleball</a>
+    <a href="../bocce/rules.html">Bocce Ball</a>
+  </nav>
+
+  <header>
+    <h1>💬 Ask the Coach</h1>
+    <p>Your pickleball questions, answered</p>
+  </header>
+
+  <div class="chat-wrap">
+    <div class="chat-window" id="chat"></div>
+
+    <div class="suggestions" id="suggestions"></div>
+
+    <div class="input-row">
+      <input type="text" id="userInput" placeholder="Ask a pickleball question…" autocomplete="off">
+      <button id="sendBtn">Send</button>
+    </div>
+
+    <p class="disclaimer">This coach answers from a built-in pickleball knowledge base — no internet or AI service required.
+      For anything it can't answer, try the <a href="rules.html" style="color:#7dd3fc;text-decoration:none;">Rules</a> or
+      <a href="helpful-terms.html" style="color:#7dd3fc;text-decoration:none;">Helpful Terms</a> pages.</p>
+  </div>
+
+  <footer>Pickleball &mdash; Train &amp; Play<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify tips with a qualified coach or official USA Pickleball rules.</span></footer>
+
+  <script>
+    /* ---------- Knowledge base ----------
+       Each entry: keywords to match against + an answer (HTML allowed).
+       Matching is keyword-overlap scored, so phrasing doesn't have to be exact. */
+    const KB = [
+      {
+        keys: ["kitchen", "non volley", "nonvolley", "non-volley", "nvz", "no volley zone", "7 foot", "seven foot"],
+        a: "The <b>kitchen</b> (officially the <b>Non-Volley Zone</b>) is the 7-foot area on each side of the net. You may not <b>volley</b> (hit the ball out of the air) while standing in the kitchen or touching its line — including the moment your momentum carries you in after the volley. You <i>can</i> step into the kitchen anytime to play a ball that has already bounced.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["volley in kitchen", "volley kitchen", "can i volley", "hit out of air kitchen", "volley non volley"],
+        a: "No — you can't volley while standing in the kitchen or on its line. If the ball has bounced, you may step in and hit it. Just make sure both feet are out of the kitchen (and your momentum has stopped) before you volley.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["two bounce", "double bounce", "2 bounce", "bounce rule", "let it bounce"],
+        a: "The <b>two-bounce rule</b>: after the serve, the receiving team must let it bounce once, and the serving team must let the return bounce once too. So the ball bounces at least twice (once per side) before anyone can volley. This neutralizes the serve-and-volley advantage.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["serve", "serving", "how to serve", "serve rules", "underhand", "drop serve"],
+        a: "<b>Serving basics:</b> the serve must be hit underhand with contact below your waist (navel), made diagonally cross-court, and must land beyond the kitchen in the correct service box. Keep both feet behind the baseline at contact. The <b>drop serve</b> (dropping the ball and hitting it after a bounce) is also legal and has no height/motion restriction.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["score", "scoring", "keep score", "how scoring works", "points", "win game", "11 points", "call score"],
+        a: "<b>Scoring:</b> only the serving side can score a point. Games are usually to <b>11, win by 2</b> (tournaments may play to 15 or 21). In doubles you call <b>three numbers</b>: your score, the opponent's score, and the server number (1 or 2) — e.g. \"4–2–1.\"",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["server number", "second server", "first server", "two servers", "side out", "0 0 2", "0-0-2"],
+        a: "In doubles, both players on a team serve before a <b>side out</b> — except the very first service turn of the game, where only one player serves (that's why it starts <b>0–0–2</b>). The third number you call (1 or 2) tells everyone which server is up. When the second server faults, it's a side out and the ball goes to the other team.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["dink", "dinking", "soft shot", "what is a dink"],
+        a: "A <b>dink</b> is a soft shot hit from near the kitchen line that arcs over the net and lands in your opponent's kitchen. Because it bounces low and short, it can't be attacked — dinking is how points are patiently set up at the net. Practice keeping it low over the net with a relaxed grip and a gentle lifting motion.",
+        src: ["Drills", "drills.html"]
+      },
+      {
+        keys: ["third shot drop", "3rd shot", "third shot", "drop shot", "popping up", "pops up"],
+        a: "The <b>third-shot drop</b> is a soft shot from near the baseline that lands in the opponent's kitchen, giving your team time to move up to the net. If yours keeps popping up: contact the ball lower and out front, use a gentle upward lift (not a punch), keep a loose grip, and aim for a high arc that peaks on your side of the net. Get under it — don't swing hard.",
+        src: ["Drills", "drills.html"]
+      },
+      {
+        keys: ["atp", "around the post", "around post"],
+        a: "An <b>ATP (Around The Post)</b> is a legal shot where you hit a wide, low ball around the outside of the net post — the ball never has to clear the net height-wise. It's perfectly legal as long as it lands in. A great answer to a ball that pulls you wide off the court.",
+        src: ["Helpful Terms", "helpful-terms.html"]
+      },
+      {
+        keys: ["erne", "ernie"],
+        a: "An <b>Erne</b> is an aggressive net play where you hit the ball while standing just outside the sideline next to the net (or jump from outside the kitchen and land outside it), letting you volley a dink without breaking the kitchen rule. Named after player Erne Perry. It's legal as long as you don't touch the kitchen or the net.",
+        src: ["Helpful Terms", "helpful-terms.html"]
+      },
+      {
+        keys: ["line call", "out call", "in or out", "ball on line", "line in", "who calls"],
+        a: "Pickleball is usually <b>self-officiated</b>. You make calls on your own side of the court. A ball touching <b>any part of the line is IN</b> (except the kitchen line on a serve, which is a fault). If you're not sure, the ball is good — give the benefit of the doubt to your opponent.",
+        src: ["Etiquette", "etiquette.html"]
+      },
+      {
+        keys: ["fault", "faults", "what is a fault", "lose rally"],
+        a: "A <b>fault</b> ends the rally. Common faults: hitting the ball out of bounds, into the net, volleying from the kitchen, volleying before the two-bounce rule is satisfied, serving into the wrong box or into the net, or a serve that lands in the kitchen. A fault by the serving team is a side out; a fault by the receiving team is a point for the server.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["court size", "court dimensions", "how big", "net height", "court measurements", "20 by 44"],
+        a: "A pickleball court is <b>20 ft × 44 ft</b> (same size for singles and doubles) — identical to a doubles badminton court. The net is <b>36 inches at the sidelines and 34 inches in the middle</b>. The kitchen extends 7 ft from the net on each side.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["paddle", "what paddle", "gear", "equipment", "ball", "best paddle", "beginner paddle"],
+        a: "<b>Gear:</b> you need a solid <b>paddle</b> (larger than a ping-pong paddle, no strings) and a plastic <b>pickleball</b> with holes — outdoor balls are harder with smaller holes, indoor balls are softer with larger holes. For a first paddle, look for a mid-weight (7.6–8.4 oz) all-around paddle; you don't need anything expensive to start.",
+        src: ["Helpful Terms", "helpful-terms.html"]
+      },
+      {
+        keys: ["singles", "play singles", "one on one"],
+        a: "<b>Singles</b> uses the same court but is far more physical — you cover the whole court alone. Your serving position is based on your score: serve from the <b>right/even</b> side when your score is even, and the <b>left/odd</b> side when it's odd. Only two numbers are called (your score, opponent's score), since there's no server number.",
+        src: ["Rules", "rules.html"]
+      },
+      {
+        keys: ["stacking", "stack"],
+        a: "<b>Stacking</b> is a doubles strategy where partners line up on the same side before the serve/return, then switch to their preferred sides (e.g. to keep a player's forehand in the middle). It's legal — there are no rules requiring you to stand in particular spots, only about who serves/receives from where.",
+        src: ["Helpful Terms", "helpful-terms.html"]
+      },
+      {
+        keys: ["etiquette", "manners", "sportsmanship", "rude", "courtesy", "paddle tap"],
+        a: "<b>Good etiquette:</b> call the score clearly before serving, make honest line calls in your opponent's favor when unsure, don't walk behind a court during an active point, retrieve and return stray balls, and tap paddles at the end of the game to say \"good game.\" Friendliness is a big part of pickleball culture.",
+        src: ["Etiquette", "etiquette.html"]
+      },
+      {
+        keys: ["drill", "drills", "practice", "improve", "get better", "what should i practice"],
+        a: "Great practice priorities for improving fast: <b>dinking</b> (control at the net), <b>third-shot drops</b> (getting to the net), <b>resets</b> (absorbing hard shots softly), and <b>footwork</b>. The Drills page has 10 drills with animated court diagrams covering exactly these.",
+        src: ["Drills", "drills.html"]
+      },
+      {
+        keys: ["reset", "resetting", "block", "absorb", "soft hands"],
+        a: "A <b>reset</b> is a soft, controlled shot — usually from a defensive position — that drops the ball into the opponent's kitchen to neutralize their attack and buy time to get back to the net. The key is <b>soft hands</b>: loosen your grip and let the paddle absorb the pace rather than swinging at the ball.",
+        src: ["Drills", "drills.html"]
+      },
+      {
+        keys: ["poach", "poaching"],
+        a: "<b>Poaching</b> is when, in doubles, you cross over to cut off a ball that would normally be your partner's — usually an aggressive volley at the net to surprise opponents. Communicate with your partner so you don't both go for it (or both leave it).",
+        src: ["Helpful Terms", "helpful-terms.html"]
+      },
+      {
+        keys: ["what is pickleball", "about pickleball", "explain pickleball", "new to", "beginner", "getting started", "how to play"],
+        a: "<b>Pickleball</b> is a paddle sport that blends tennis, badminton, and ping-pong. You play on a small court with a paddle and a plastic ball with holes, hitting it over a low net. It's easy to learn, easy on the body, and very social — which is why it's the fastest-growing sport around. Check the <b>Why Pickleball</b> page for a friendly intro.",
+        src: ["Why Pickleball", "why-pickleball.html"]
+      }
+    ];
+
+    /* common synonyms folded in so users' wording matches the KB */
+    const SYNONYMS = {
+      "nvz": "kitchen", "non-volley": "non volley", "nonvolley": "non volley",
+      "pts": "points", "pt": "point", "serv": "serve", "rallys": "rally",
+      "3rd": "third", "vs": "versus", "u": "you"
+    };
+
+    const STOP = new Set(["the","a","an","is","are","do","does","can","i","you","what","whats","how","to","of","in","on","my","me","it","for","and","or","be","with","when","if","this","that","at","as","about","please","tell","explain","question"]);
+
+    function normalize(text) {
+      let t = text.toLowerCase().replace(/[^a-z0-9\s-]/g, " ");
+      for (const [k, v] of Object.entries(SYNONYMS)) {
+        t = t.replace(new RegExp("\\b" + k + "\\b", "g"), v);
+      }
+      return t;
+    }
+
+    function tokens(text) {
+      return normalize(text).split(/\s+/).filter(w => w && !STOP.has(w));
+    }
+
+    function bestMatch(query) {
+      const qNorm = normalize(query);
+      const qTokens = tokens(query);
+      const qSet = new Set(qTokens);
+      let best = null, bestScore = 0;
+
+      for (const entry of KB) {
+        let score = 0;
+        for (const key of entry.keys) {
+          const kNorm = normalize(key);
+          if (kNorm.includes(" ") && qNorm.includes(kNorm)) score += 5;
+          const kTokens = kNorm.split(/\s+/).filter(w => w && !STOP.has(w));
+          for (const kt of kTokens) {
+            if (qSet.has(kt)) score += kt.length > 3 ? 2 : 1;
+          }
+        }
+        if (score > bestScore) { bestScore = score; best = entry; }
+      }
+      return bestScore >= 2 ? best : null;
+    }
+
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    function addMsg(html, who, src) {
+      const div = document.createElement("div");
+      div.className = "msg " + who;
+      div.innerHTML = html;
+      if (src) {
+        const s = document.createElement("span");
+        s.className = "src";
+        s.innerHTML = "📎 More: <a href='" + src[1] + "'>" + src[0] + "</a>";
+        div.appendChild(s);
+      }
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function showTyping() {
+      const t = document.createElement("div");
+      t.className = "typing";
+      t.id = "typing";
+      t.innerHTML = "Coach is typing<span>.</span><span>.</span><span>.</span>";
+      chat.appendChild(t);
+      chat.scrollTop = chat.scrollHeight;
+    }
+    function clearTyping() {
+      const t = document.getElementById("typing");
+      if (t) t.remove();
+    }
+
+    const FALLBACK = "I'm not sure about that one yet — I answer from a built-in pickleball knowledge base. Try rephrasing, or ask me about the <b>kitchen</b>, <b>serving</b>, <b>scoring</b>, <b>the two-bounce rule</b>, <b>dinks</b>, <b>third-shot drops</b>, <b>line calls</b>, or <b>court size</b>. For the full details, the <a href='rules.html' style='color:#7dd3fc'>Rules</a> and <a href='helpful-terms.html' style='color:#7dd3fc'>Helpful Terms</a> pages have you covered.";
+
+    function answer(query) {
+      const match = bestMatch(query);
+      showTyping();
+      setTimeout(() => {
+        clearTyping();
+        if (match) addMsg(match.a, "bot", match.src);
+        else addMsg(FALLBACK, "bot");
+      }, 450 + Math.random() * 350);
+    }
+
+    function send(text) {
+      const q = (text || input.value).trim();
+      if (!q) return;
+      addMsg(q.replace(/</g, "&lt;"), "user");
+      input.value = "";
+      answer(q);
+    }
+
+    sendBtn.addEventListener("click", () => send());
+    input.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+    /* suggestion chips */
+    const SUGGESTIONS = [
+      "Can I volley in the kitchen?",
+      "How does scoring work?",
+      "What's the two-bounce rule?",
+      "How do I serve?",
+      "What is a third-shot drop?",
+      "How big is the court?"
+    ];
+    const sugBox = document.getElementById("suggestions");
+    SUGGESTIONS.forEach(s => {
+      const c = document.createElement("div");
+      c.className = "chip";
+      c.textContent = s;
+      c.addEventListener("click", () => send(s));
+      sugBox.appendChild(c);
+    });
+
+    /* greeting */
+    addMsg("👋 Hey! I'm your pickleball coach. Ask me anything about the rules, the kitchen, scoring, shots, or strategy — or tap a question below to get started.", "bot");
+  </script>
+</body>
+</html>
