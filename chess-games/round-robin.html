@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Round Robin — Game Arcade</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 90px 20px 40px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      z-index: 100;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: #fff; }
+    nav a.active { color: #fff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 {
+      font-size: 34px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { margin-top: 10px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .wrap { width: 100%; max-width: 780px; display: flex; flex-direction: column; gap: 24px; }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 24px 26px;
+    }
+    .card h2 { font-size: 15px; letter-spacing: 1px; text-transform: uppercase; color: #c9a84c; margin-bottom: 16px; }
+
+    .players { display: flex; flex-direction: column; gap: 12px; }
+    .player-row { display: flex; align-items: center; gap: 12px; }
+    .player-row .badge {
+      width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; background: rgba(201,168,76,0.15);
+      color: #c9a84c; border: 1px solid rgba(201,168,76,0.3);
+    }
+    input[type="text"] {
+      flex: 1; background: #0f0f14; color: #fff; border: 1px solid #2a2a3a;
+      border-radius: 8px; padding: 10px 14px; font-size: 15px; font-family: inherit;
+    }
+    input[type="text"]:focus { outline: none; border-color: #c9a84c; }
+
+    .opts { display: flex; flex-wrap: wrap; gap: 24px; margin-top: 20px; }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; }
+    .seg { display: inline-flex; background: #0f0f14; border: 1px solid #2a2a3a; border-radius: 9px; overflow: hidden; }
+    .seg button {
+      background: none; border: none; color: #ccc; padding: 8px 16px; font-size: 13px;
+      cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s;
+    }
+    .seg button.active { background: #c9a84c; color: #0f0f14; font-weight: 600; }
+
+    .actions { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .btn {
+      background: #c9a84c; color: #0f0f14; border: none; border-radius: 9px;
+      padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #e8c96a; }
+    .btn.ghost { background: transparent; color: #c9a84c; border: 1px solid #3a3a4a; }
+    .btn.ghost:hover { background: #22222e; color: #fff; }
+
+    /* Schedule */
+    #results { display: none; flex-direction: column; gap: 24px; }
+    .round { border: 1px solid #2a2a3a; border-radius: 14px; overflow: hidden; }
+    .round-head {
+      background: #22222e; padding: 9px 16px; font-size: 12px; letter-spacing: 1px;
+      text-transform: uppercase; color: #c9a84c; display: flex; justify-content: space-between; align-items: center;
+    }
+    .round-head .bye { color: #777; font-weight: 500; letter-spacing: 0.5px; text-transform: none; }
+    .match { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .match-players { display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 16px; flex-wrap: wrap; }
+    .side { display: flex; align-items: center; gap: 8px; }
+    .side .name { font-weight: 600; }
+    .chip {
+      font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 7px;
+      border-radius: 20px; border: 1px solid #3a3a4a; color: #aaa;
+    }
+    .chip.white { background: #f0f0f0; color: #222; border-color: #f0f0f0; }
+    .chip.black { background: #111; color: #ddd; border-color: #444; }
+    .vs { color: #666; font-size: 13px; }
+    .result-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .result-btns button {
+      background: #0f0f14; border: 1px solid #2a2a3a; color: #ccc; border-radius: 8px;
+      padding: 7px 14px; font-size: 13px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .result-btns button:hover { border-color: #c9a84c; color: #fff; }
+    .result-btns button.sel { background: #c9a84c; color: #0f0f14; border-color: #c9a84c; font-weight: 600; }
+
+    /* Per-game move entry / review */
+    .game-tools { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: center; margin-top: 2px; }
+    .game-tools button { background: #0f0f14; border: 1px solid #2a2a3a; color: #aaa; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .game-tools button:hover { border-color: #c9a84c; color: #fff; }
+    .game-tools button.review { color: #c9a84c; border-color: #3a3a4a; font-weight: 600; }
+    .game-tools .recorded { font-size: 12px; color: #7bbf7b; }
+    .moves-editor { display: none; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .moves-editor.open { display: flex; }
+    .moves-editor textarea {
+      width: 100%; min-height: 92px; background: #0f0f14; color: #eee; border: 1px solid #2a2a3a;
+      border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.5; resize: vertical;
+      font-family: 'Consolas', 'SF Mono', ui-monospace, monospace;
+    }
+    .moves-editor textarea:focus { outline: none; border-color: #c9a84c; }
+    .moves-editor .me-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .moves-editor .btn { padding: 8px 16px; font-size: 13px; }
+
+    /* Standings */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #2a2a3a; }
+    th { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; font-weight: 600; }
+    td.name-col, th.name-col { text-align: left; font-weight: 600; }
+    tr.leader td { color: #e8d5a3; }
+    td.pts { font-weight: 700; color: #c9a84c; }
+    .rank { color: #777; font-weight: 700; }
+    .note { font-size: 12px; color: #666; margin-top: 12px; line-height: 1.6; }
+
+    /* Print-only header (hidden on screen) */
+    .print-head { display: none; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #666; letter-spacing: 1px; text-align: center; }
+
+    /* Mobile hamburger nav */
+    .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 4px; font-family: inherit; }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; align-items: center; gap: 0; padding-top: 12px; padding-bottom: 12px; }
+      .nav-toggle { display: block; }
+      nav a { display: none; width: 100%; text-align: center; padding: 11px 0; }
+      nav.open a { display: block; }
+    }
+
+    /* ── Print: clean black-on-white schedule sheet ── */
+    @media print {
+      body { background: #fff; color: #000; padding: 0; display: block; }
+      nav, footer, .setup-card, .actions, .screen-title, .note, .game-tools, .moves-editor { display: none !important; }
+      .wrap { max-width: 100%; gap: 16px; }
+      .print-head { display: block; text-align: center; margin-bottom: 12px; }
+      .print-head h1 { font-size: 20px; }
+      .print-head .meta { font-size: 12px; color: #444; margin-top: 4px; }
+      .card, .round { border: 1px solid #999 !important; background: #fff !important; break-inside: avoid; }
+      .round-head { background: #eee !important; color: #000 !important; }
+      .round-head .bye { color: #444 !important; }
+      .card h2 { color: #000 !important; }
+      .chip.white { background: #fff !important; color: #000 !important; border-color: #000 !important; }
+      .chip.black { background: #000 !important; color: #fff !important; }
+      .chip { color: #000 !important; border-color: #666 !important; }
+      .vs { color: #000 !important; }
+      /* Result buttons become fillable boxes when unselected */
+      .result-btns button { border: 1px solid #bbb !important; color: #000 !important; background: #fff !important; }
+      .result-btns button.sel { background: #000 !important; color: #fff !important; border-color: #000 !important; }
+      th, td { border-bottom: 1px solid #999 !important; color: #000 !important; }
+      th { color: #000 !important; }
+      td.pts { color: #000 !important; }
+      tr.leader td { color: #000 !important; font-weight: 700; }
+      #results { display: flex !important; }
+    }
+  </style>
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <meta name="theme-color" content="#1a1a24">
+  <link rel="manifest" href="../site.webmanifest">
+</head>
+<body>
+
+  <nav>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="var n=this.parentNode,o=n.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="index.html" class="active">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="../pickleball/index.html">Pickleball</a>
+    <a href="../bocce/rules.html">Bocce Ball</a>
+  </nav>
+
+  <header class="screen-title">
+    <h1>♟ 3-Player Round Robin</h1>
+    <p>Everyone plays everyone</p>
+  </header>
+
+  <div class="wrap">
+
+    <!-- Print header -->
+    <div class="print-head">
+      <h1>3-Player Chess Round Robin</h1>
+      <div class="meta" id="printMeta"></div>
+    </div>
+
+    <!-- Setup -->
+    <div class="card setup-card" id="setupCard">
+      <h2>Players</h2>
+      <div class="players">
+        <div class="player-row"><span class="badge">1</span><input type="text" id="p0" placeholder="Player 1" maxlength="24"></div>
+        <div class="player-row"><span class="badge">2</span><input type="text" id="p1" placeholder="Player 2" maxlength="24"></div>
+        <div class="player-row"><span class="badge">3</span><input type="text" id="p2" placeholder="Player 3" maxlength="24"></div>
+      </div>
+
+      <div class="opts">
+        <div class="opt-group">
+          <span class="opt-label">Format</span>
+          <div class="seg" id="formatSeg">
+            <button data-format="single" class="active">Single (3 games)</button>
+            <button data-format="double">Double (6 games)</button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <span class="opt-label">Draws allowed</span>
+          <div class="seg" id="drawSeg">
+            <button data-draw="yes" class="active">Yes</button>
+            <button data-draw="no">No</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="startBtn">Generate schedule</button>
+        <button class="btn ghost" id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <!-- Results / schedule + standings -->
+    <div id="results">
+      <div class="card">
+        <h2>Schedule &amp; Results</h2>
+        <div id="rounds"></div>
+      </div>
+
+      <div class="card">
+        <h2>Standings</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="name-col">Player</th>
+              <th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th>
+            </tr>
+          </thead>
+          <tbody id="standings"></tbody>
+        </table>
+        <div class="note">
+          Scoring: win = 1, draw = ½, loss = 0. Ties broken by head-to-head result, then most wins.
+          White/Black are assigned so colours balance across the schedule.
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="printBtn">🖨 Print sheet</button>
+        <button class="btn ghost" id="editBtn">Edit players</button>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Chess Tools &mdash; Round Robin</footer>
+
+<script>
+(function () {
+  "use strict";
+  var STORE = "rr3_chess_v1";
+
+  // Colour-balanced pairings for 3 players (indices 0,1,2). w = White, b = Black, bye sits out.
+  var SINGLE = [
+    { w: 0, b: 1, bye: 2 },
+    { w: 2, b: 0, bye: 1 },
+    { w: 1, b: 2, bye: 0 }
+  ];
+  var DOUBLE_EXTRA = [
+    { w: 1, b: 0, bye: 2 },
+    { w: 0, b: 2, bye: 1 },
+    { w: 2, b: 1, bye: 0 }
+  ];
+
+  var state = null; // { names:[3], format, draws, games:[{w,b,bye,result}] }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  function buildGames(format) {
+    var base = SINGLE.map(function (g) { return { w: g.w, b: g.b, bye: g.bye, result: null }; });
+    if (format === "double") {
+      DOUBLE_EXTRA.forEach(function (g) { base.push({ w: g.w, b: g.b, bye: g.bye, result: null }); });
+    }
+    return base;
+  }
+
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+  }
+
+  // --- Segmented controls ---
+  function wireSeg(segId, attr, onPick) {
+    var seg = $(segId);
+    seg.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      seg.querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
+      b.classList.add("active");
+      onPick(b.getAttribute(attr));
+    });
+  }
+  var pickFormat = "single", pickDraws = "yes";
+  wireSeg("formatSeg", "data-format", function (v) { pickFormat = v; });
+  wireSeg("drawSeg", "data-draw", function (v) { pickDraws = v; });
+
+  function start() {
+    var names = [
+      ($("p0").value || "Player 1").trim(),
+      ($("p1").value || "Player 2").trim(),
+      ($("p2").value || "Player 3").trim()
+    ];
+    state = { names: names, format: pickFormat, draws: pickDraws, games: buildGames(pickFormat) };
+    save();
+    render();
+  }
+
+  function setResult(idx, val) {
+    if (!state) return;
+    var g = state.games[idx];
+    g.result = (g.result === val) ? null : val; // toggle off if same
+    save();
+    render();
+  }
+
+  // Points a player earned directly against another (for tiebreak)
+  function h2h(a, b) {
+    var pa = 0, pb = 0;
+    state.games.forEach(function (g) {
+      if (!g.result) return;
+      var pair = (g.w === a && g.b === b) || (g.w === b && g.b === a);
+      if (!pair) return;
+      if (g.result === "d") { pa += 0.5; pb += 0.5; return; }
+      var winner = g.result === "w" ? g.w : g.b;
+      if (winner === a) pa += 1; else pb += 1;
+    });
+    return pa - pb;
+  }
+
+  function computeStandings() {
+    var st = state.names.map(function (n, i) {
+      return { i: i, name: n, played: 0, w: 0, d: 0, l: 0, pts: 0 };
+    });
+    state.games.forEach(function (g) {
+      if (!g.result) return;
+      var W = st[g.w], B = st[g.b];
+      W.played++; B.played++;
+      if (g.result === "d") {
+        W.d++; B.d++; W.pts += 0.5; B.pts += 0.5;
+      } else if (g.result === "w") {
+        W.w++; W.pts += 1; B.l++;
+      } else {
+        B.w++; B.pts += 1; W.l++;
+      }
+    });
+    st.sort(function (a, b) {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      var d = h2h(a.i, b.i);
+      if (d !== 0) return -d;
+      if (b.w !== a.w) return b.w - a.w;
+      return a.name.localeCompare(b.name);
+    });
+    return st;
+  }
+
+  function sideHTML(playerIdx, colorClass, colorLabel) {
+    return '<span class="side"><span class="chip ' + colorClass + '">' + colorLabel +
+      '</span><span class="name">' + escapeHTML(state.names[playerIdx]) + '</span></span>';
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  // --- OTB game capture / PGN handoff ---
+  function resultFromText(t) {
+    if (/1\/2-1\/2|½-½/.test(t)) return "d";
+    if (/(^|[^0-9])1-0([^0-9]|$)/.test(t)) return "w";
+    if (/(^|[^0-9])0-1([^0-9]|$)/.test(t)) return "b";
+    return null;
+  }
+  function resultTag(r) {
+    return r === "w" ? "1-0" : r === "b" ? "0-1" : r === "d" ? "1/2-1/2" : "*";
+  }
+  function stripHeaders(t) {
+    return t.split(/\r?\n/).filter(function (l) { return !/^\s*\[/.test(l); }).join("\n").trim();
+  }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function buildPGN(g, idx) {
+    var d = new Date();
+    var date = d.getFullYear() + "." + pad2(d.getMonth() + 1) + "." + pad2(d.getDate());
+    var moves = stripHeaders(g.movesRaw || "");
+    var tag = resultTag(g.result);
+    if (moves && tag !== "*" && !/(1-0|0-1|1\/2-1\/2|\*)\s*$/.test(moves)) { moves += " " + tag; }
+    var headers = [
+      '[Event "3-Player Round Robin"]',
+      '[Site "OTB"]',
+      '[Date "' + date + '"]',
+      '[Round "' + (idx + 1) + '"]',
+      '[White "' + state.names[g.w].replace(/"/g, "") + '"]',
+      '[Black "' + state.names[g.b].replace(/"/g, "") + '"]',
+      '[Result "' + tag + '"]'
+    ].join("\n");
+    return headers + "\n\n" + moves + "\n";
+  }
+  function reviewGame(idx) {
+    var pgn = buildPGN(state.games[idx], idx);
+    window.location.href = "game-review.html?pgn=" + encodeURIComponent(pgn);
+  }
+
+  function renderRounds() {
+    var host = $("rounds");
+    host.innerHTML = "";
+    state.games.forEach(function (g, idx) {
+      var round = document.createElement("div");
+      round.className = "round";
+
+      var drawBtn = state.draws === "yes"
+        ? '<button data-idx="' + idx + '" data-val="d" class="' + (g.result === "d" ? "sel" : "") + '">½–½ Draw</button>'
+        : "";
+
+      round.innerHTML =
+        '<div class="round-head"><span>Round ' + (idx + 1) + '</span>' +
+          '<span class="bye">Bye: ' + escapeHTML(state.names[g.bye]) + '</span></div>' +
+        '<div class="match">' +
+          '<div class="match-players">' +
+            sideHTML(g.w, "white", "White") +
+            '<span class="vs">vs</span>' +
+            sideHTML(g.b, "black", "Black") +
+          '</div>' +
+          '<div class="result-btns">' +
+            '<button data-idx="' + idx + '" data-val="w" class="' + (g.result === "w" ? "sel" : "") + '">' + escapeHTML(state.names[g.w]) + ' wins</button>' +
+            drawBtn +
+            '<button data-idx="' + idx + '" data-val="b" class="' + (g.result === "b" ? "sel" : "") + '">' + escapeHTML(state.names[g.b]) + ' wins</button>' +
+          '</div>' +
+          '<div class="game-tools">' +
+            (g.movesRaw ? '<span class="recorded">✓ game recorded</span>' : '') +
+            '<button class="moves-toggle" data-idx="' + idx + '">' + (g.movesRaw ? '✎ Edit moves' : '＋ Add moves') + '</button>' +
+            (g.movesRaw ? '<button class="review" data-idx="' + idx + '">▶ Review</button>' : '') +
+          '</div>' +
+          '<div class="moves-editor" data-idx="' + idx + '">' +
+            '<textarea placeholder="Paste a PGN or type the moves:  1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 ...">' + escapeHTML(g.movesRaw || "") + '</textarea>' +
+            '<div class="me-actions">' +
+              '<button class="btn me-save" data-idx="' + idx + '">Save moves</button>' +
+              '<button class="btn ghost me-cancel" data-idx="' + idx + '">Cancel</button>' +
+              (g.movesRaw ? '<button class="btn ghost me-clear" data-idx="' + idx + '">Clear</button>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      host.appendChild(round);
+    });
+
+    host.querySelectorAll(".result-btns button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        setResult(parseInt(btn.getAttribute("data-idx"), 10), btn.getAttribute("data-val"));
+      });
+    });
+    host.querySelectorAll(".moves-toggle").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var ed = host.querySelector('.moves-editor[data-idx="' + btn.getAttribute("data-idx") + '"]');
+        if (ed.classList.toggle("open")) ed.querySelector("textarea").focus();
+      });
+    });
+    host.querySelectorAll(".me-cancel").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        host.querySelector('.moves-editor[data-idx="' + btn.getAttribute("data-idx") + '"]').classList.remove("open");
+      });
+    });
+    host.querySelectorAll(".me-save").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = parseInt(btn.getAttribute("data-idx"), 10);
+        var val = host.querySelector('.moves-editor[data-idx="' + idx + '"] textarea').value.trim();
+        state.games[idx].movesRaw = val;
+        var r = resultFromText(val);
+        if (r) state.games[idx].result = r;
+        save();
+        render();
+      });
+    });
+    host.querySelectorAll(".me-clear").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.games[parseInt(btn.getAttribute("data-idx"), 10)].movesRaw = "";
+        save();
+        render();
+      });
+    });
+    host.querySelectorAll(".game-tools .review").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        reviewGame(parseInt(btn.getAttribute("data-idx"), 10));
+      });
+    });
+  }
+
+  function renderStandings() {
+    var st = computeStandings();
+    var body = $("standings");
+    body.innerHTML = "";
+    st.forEach(function (r, i) {
+      var tr = document.createElement("tr");
+      if (i === 0 && r.played > 0) tr.className = "leader";
+      tr.innerHTML =
+        '<td class="rank">' + (i + 1) + '</td>' +
+        '<td class="name-col">' + escapeHTML(r.name) + '</td>' +
+        '<td>' + r.played + '</td>' +
+        '<td>' + r.w + '</td>' +
+        '<td>' + r.d + '</td>' +
+        '<td>' + r.l + '</td>' +
+        '<td class="pts">' + fmt(r.pts) + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  function fmt(n) { return (n % 1 === 0) ? String(n) : (Math.floor(n) === 0 ? "½" : Math.floor(n) + "½"); }
+
+  function render() {
+    if (!state) return;
+    $("setupCard").style.display = "none";
+    $("results").style.display = "flex";
+    $("printMeta").textContent = state.names.join("  •  ") + "   |   " +
+      (state.format === "double" ? "Double" : "Single") + " round robin";
+    renderRounds();
+    renderStandings();
+  }
+
+  function reset() {
+    state = null;
+    try { localStorage.removeItem(STORE); } catch (e) {}
+    $("p0").value = ""; $("p1").value = ""; $("p2").value = "";
+    $("results").style.display = "none";
+    $("setupCard").style.display = "block";
+  }
+
+  function edit() {
+    if (!state) return;
+    $("p0").value = state.names[0];
+    $("p1").value = state.names[1];
+    $("p2").value = state.names[2];
+    // restore option toggles
+    $("formatSeg").querySelectorAll("button").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-format") === state.format);
+    });
+    $("drawSeg").querySelectorAll("button").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-draw") === state.draws);
+    });
+    pickFormat = state.format; pickDraws = state.draws;
+    $("results").style.display = "none";
+    $("setupCard").style.display = "block";
+  }
+
+  $("startBtn").addEventListener("click", start);
+  $("resetBtn").addEventListener("click", reset);
+  $("printBtn").addEventListener("click", function () { window.print(); });
+  $("editBtn").addEventListener("click", edit);
+
+  // Restore a session in progress
+  var saved = load();
+  if (saved && saved.names && saved.games) {
+    state = saved;
+    pickFormat = saved.format; pickDraws = saved.draws;
+    render();
+  }
+})();
+</script>
+</body>
+</html>

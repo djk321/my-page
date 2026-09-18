@@ -672,6 +672,17 @@ document.getElementById('btnLoad').onclick=()=>{
   loadGame(document.getElementById('pgnInput').value);
 };
 
+// Auto-load a game handed off from another tool (e.g. Round Robin) via ?pgn=
+(function(){
+  try {
+    var handoff = new URLSearchParams(window.location.search).get('pgn');
+    if (handoff) {
+      document.getElementById('pgnInput').value = handoff;
+      loadGame(handoff);
+    }
+  } catch(e) {}
+})();
+
 document.addEventListener('keydown',e=>{
   if(document.getElementById('viewerScreen').style.display==='none') return;
   if(e.key==='ArrowLeft'||e.key==='ArrowUp') document.getElementById('btnPrev').click();
