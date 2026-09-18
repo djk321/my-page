@@ -141,6 +141,29 @@
     .moves-editor .me-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .moves-editor .btn { padding: 8px 16px; font-size: 13px; }
 
+    /* Board-entry modal */
+    .rr-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.78); z-index: 200; align-items: flex-start; justify-content: center; overflow: auto; padding: 24px 12px; }
+    .rr-overlay.open { display: flex; }
+    .rr-modal { background: #12121a; border: 1px solid #2a2a3a; border-radius: 16px; padding: 22px; width: 100%; max-width: 500px; }
+    .rr-modal h3 { font-size: 14px; color: #c9a84c; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .rr-modal .rr-sub { font-size: 13px; color: #aaa; margin-bottom: 14px; }
+    .rr-boardwrap { display: flex; justify-content: center; }
+    #rrBoard { display: grid; grid-template-columns: repeat(8, 46px); grid-template-rows: repeat(8, 46px); border: 2px solid #3a3a4a; border-radius: 4px; overflow: hidden; }
+    .rr-sq { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 32px; line-height: 1; cursor: pointer; user-select: none; position: relative; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols', 'DejaVu Sans', sans-serif; }
+    .rr-sq.light { background: #f0d9b5; }
+    .rr-sq.dark { background: #b58863; }
+    .rr-sq .wp { color: #fff; -webkit-text-stroke: 1.2px #333; paint-order: stroke fill; }
+    .rr-sq .bp { color: #111; -webkit-text-stroke: 1px #ccc; paint-order: stroke fill; }
+    .rr-sq.sel { outline: 3px solid rgba(100,200,100,0.85); outline-offset: -3px; }
+    .rr-sq.tgt::after { content: ''; position: absolute; width: 15px; height: 15px; border-radius: 50%; background: rgba(0,0,0,0.22); }
+    .rr-sq.cap::after { content: ''; position: absolute; inset: 0; border: 4px solid rgba(0,0,0,0.22); }
+    .rr-status { text-align: center; font-size: 13px; color: #c9a84c; margin: 12px 0 8px; min-height: 18px; }
+    .rr-movelist { background: #0f0f14; border: 1px solid #2a2a3a; border-radius: 8px; padding: 10px 12px; min-height: 42px; max-height: 108px; overflow-y: auto; font-family: 'Consolas', 'SF Mono', ui-monospace, monospace; font-size: 13px; color: #ccc; line-height: 1.7; margin-bottom: 14px; }
+    .rr-movelist .num { color: #666; margin-right: 3px; }
+    .rr-movelist .mv { margin-right: 8px; }
+    .rr-movelist .empty { color: #666; }
+    .rr-modal .actions { justify-content: center; margin-top: 0; }
+
     /* Standings */
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { padding: 10px 12px; text-align: center; border-bottom: 1px solid #2a2a3a; }
@@ -479,6 +502,7 @@
           '<div class="game-tools">' +
             (g.movesRaw ? '<span class="recorded">✓ game recorded</span>' : '') +
             '<button class="moves-toggle" data-idx="' + idx + '">' + (g.movesRaw ? '✎ Edit moves' : '＋ Add moves') + '</button>' +
+            '<button class="board-entry" data-idx="' + idx + '">♟ On board</button>' +
             (g.movesRaw ? '<button class="review" data-idx="' + idx + '">▶ Review</button>' : '') +
           '</div>' +
           '<div class="moves-editor" data-idx="' + idx + '">' +
@@ -530,6 +554,17 @@
     host.querySelectorAll(".game-tools .review").forEach(function (btn) {
       btn.addEventListener("click", function () {
         reviewGame(parseInt(btn.getAttribute("data-idx"), 10));
+      });
+    });
+    host.querySelectorAll(".board-entry").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = parseInt(btn.getAttribute("data-idx"), 10), g = state.games[idx];
+        if (window.openBoardEntry) window.openBoardEntry(state.names[g.w], state.names[g.b], function (text, res) {
+          state.games[idx].movesRaw = text;
+          if (res) state.games[idx].result = res;
+          save();
+          render();
+        });
       });
     });
   }
@@ -602,6 +637,220 @@
     pickFormat = saved.format; pickDraws = saved.draws;
     render();
   }
+})();
+</script>
+
+<!-- Board-entry modal -->
+<div class="rr-overlay" id="rrOverlay">
+  <div class="rr-modal">
+    <h3>Enter game on board</h3>
+    <div class="rr-sub" id="rrPlayers"></div>
+    <div class="rr-boardwrap"><div id="rrBoard"></div></div>
+    <div class="rr-status" id="rrStatus"></div>
+    <div class="rr-movelist" id="rrMoveList"></div>
+    <div class="actions">
+      <button class="btn" id="rrSave">Save game</button>
+      <button class="btn ghost" id="rrUndo">↶ Undo</button>
+      <button class="btn ghost" id="rrRestart">Restart</button>
+      <button class="btn ghost" id="rrCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── On-screen move-entry board: click through a game, record it as a PGN ──
+(function () {
+  "use strict";
+  var START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  var VS = '︎';
+  var GLYPHS = { K:'♚'+VS, Q:'♛'+VS, R:'♜'+VS, B:'♝'+VS, N:'♞'+VS, P:'♟'+VS };
+  function pieceHTML(p) { return '<span class="' + (p[0] === 'w' ? 'wp' : 'bp') + '">' + GLYPHS[p[1]] + '</span>'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]; }); }
+  function idxToAlg(i) { return String.fromCharCode(97 + i % 8) + String(8 - Math.floor(i / 8)); }
+  function algToIdx(a) { return (7 - (a.charCodeAt(1) - 49)) * 8 + (a.charCodeAt(0) - 97); }
+
+  function parseFEN(fen) {
+    var parts = fen.trim().split(/\s+/), board = new Array(64).fill(null), r = 0, c = 0, i, ch;
+    for (i = 0; i < parts[0].length; i++) {
+      ch = parts[0][i];
+      if (ch === '/') { r++; c = 0; }
+      else if ('12345678'.indexOf(ch) >= 0) { c += +ch; }
+      else { board[r * 8 + c] = (ch === ch.toUpperCase() ? 'w' : 'b') + ch.toUpperCase(); c++; }
+    }
+    return { board: board, turn: parts[1] || 'w', castling: parts[2] || '-', ep: (parts[3] && parts[3] !== '-') ? algToIdx(parts[3]) : null, halfMove: parseInt(parts[4] || '0', 10), fullMove: parseInt(parts[5] || '1', 10) };
+  }
+  function cloneState(s) { return { board: s.board.slice(), turn: s.turn, castling: s.castling, ep: s.ep, halfMove: s.halfMove, fullMove: s.fullMove }; }
+
+  function pseudoAttacks(state, color) {
+    var set = {}, i, p;
+    for (i = 0; i < 64; i++) { p = state.board[i]; if (p && p[0] === color) rawTargets(state, i, true).forEach(function (t) { set[t] = 1; }); }
+    return set;
+  }
+  function rawTargets(state, from, attackOnly) {
+    var p = state.board[from]; if (!p) return [];
+    var color = p[0], type = p[1], row = Math.floor(from / 8), col = from % 8, out = [];
+    function slide(dirs) { dirs.forEach(function (d) { var r = row + d[0], c = col + d[1]; while (r >= 0 && r < 8 && c >= 0 && c < 8) { var t = r * 8 + c; if (state.board[t]) { if (state.board[t][0] !== color) out.push(t); break; } out.push(t); r += d[0]; c += d[1]; } }); }
+    if (type === 'R') slide([[1,0],[-1,0],[0,1],[0,-1]]);
+    else if (type === 'B') slide([[1,1],[1,-1],[-1,1],[-1,-1]]);
+    else if (type === 'Q') slide([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]);
+    else if (type === 'N') [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]].forEach(function (d) { var r = row + d[0], c = col + d[1]; if (r >= 0 && r < 8 && c >= 0 && c < 8) { var t = r * 8 + c; if (!state.board[t] || state.board[t][0] !== color) out.push(t); } });
+    else if (type === 'K') [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]].forEach(function (d) { var r = row + d[0], c = col + d[1]; if (r >= 0 && r < 8 && c >= 0 && c < 8) { var t = r * 8 + c; if (!state.board[t] || state.board[t][0] !== color) out.push(t); } });
+    else if (type === 'P') {
+      var dir = color === 'w' ? -1 : 1;
+      if (attackOnly) { [-1,1].forEach(function (dc) { var r = row + dir, c = col + dc; if (r >= 0 && r < 8 && c >= 0 && c < 8) out.push(r * 8 + c); }); }
+      else {
+        var r1 = row + dir;
+        if (r1 >= 0 && r1 < 8 && !state.board[r1 * 8 + col]) { out.push(r1 * 8 + col); var sr = color === 'w' ? 6 : 1; if (row === sr && !state.board[(row + 2 * dir) * 8 + col]) out.push((row + 2 * dir) * 8 + col); }
+        [-1,1].forEach(function (dc) { var c = col + dc; if (c >= 0 && c < 8 && r1 >= 0 && r1 < 8) { var t = r1 * 8 + c; if ((state.board[t] && state.board[t][0] !== color) || t === state.ep) out.push(t); } });
+      }
+    }
+    return out;
+  }
+  function isInCheck(state, color) { var ki = state.board.indexOf(color + 'K'); if (ki === -1) return false; return !!pseudoAttacks(state, color === 'w' ? 'b' : 'w')[ki]; }
+  function legalMoves(state, from) {
+    var p = state.board[from]; if (!p || p[0] !== state.turn) return [];
+    var color = p[0], type = p[1], moves = [];
+    rawTargets(state, from, false).forEach(function (to) { var next = cloneState(state); applyMoveRaw(next, from, to); if (!isInCheck(next, color)) moves.push(to); });
+    if (type === 'K') {
+      var row = color === 'w' ? 7 : 0, opp = pseudoAttacks(state, color === 'w' ? 'b' : 'w');
+      if (!opp[from]) {
+        if (state.castling.indexOf(color === 'w' ? 'K' : 'k') >= 0 && !state.board[row * 8 + 5] && !state.board[row * 8 + 6] && !opp[row * 8 + 5] && !opp[row * 8 + 6]) moves.push(row * 8 + 6);
+        if (state.castling.indexOf(color === 'w' ? 'Q' : 'q') >= 0 && !state.board[row * 8 + 3] && !state.board[row * 8 + 2] && !state.board[row * 8 + 1] && !opp[row * 8 + 3] && !opp[row * 8 + 2]) moves.push(row * 8 + 2);
+      }
+    }
+    return moves;
+  }
+  function allLegalMoves(state) { var m = [], i; for (i = 0; i < 64; i++) { var p = state.board[i]; if (p && p[0] === state.turn) legalMoves(state, i).forEach(function (to) { m.push([i, to]); }); } return m; }
+  function applyMoveRaw(state, from, to, promo) {
+    promo = promo || 'Q';
+    var p = state.board[from], color = p[0], type = p[1], cap = state.board[to];
+    state.board[to] = p; state.board[from] = null;
+    if (type === 'P' && to === state.ep) state.board[(Math.floor(to / 8) + (color === 'w' ? 1 : -1)) * 8 + (to % 8)] = null;
+    if (type === 'K') { var row = Math.floor(from / 8); if (to === from + 2) { state.board[row * 8 + 5] = color + 'R'; state.board[row * 8 + 7] = null; } if (to === from - 2) { state.board[row * 8 + 3] = color + 'R'; state.board[row * 8 + 0] = null; } state.castling = state.castling.replace(color === 'w' ? /[KQ]/g : /[kq]/g, ''); }
+    if (type === 'R') { if (from === 63) state.castling = state.castling.replace('K', ''); if (from === 56) state.castling = state.castling.replace('Q', ''); if (from === 7) state.castling = state.castling.replace('k', ''); if (from === 0) state.castling = state.castling.replace('q', ''); }
+    if (type === 'P' && Math.floor(to / 8) === (color === 'w' ? 0 : 7)) state.board[to] = color + promo;
+    state.ep = (type === 'P' && Math.abs(to - from) === 16) ? Math.floor((from + to) / 2) : null;
+    state.halfMove = (type === 'P' || cap) ? 0 : state.halfMove + 1;
+    if (color === 'b') state.fullMove++;
+    state.turn = color === 'w' ? 'b' : 'w';
+    if (!state.castling) state.castling = '-';
+  }
+  function moveToSAN(state, from, to, promo) {
+    promo = promo || 'Q';
+    var p = state.board[from], type = p[1], color = p[0], capture = !!state.board[to] || (type === 'P' && to === state.ep);
+    if (type === 'K' && to === from + 2) return 'O-O';
+    if (type === 'K' && to === from - 2) return 'O-O-O';
+    var san = '';
+    if (type !== 'P') {
+      san += type;
+      var ambig = [], i;
+      for (i = 0; i < 64; i++) { if (i !== from && state.board[i] === p && legalMoves(state, i).indexOf(to) >= 0) ambig.push(i); }
+      if (ambig.length) {
+        var fa = idxToAlg(from),
+            sameFile = ambig.some(function (i) { return i % 8 === from % 8; }),
+            sameRank = ambig.some(function (i) { return Math.floor(i / 8) === Math.floor(from / 8); });
+        san += !sameFile ? fa[0] : !sameRank ? fa[1] : fa;
+      }
+    } else if (capture) san += idxToAlg(from)[0];
+    if (capture) san += 'x';
+    san += idxToAlg(to);
+    if (type === 'P' && Math.floor(to / 8) === (color === 'w' ? 0 : 7)) san += '=' + promo;
+    var next = cloneState(state); applyMoveRaw(next, from, to, promo);
+    if (isInCheck(next, color === 'w' ? 'b' : 'w')) san += allLegalMoves(next).length === 0 ? '#' : '+';
+    return san;
+  }
+
+  // ── Entry UI (linear game) ──
+  var st, moves, states, sel, targets, saveCb;
+  var $ = function (id) { return document.getElementById(id); };
+
+  window.openBoardEntry = function (whiteName, blackName, cb) {
+    saveCb = cb;
+    st = parseFEN(START_FEN); moves = []; states = [cloneState(st)]; sel = null; targets = [];
+    $("rrPlayers").innerHTML = '<b>' + esc(whiteName) + '</b> (White)  vs  <b>' + esc(blackName) + '</b> (Black)';
+    render();
+    $("rrOverlay").classList.add("open");
+  };
+  function closeModal() { $("rrOverlay").classList.remove("open"); }
+
+  function render() { renderBoard(); renderMoves(); renderStatus(); }
+  function renderBoard() {
+    var host = $("rrBoard"); host.innerHTML = "";
+    var r, c;
+    for (r = 0; r < 8; r++) for (c = 0; c < 8; c++) {
+      (function (idx, r, c) {
+        var sq = document.createElement("div");
+        sq.className = "rr-sq " + (((r + c) % 2 === 0) ? "light" : "dark");
+        if (idx === sel) sq.className += " sel";
+        if (targets.indexOf(idx) >= 0) sq.className += (st.board[idx] ? " cap" : " tgt");
+        var p = st.board[idx]; if (p) sq.innerHTML = pieceHTML(p);
+        sq.addEventListener("click", function () { onClick(idx); });
+        host.appendChild(sq);
+      })(r * 8 + c, r, c);
+    }
+  }
+  function renderMoves() {
+    var el = $("rrMoveList");
+    if (!moves.length) { el.innerHTML = '<span class="empty">No moves yet — click a piece, then its destination square.</span>'; return; }
+    var html = "", i;
+    for (i = 0; i < moves.length; i++) { if (i % 2 === 0) html += '<span class="num">' + (i / 2 + 1) + '.</span>'; html += '<span class="mv">' + moves[i] + '</span>'; }
+    el.innerHTML = html; el.scrollTop = el.scrollHeight;
+  }
+  function renderStatus() {
+    var el = $("rrStatus"), legal = allLegalMoves(st), chk = isInCheck(st, st.turn), who = st.turn === "w" ? "White" : "Black";
+    if (legal.length === 0) el.textContent = chk ? ((st.turn === "w" ? "Black" : "White") + " wins by checkmate") : "Stalemate — draw";
+    else el.textContent = who + " to move" + (chk ? " — Check!" : "");
+  }
+  function onClick(idx) {
+    if (sel === null) { var p = st.board[idx]; if (p && p[0] === st.turn) { sel = idx; targets = legalMoves(st, idx); render(); } return; }
+    if (targets.indexOf(idx) >= 0) {
+      var pc = st.board[sel], isPromo = pc[1] === "P" && Math.floor(idx / 8) === (pc[0] === "w" ? 0 : 7);
+      if (isPromo) promoDialog(st.turn, function (promo) { makeMove(sel, idx, promo); });
+      else makeMove(sel, idx, "Q");
+      return;
+    }
+    if (st.board[idx] && st.board[idx][0] === st.turn) { sel = idx; targets = legalMoves(st, idx); render(); return; }
+    sel = null; targets = []; render();
+  }
+  function makeMove(from, to, promo) {
+    var san = moveToSAN(st, from, to, promo);
+    applyMoveRaw(st, from, to, promo);
+    moves.push(san); states.push(cloneState(st));
+    sel = null; targets = []; render();
+  }
+  function undo() { if (!moves.length) return; moves.pop(); states.pop(); st = cloneState(states[states.length - 1]); sel = null; targets = []; render(); }
+  function restart() { st = parseFEN(START_FEN); moves = []; states = [cloneState(st)]; sel = null; targets = []; render(); }
+  function buildMovetext() { var out = "", i; for (i = 0; i < moves.length; i++) { if (i % 2 === 0) out += (i / 2 + 1) + ". "; out += moves[i] + " "; } return out.trim(); }
+  function saveGame() {
+    if (!moves.length) { closeModal(); return; }
+    var res = null, legal = allLegalMoves(st);
+    if (legal.length === 0) res = isInCheck(st, st.turn) ? (st.turn === "w" ? "b" : "w") : "d";
+    var text = buildMovetext();
+    closeModal();
+    if (saveCb) saveCb(text, res);
+  }
+  function promoDialog(color, cb) {
+    var ov = document.createElement("div");
+    ov.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:300;";
+    var box = document.createElement("div");
+    box.style.cssText = "background:#1a1a24;border:1px solid #2a2a3a;border-radius:12px;padding:16px;display:flex;gap:10px;";
+    ["Q","R","B","N"].forEach(function (pc) {
+      var b = document.createElement("button");
+      b.innerHTML = pieceHTML(color + pc);
+      b.style.cssText = "font-size:38px;background:#0f0f14;border:1px solid #2a2a3a;border-radius:8px;padding:6px 12px;cursor:pointer;color:inherit;";
+      b.onclick = function () { document.body.removeChild(ov); cb(pc); };
+      box.appendChild(b);
+    });
+    ov.appendChild(box);
+    ov.addEventListener("click", function (e) { if (e.target === ov) document.body.removeChild(ov); });
+    document.body.appendChild(ov);
+  }
+
+  $("rrSave").addEventListener("click", saveGame);
+  $("rrUndo").addEventListener("click", undo);
+  $("rrRestart").addEventListener("click", restart);
+  $("rrCancel").addEventListener("click", closeModal);
+  $("rrOverlay").addEventListener("click", function (e) { if (e.target === $("rrOverlay")) closeModal(); });
 })();
 </script>
 </body>
