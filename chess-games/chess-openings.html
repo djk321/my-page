@@ -401,7 +401,7 @@ function analysePos(fen) {
   currentTurn=fen.split(' ')[1]||'w';
   engine.postMessage('stop');
   engine.postMessage('position fen '+fen);
-  engine.postMessage('go movetime 1000');
+  engine.postMessage('go movetime 2500');
 }
 
 function updateBar(cp,txt,depth) {

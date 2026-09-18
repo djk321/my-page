@@ -149,7 +149,15 @@
   .dot-black { background: #333; border-color: #888; }
   .player-bar.active-player { border-left: 3px solid #a0c4ff; }
 
-  .board-wrap { display: flex; align-items: center; gap: 6px; }
+  .board-wrap { display: flex; align-items: flex-start; gap: 6px; }
+
+  /* Engine evaluation bar */
+  .eval-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .eval-bar { width: 14px; height: 480px; border-radius: 4px; overflow: hidden; border: 1px solid #4a4a6a; position: relative; background: #111; }
+  .eval-bar-black { position: absolute; top: 0; left: 0; right: 0; background: #1a1a1a; transition: height 0.4s ease; }
+  .eval-bar-white { position: absolute; bottom: 0; left: 0; right: 0; background: #f0d9b5; transition: height 0.4s ease; }
+  .eval-score { font-size: 11px; font-family: monospace; color: #a0c4ff; text-align: center; min-height: 16px; white-space: nowrap; }
+  .eval-depth { font-size: 10px; color: #555; text-align: center; }
   .rank-labels, .file-labels-row { display: flex; color: #888; font-size: 12px; font-weight: bold; }
   .rank-labels { flex-direction: column; justify-content: space-around; height: 480px; width: 20px; text-align: center; }
   .file-labels-row { width: 480px; justify-content: space-around; margin-left: 26px; margin-top: 4px; }
@@ -311,6 +319,14 @@ Example:
       </div>
 
       <div class="board-wrap">
+        <div class="eval-bar-wrap">
+          <div class="eval-bar">
+            <div class="eval-bar-black" id="evalBarBlack" style="height:50%"></div>
+            <div class="eval-bar-white" id="evalBarWhite" style="height:50%"></div>
+          </div>
+          <div class="eval-score" id="evalScore">…</div>
+          <div class="eval-depth" id="evalDepth"></div>
+        </div>
         <div class="rank-labels" id="rankLabels"></div>
         <div><div id="board"></div></div>
       </div>
@@ -365,6 +381,80 @@ function parseFEN(fen) {
 }
 const algToIdx = a => (7-(a.charCodeAt(1)-49))*8+(a.charCodeAt(0)-97);
 const idxToAlg = i => String.fromCharCode(97+i%8)+String(8-Math.floor(i/8));
+
+// ── Stockfish evaluation ──────────────────────────────────────────────────────
+let engine=null, engineReady=false, pendingFEN=null, currentTurn='w', engineInit=false;
+
+function stateToFEN(s){
+  let fen='';
+  for(let r=0;r<8;r++){
+    let empty=0;
+    for(let c=0;c<8;c++){
+      const p=s.board[r*8+c];
+      if(!p){ empty++; }
+      else{ if(empty){fen+=empty;empty=0;} const ch=p[1]; fen+=(p[0]==='w'?ch.toUpperCase():ch.toLowerCase()); }
+    }
+    if(empty) fen+=empty;
+    if(r<7) fen+='/';
+  }
+  const cast=(s.castling&&s.castling!=='')?s.castling:'-';
+  const ep=(s.ep!=null)?idxToAlg(s.ep):'-';
+  return `${fen} ${s.turn||'w'} ${cast} ${ep} ${s.halfMove||0} ${s.fullMove||1}`;
+}
+
+function initEngine(){
+  if(engineInit) return; engineInit=true;
+  fetch('https://cdn.jsdelivr.net/npm/stockfish.js@10.0.2/stockfish.js')
+    .then(r=>r.text()).then(code=>{
+      const blob=new Blob([code],{type:'application/javascript'});
+      engine=new Worker(URL.createObjectURL(blob));
+      engine.onmessage=e=>onEngineMessage(e.data);
+      engine.onerror=()=>{ const el=document.getElementById('evalScore'); if(el) el.textContent='N/A'; };
+      engine.postMessage('uci');
+    }).catch(()=>{ const el=document.getElementById('evalScore'); if(el) el.textContent='N/A'; });
+}
+
+function onEngineMessage(line){
+  if(line==='uciok') engine.postMessage('isready');
+  if(line==='readyok'){ engineReady=true; if(pendingFEN){ analysePosition(pendingFEN); pendingFEN=null; } }
+  if(line.startsWith('info') && line.includes('score')){
+    const depthM=line.match(/depth (\d+)/), cpM=line.match(/score cp (-?\d+)/), mateM=line.match(/score mate (-?\d+)/);
+    let cp=null;
+    if(mateM) cp=+mateM[1]>0?10000:-10000;
+    else if(cpM) cp=+cpM[1];
+    if(cp!==null){
+      const wcp=currentTurn==='b'?-cp:cp;
+      const txt=Math.abs(wcp)>=10000
+        ? (wcp>0?'M':'-M')+(mateM?Math.abs(+mateM[1]):'')
+        : (wcp>=0?`+${(wcp/100).toFixed(2)}`:`${(wcp/100).toFixed(2)}`);
+      updateEvalBar(wcp, txt, depthM?+depthM[1]:0);
+    }
+  }
+}
+
+function analysePosition(fen){
+  currentTurn=fen.split(' ')[1]||'w';
+  if(!engine || !engineReady){ pendingFEN=fen; return; }
+  engine.postMessage('stop');
+  engine.postMessage('position fen '+fen);
+  engine.postMessage('go movetime 2500');
+}
+
+function updateEvalBar(cp, scoreText, depth){
+  const pct=100/(1+Math.exp(-0.005*cp));
+  const wp=Math.max(2,Math.min(98,pct)), bp=100-wp;
+  const wEl=document.getElementById('evalBarWhite'), bEl=document.getElementById('evalBarBlack');
+  if(!wEl||!bEl) return;
+  if(flipped){
+    wEl.style.cssText=`height:${wp}%;position:absolute;top:0;left:0;right:0;background:#f0d9b5;transition:height 0.4s ease;`;
+    bEl.style.cssText=`height:${bp}%;position:absolute;bottom:0;left:0;right:0;background:#1a1a1a;transition:height 0.4s ease;`;
+  } else {
+    wEl.style.cssText=`height:${wp}%;position:absolute;bottom:0;left:0;right:0;background:#f0d9b5;transition:height 0.4s ease;`;
+    bEl.style.cssText=`height:${bp}%;position:absolute;top:0;left:0;right:0;background:#1a1a1a;transition:height 0.4s ease;`;
+  }
+  document.getElementById('evalScore').textContent=scoreText;
+  document.getElementById('evalDepth').textContent=depth?`d${depth}`:'';
+}
 function cloneState(s) { return {board:[...s.board],turn:s.turn,castling:s.castling,ep:s.ep,halfMove:s.halfMove,fullMove:s.fullMove}; }
 
 function pseudoAttacks(state, color) {
@@ -546,6 +636,7 @@ function loadGame(pgn) {
     game = parsePGN(pgn.trim());
     cursor = 0;
     flipped = false;
+    initEngine();
     setupViewer();
     document.getElementById('inputScreen').style.display='none';
     document.getElementById('viewerScreen').style.display='flex';
@@ -611,6 +702,7 @@ function renderBoard() {
   updatePlayerBars();
   updateButtons();
   scrollCurrentMove();
+  analysePosition(stateToFEN(state));
 }
 
 function updateStatus(state) {
