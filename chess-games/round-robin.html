@@ -158,7 +158,7 @@
     .rr-sq.tgt::after { content: ''; position: absolute; width: 15px; height: 15px; border-radius: 50%; background: rgba(0,0,0,0.22); }
     .rr-sq.cap::after { content: ''; position: absolute; inset: 0; border: 4px solid rgba(0,0,0,0.22); }
     .rr-status { text-align: center; font-size: 13px; color: #c9a84c; margin: 12px 0 8px; min-height: 18px; }
-    .rr-movelist { background: #0f0f14; border: 1px solid #2a2a3a; border-radius: 8px; padding: 10px 12px; min-height: 42px; max-height: 108px; overflow-y: auto; font-family: 'Consolas', 'SF Mono', ui-monospace, monospace; font-size: 13px; color: #ccc; line-height: 1.7; margin-bottom: 14px; }
+    .rr-movelist { background: #0f0f14; border: 1px solid #2a2a3a; border-radius: 8px; padding: 10px 12px; min-height: 42px; max-height: 156px; overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere; font-family: 'Consolas', 'SF Mono', ui-monospace, monospace; font-size: 13px; color: #ccc; line-height: 1.7; margin-bottom: 14px; }
     .rr-movelist .num { color: #666; margin-right: 3px; }
     .rr-movelist .mv { margin-right: 8px; }
     .rr-movelist .empty { color: #666; }
@@ -793,7 +793,7 @@
     var el = $("rrMoveList");
     if (!moves.length) { el.innerHTML = '<span class="empty">No moves yet — click a piece, then its destination square.</span>'; return; }
     var html = "", i;
-    for (i = 0; i < moves.length; i++) { if (i % 2 === 0) html += '<span class="num">' + (i / 2 + 1) + '.</span>'; html += '<span class="mv">' + moves[i] + '</span>'; }
+    for (i = 0; i < moves.length; i++) { if (i % 2 === 0) html += '<span class="num">' + (i / 2 + 1) + '.</span> '; html += '<span class="mv">' + moves[i] + '</span> '; }
     el.innerHTML = html; el.scrollTop = el.scrollHeight;
   }
   function renderStatus() {
