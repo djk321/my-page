@@ -129,6 +129,7 @@
     .game-tools button { background: #0f0f14; border: 1px solid #2a2a3a; color: #aaa; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .game-tools button:hover { border-color: #c9a84c; color: #fff; }
     .game-tools button.review { color: #c9a84c; border-color: #3a3a4a; font-weight: 600; }
+    .game-tools button.copied, .btn.copied { color: #7bbf7b !important; border-color: #7bbf7b !important; background: rgba(123,191,123,0.12) !important; }
     .game-tools .recorded { font-size: 12px; color: #7bbf7b; }
     .moves-editor { display: none; flex-direction: column; gap: 8px; margin-top: 10px; }
     .moves-editor.open { display: flex; }
@@ -305,6 +306,7 @@
 
       <div class="actions">
         <button class="btn" id="printBtn">🖨 Print sheet</button>
+        <button class="btn ghost" id="copyAllBtn">📋 Copy all games</button>
         <button class="btn ghost" id="editBtn">Edit players</button>
       </div>
     </div>
@@ -473,6 +475,42 @@
     var pgn = buildPGN(state.games[idx], idx);
     window.location.href = "game-review.html?pgn=" + encodeURIComponent(pgn);
   }
+  function shareLink(idx) {
+    var q = "game-review.html?pgn=" + encodeURIComponent(buildPGN(state.games[idx], idx));
+    try { return new URL(q, window.location.href).href; } catch (e) { return q; }
+  }
+  function buildAllPGN() {
+    var out = [];
+    state.games.forEach(function (g, idx) { if (g.movesRaw) out.push(buildPGN(g, idx)); });
+    return out.join("\n\n");
+  }
+  function flashBtn(btn, label, good) {
+    if (!btn) return;
+    if (btn._orig === undefined) btn._orig = btn.textContent;
+    btn.textContent = label;
+    btn.classList.toggle("copied", !!good);
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { btn.textContent = btn._orig; btn.classList.remove("copied"); btn._orig = undefined; }, 1500);
+  }
+  function legacyCopy(text) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.cssText = "position:fixed;top:-1000px;opacity:0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      var ok = document.execCommand("copy"); document.body.removeChild(ta); return ok;
+    } catch (e) { return false; }
+  }
+  function copyText(text, btn, emptyLabel) {
+    if (!text) { flashBtn(btn, emptyLabel || "Nothing to copy"); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { flashBtn(btn, "✓ Copied", true); },
+        function () { var ok = legacyCopy(text); flashBtn(btn, ok ? "✓ Copied" : "✗ Copy failed", ok); }
+      );
+    } else {
+      var ok = legacyCopy(text); flashBtn(btn, ok ? "✓ Copied" : "✗ Copy failed", ok);
+    }
+  }
 
   function renderRounds() {
     var host = $("rounds");
@@ -504,6 +542,8 @@
             '<button class="moves-toggle" data-idx="' + idx + '">' + (g.movesRaw ? '✎ Edit moves' : '＋ Add moves') + '</button>' +
             '<button class="board-entry" data-idx="' + idx + '">♟ On board</button>' +
             (g.movesRaw ? '<button class="review" data-idx="' + idx + '">▶ Review</button>' : '') +
+            (g.movesRaw ? '<button class="copy-pgn" data-idx="' + idx + '">📋 Copy PGN</button>' : '') +
+            (g.movesRaw ? '<button class="copy-link" data-idx="' + idx + '">🔗 Copy link</button>' : '') +
           '</div>' +
           '<div class="moves-editor" data-idx="' + idx + '">' +
             '<textarea placeholder="Paste a PGN or type the moves:  1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 ...">' + escapeHTML(g.movesRaw || "") + '</textarea>' +
@@ -554,6 +594,17 @@
     host.querySelectorAll(".game-tools .review").forEach(function (btn) {
       btn.addEventListener("click", function () {
         reviewGame(parseInt(btn.getAttribute("data-idx"), 10));
+      });
+    });
+    host.querySelectorAll(".copy-pgn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = parseInt(btn.getAttribute("data-idx"), 10);
+        copyText(buildPGN(state.games[idx], idx), btn);
+      });
+    });
+    host.querySelectorAll(".copy-link").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        copyText(shareLink(parseInt(btn.getAttribute("data-idx"), 10)), btn);
       });
     });
     host.querySelectorAll(".board-entry").forEach(function (btn) {
@@ -628,6 +679,7 @@
   $("startBtn").addEventListener("click", start);
   $("resetBtn").addEventListener("click", reset);
   $("printBtn").addEventListener("click", function () { window.print(); });
+  $("copyAllBtn").addEventListener("click", function () { copyText(buildAllPGN(), $("copyAllBtn"), "No games recorded yet"); });
   $("editBtn").addEventListener("click", edit);
 
   // Restore a session in progress
