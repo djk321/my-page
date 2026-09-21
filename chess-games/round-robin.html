@@ -616,7 +616,7 @@
           if (res) state.games[idx].result = res;
           save();
           render();
-        });
+        }, idx + 1);
       });
     });
   }
@@ -696,7 +696,7 @@
 <!-- Board-entry modal -->
 <div class="rr-overlay" id="rrOverlay">
   <div class="rr-modal">
-    <h3>Enter game on board</h3>
+    <h3 id="rrTitle">Enter game on board</h3>
     <div class="rr-sub" id="rrPlayers"></div>
     <div class="rr-boardwrap"><div id="rrBoard"></div></div>
     <div class="rr-status" id="rrStatus"></div>
@@ -817,9 +817,10 @@
   var st, moves, states, sel, targets, saveCb;
   var $ = function (id) { return document.getElementById(id); };
 
-  window.openBoardEntry = function (whiteName, blackName, cb) {
+  window.openBoardEntry = function (whiteName, blackName, cb, round) {
     saveCb = cb;
     st = parseFEN(START_FEN); moves = []; states = [cloneState(st)]; sel = null; targets = [];
+    $("rrTitle").textContent = round ? 'Enter game on board — Round ' + round : 'Enter game on board';
     $("rrPlayers").innerHTML = '<b>' + esc(whiteName) + '</b> (White)  vs  <b>' + esc(blackName) + '</b> (Black)';
     render();
     $("rrOverlay").classList.add("open");
