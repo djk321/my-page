@@ -100,6 +100,15 @@
     /* Schedule */
     #results { display: none; flex-direction: column; gap: 24px; }
     .round { border: 1px solid #2a2a3a; border-radius: 14px; overflow: hidden; }
+    .round.just-edited { animation: rr-flash 2.2s ease-out; }
+    @keyframes rr-flash {
+      0%   { box-shadow: 0 0 0 2px #c9a84c, 0 0 26px rgba(201,168,76,0.75); border-color: #c9a84c; }
+      55%  { box-shadow: 0 0 0 2px #c9a84c, 0 0 18px rgba(201,168,76,0.55); border-color: #c9a84c; }
+      100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); border-color: #2a2a3a; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .round.just-edited { animation: none; box-shadow: 0 0 0 2px #c9a84c; }
+    }
     .round-head {
       background: #22222e; padding: 9px 16px; font-size: 12px; letter-spacing: 1px;
       text-transform: uppercase; color: #c9a84c; display: flex; justify-content: space-between; align-items: center;
@@ -519,6 +528,7 @@
     state.games.forEach(function (g, idx) {
       var round = document.createElement("div");
       round.className = "round";
+      round.id = "round-" + idx;
 
       var drawBtn = state.draws === "yes"
         ? '<button data-idx="' + idx + '" data-val="d" class="' + (g.result === "d" ? "sel" : "") + '">½–½ Draw</button>'
@@ -616,9 +626,20 @@
           if (res) state.games[idx].result = res;
           save();
           render();
-        }, idx + 1);
+          highlightRound(idx);
+        }, idx + 1, function () { highlightRound(idx); });
       });
     });
+  }
+
+  function highlightRound(idx) {
+    var el = document.getElementById("round-" + idx);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.remove("just-edited");
+    void el.offsetWidth; // force reflow so the animation restarts on repeat visits
+    el.classList.add("just-edited");
+    setTimeout(function () { el.classList.remove("just-edited"); }, 2200);
   }
 
   function renderStandings() {
@@ -814,11 +835,11 @@
   }
 
   // ── Entry UI (linear game) ──
-  var st, moves, states, sel, targets, saveCb;
+  var st, moves, states, sel, targets, saveCb, closedCb;
   var $ = function (id) { return document.getElementById(id); };
 
-  window.openBoardEntry = function (whiteName, blackName, cb, round) {
-    saveCb = cb;
+  window.openBoardEntry = function (whiteName, blackName, cb, round, onClose) {
+    saveCb = cb; closedCb = onClose;
     st = parseFEN(START_FEN); moves = []; states = [cloneState(st)]; sel = null; targets = [];
     $("rrTitle").textContent = round ? 'Enter game on board — Round ' + round : 'Enter game on board';
     $("rrPlayers").innerHTML = '<b>' + esc(whiteName) + '</b> (White)  vs  <b>' + esc(blackName) + '</b> (Black)';
@@ -826,6 +847,7 @@
     $("rrOverlay").classList.add("open");
   };
   function closeModal() { $("rrOverlay").classList.remove("open"); }
+  function cancelModal() { closeModal(); if (closedCb) closedCb(); }
 
   function render() { renderBoard(); renderMoves(); renderStatus(); }
   function renderBoard() {
@@ -876,7 +898,7 @@
   function restart() { st = parseFEN(START_FEN); moves = []; states = [cloneState(st)]; sel = null; targets = []; render(); }
   function buildMovetext() { var out = "", i; for (i = 0; i < moves.length; i++) { if (i % 2 === 0) out += (i / 2 + 1) + ". "; out += moves[i] + " "; } return out.trim(); }
   function saveGame() {
-    if (!moves.length) { closeModal(); return; }
+    if (!moves.length) { cancelModal(); return; }
     var res = null, legal = allLegalMoves(st);
     if (legal.length === 0) res = isInCheck(st, st.turn) ? (st.turn === "w" ? "b" : "w") : "d";
     var text = buildMovetext();
@@ -903,8 +925,8 @@
   $("rrSave").addEventListener("click", saveGame);
   $("rrUndo").addEventListener("click", undo);
   $("rrRestart").addEventListener("click", restart);
-  $("rrCancel").addEventListener("click", closeModal);
-  $("rrOverlay").addEventListener("click", function (e) { if (e.target === $("rrOverlay")) closeModal(); });
+  $("rrCancel").addEventListener("click", cancelModal);
+  $("rrOverlay").addEventListener("click", function (e) { if (e.target === $("rrOverlay")) cancelModal(); });
 })();
 </script>
 </body>
