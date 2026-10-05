@@ -62,26 +62,10 @@
   .sound-toggle { position: fixed; top: 14px; right: 16px; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 0.78rem; color: #94a3b8; transition: all 0.15s; z-index: 101; }
   .sound-toggle:hover { border-color: #7dd3fc; color: #7dd3fc; }
 
-  .terms-btn { position: fixed; top: 14px; left: 16px; background: #d97706; color: #fff; border: none; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.5px; transition: background 0.15s; z-index: 101; }
-  .terms-btn:hover { background: #b45309; }
-
-  /* ── Terms page ── */
-  #terms-page { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 820px; }
-  .terms-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 6px; }
-  .terms-header h2 { font-size: 1.1rem; color: #fbbf24; letter-spacing: 2px; text-transform: uppercase; }
-  .terms-header .deck-label { font-size: 0.9rem; color: #fbbf24; letter-spacing: 1px; text-transform: uppercase; }
-  .terms-divider { width: 100%; border: none; border-top: 1.5px solid #64748b; margin-bottom: 24px; }
-  .terms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px 40px; width: 100%; }
-  .term { display: flex; flex-direction: column; gap: 4px; }
-  .term-name { font-size: 0.92rem; font-weight: 700; color: #fbbf24; font-style: italic; text-decoration: underline; text-underline-offset: 2px; }
-  .term-def { font-size: 0.87rem; color: #e2e8f0; line-height: 1.5; }
-  .back-btn { margin-top: 32px; background: #1e293b; color: #7dd3fc; border: 1.5px solid #334155; border-radius: 7px; padding: 10px 24px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .back-btn:hover { background: #273654; border-color: #7dd3fc; }
 
   @media (max-width: 640px) {
     .right-panel { width: 100%; max-width: 340px; }
     .stats { gap: 16px; }
-    .terms-grid { grid-template-columns: 1fr; }
   }
 </style>
   <style>
@@ -118,34 +102,6 @@
 <h2 style="position:absolute;left:-9999px">Pickleball Shot Decision Trainer</h2>
 <h1>🏓 Pickleball Shot Trainer</h1>
 <p class="subtitle">Read the scenario · Study the court · Pick the best shot</p>
-
-<!-- ── TERMS PAGE ───────────────────────────────────────────── -->
-<div id="terms-page">
-  <div class="terms-header">
-    <h2>Helpful Terms</h2>
-    <span class="deck-label">The Pickleball Deck</span>
-  </div>
-  <hr class="terms-divider">
-  <div class="terms-grid">
-    <div class="term"><span class="term-name">Volley</span><span class="term-def">Hitting the ball before it bounces on your side of the court</span></div>
-    <div class="term"><span class="term-name">Drop</span><span class="term-def">Soft shot from backcourt that lands in the opponent's kitchen</span></div>
-    <div class="term"><span class="term-name">Kitchen</span><span class="term-def">Non-volley zone near the net where, if you step in, you can't volley</span></div>
-    <div class="term"><span class="term-name">Drive</span><span class="term-def">Fast, flat shot hit with power toward opponent</span></div>
-    <div class="term"><span class="term-name">Kitchen Line</span><span class="term-def">Line marking the edge of the non-volley zone (the kitchen)</span></div>
-    <div class="term"><span class="term-name">Split-Step</span><span class="term-def">Small hop for balance before reacting to opponent's shot</span></div>
-    <div class="term"><span class="term-name">Dink</span><span class="term-def">Soft shot that lands in the opponent's kitchen (non-volley zone)</span></div>
-    <div class="term"><span class="term-name">Chicken Wing</span><span class="term-def">An awkward bent-elbow defensive shot, usually forced by a body attack</span></div>
-    <div class="term"><span class="term-name">ATP</span><span class="term-def">Around-the-Post — a shot that travels around the net post instead of over it; legal and highly effective when pulled wide</span></div>
-    <div class="term"><span class="term-name">Erne</span><span class="term-def">A volley hit while jumping to the side of the post, outside the kitchen; surprise attack that's hard to defend</span></div>
-    <div class="term"><span class="term-name">Speed-Up</span><span class="term-def">Suddenly accelerating a dink into a fast drive to catch opponents off guard</span></div>
-    <div class="term"><span class="term-name">Reset</span><span class="term-def">A soft, controlled shot used to slow down a fast rally and return to a neutral dinking exchange</span></div>
-    <div class="term"><span class="term-name">Stacking</span><span class="term-def">A doubles positioning strategy where both players line up on the same side after a serve or return to keep dominant sides in play</span></div>
-    <div class="term"><span class="term-name">Third Shot Drop</span><span class="term-def">The serving team's 3rd shot — a soft arc into the kitchen that gives them time to advance to the NVZ</span></div>
-    <div class="term"><span class="term-name">NVZ</span><span class="term-def">Non-Volley Zone — official name for the kitchen; a 7-foot zone on each side of the net where volleys are illegal</span></div>
-    <div class="term"><span class="term-name">Lob</span><span class="term-def">A high arcing shot intended to sail over opponents at the net and land deep in their backcourt</span></div>
-  </div>
-  <button class="back-btn" onclick="hideTerms()">← Back to Trainer</button>
-</div>
 
 <!-- ── GAME PAGE ───────────────────────────────────────────── -->
 <div id="game-page">
@@ -266,16 +222,6 @@ function toggleSound() {
   document.getElementById('sound-toggle').textContent = soundOn ? '🔊 Sound ON' : '🔇 Sound OFF';
 }
 
-function showTerms() {
-  document.getElementById('game-page').style.display = 'none';
-  document.getElementById('terms-page').style.display = 'flex';
-}
-
-function hideTerms() {
-  document.getElementById('terms-page').style.display = 'none';
-  document.getElementById('game-page').style.display = 'block';
-}
-
 // ─── COURT COORDINATE SYSTEM ────────────────────────────────────
 // y=0.0  → TOP   = Opponent baseline
 // y=0.34 → Opponent kitchen (NVZ) line  (7ft / 44ft total ≈ 0.159 from net at 0.5)
@@ -285,8 +231,6 @@ function hideTerms() {
 //
 // x=0.0 → left sideline, x=1.0 → right sideline
 // YOUR side is always at the BOTTOM of the canvas.
-
-const NVZ = 0.159; // 7ft / 44ft = fraction of court from net to kitchen line
 
 const scenarios = [
   // ── BEGINNER ──────────────────────────────────────────────────

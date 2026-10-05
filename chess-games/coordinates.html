@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coordinates Trainer — Game Arcade</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --sq: min(60px, calc((100vw - 72px) / 8)); }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 16px 48px;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #1a1a24;
+      padding: 16px 40px;
+      display: flex;
+      gap: 32px;
+      justify-content: center;
+      border-bottom: 1px solid #2a2a3a;
+      z-index: 100;
+    }
+    nav a {
+      color: #c9a84c;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: #fff; }
+    nav a.active { color: #fff; border-bottom: 2px solid #c9a84c; padding-bottom: 2px; }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { margin-top: 8px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    #trainer-wrap {
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 880px;
+    }
+
+    /* Board */
+    .board-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .board-outer { display: flex; align-items: center; gap: 6px; }
+
+    .rank-labels {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      height: calc(var(--sq) * 8);
+      width: 18px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      font-weight: 600;
+      user-select: none;
+    }
+    .file-labels {
+      display: flex;
+      justify-content: space-around;
+      width: calc(var(--sq) * 8);
+      color: #666;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 24px;
+      user-select: none;
+    }
+    .hide-labels .rank-labels, .hide-labels .file-labels { visibility: hidden; }
+
+    .board-box { position: relative; }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, var(--sq));
+      grid-template-rows: repeat(8, var(--sq));
+      border: 3px solid #2a2a3a;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .sq {
+      width: var(--sq); height: var(--sq);
+      display: flex; align-items: center; justify-content: center;
+      font-size: calc(var(--sq) * 0.67); line-height: 1;
+      cursor: pointer; user-select: none; position: relative;
+      transition: background 0.1s;
+    }
+    .sq.light { background: #f0d9b5; }
+    .sq.dark  { background: #b58863; }
+    .sq.good   { background: rgba(80,200,80,0.85) !important; }
+    .sq.bad    { background: rgba(220,80,80,0.85) !important; }
+    .sq.reveal { box-shadow: inset 0 0 0 4px #6edf8a; }
+    .sq.target { box-shadow: inset 0 0 0 5px #c9a84c; animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 50% { box-shadow: inset 0 0 0 5px rgba(201,168,76,0.35); } }
+    .piece-w { color: #fff; -webkit-text-stroke: 1.5px #333; paint-order: stroke fill; pointer-events: none; }
+    .piece-b { color: #1a1a1a; -webkit-text-stroke: 1px #bbb; paint-order: stroke fill; pointer-events: none; }
+
+    /* Big prompt floating over the board */
+    #prompt {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      font-size: calc(var(--sq) * 1.8);
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.75), 0 0 2px #000;
+      letter-spacing: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    #prompt.show { opacity: 0.92; }
+    #prompt.pop { animation: pop 0.18s ease-out; }
+    @keyframes pop { from { transform: scale(0.8); } to { transform: scale(1); } }
+
+    /* Timer bar */
+    .timer-track {
+      width: calc(var(--sq) * 8);
+      height: 6px;
+      margin-left: 24px;
+      background: #2a2a3a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #timer-bar { height: 100%; width: 100%; background: #c9a84c; transition: width 0.1s linear; }
+    #timer-bar.low { background: #f07070; }
+
+    /* Side panel */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 240px;
+      max-width: 280px;
+      flex: 1;
+    }
+
+    .info-card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .info-card h2 { font-size: 15px; font-weight: 700; color: #c9a84c; text-transform: uppercase; letter-spacing: 1px; }
+
+    .info-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .info-row span:first-child { color: #888; }
+    .info-row span:last-child { font-weight: 600; }
+
+    /* Segmented toggles (White / Black etc.) */
+    .seg {
+      display: flex;
+      background: #0f0f14;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .seg button {
+      flex: 1;
+      background: none;
+      border: none;
+      border-radius: 9px;
+      color: #888;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 6px;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s;
+    }
+    .seg button:hover { color: #fff; }
+    .seg button.on { background: rgba(201,168,76,0.18); color: #c9a84c; }
+    .seg-hint { font-size: 12px; color: #888; text-align: center; }
+
+    .check-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #ccc; cursor: pointer; user-select: none; }
+    .check-row input { accent-color: #c9a84c; width: 16px; height: 16px; cursor: pointer; }
+
+    #status-box {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 18px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      min-height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #c9a84c;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #status-box.success { border-color: rgba(80,200,80,0.5); background: rgba(80,200,80,0.08); color: #6edf8a; }
+    #status-box.error   { border-color: rgba(220,80,80,0.5); background: rgba(220,80,80,0.08); color: #f07070; }
+
+    .score-big { display: flex; justify-content: space-around; text-align: center; }
+    .score-big div { display: flex; flex-direction: column; gap: 2px; }
+    .score-big b { font-size: 30px; line-height: 1.1; }
+    .score-big small { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    #s-right { color: #6edf8a; }
+    #s-wrong { color: #f07070; }
+
+    #missed { font-size: 13px; color: #aaa; line-height: 1.6; }
+    #missed b { color: #f07070; }
+
+    .btn-row { display: flex; flex-direction: column; gap: 10px; }
+    .btn {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      color: #c9a84c;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s;
+      letter-spacing: 0.3px;
+    }
+    .btn:hover { border-color: #c9a84c; background: rgba(201,168,76,0.08); }
+    .btn.primary { background: rgba(201,168,76,0.18); border-color: #c9a84c; font-size: 16px; padding: 14px 16px; }
+
+    footer { margin-top: 48px; font-size: 12px; color: #333; letter-spacing: 1px; }
+
+    @media (max-width: 600px) {
+      .side-panel { max-width: 360px; }
+    }
+  </style>
+  <style>
+    /* Mobile hamburger nav */
+    .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.6rem; line-height: 1; cursor: pointer; padding: 0 4px; font-family: inherit; }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; align-items: center; gap: 0; padding-top: 12px; padding-bottom: 12px; }
+      .nav-toggle { display: block; }
+      nav a { display: none; width: 100%; text-align: center; padding: 11px 0; }
+      nav.open a { display: block; }
+    }
+  </style>
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32.png">
+  <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+  <meta name="theme-color" content="#1a1a24">
+  <link rel="manifest" href="../site.webmanifest">
+</head>
+<body>
+
+  <nav>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" onclick="var n=this.parentNode,o=n.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="index.html" class="active">Chess Tools</a>
+    <a href="../chess-mashup/index.html">Chess Mashup</a>
+    <a href="../game-fusion/index.html">Game Fusion</a>
+    <a href="../pickleball/index.html">Pickleball</a>
+    <a href="../bocce/rules.html">Bocce Ball</a>
+  </nav>
+
+  <header>
+    <a data-back-btn href="javascript:history.back()" style="display:inline-flex;align-items:center;padding:6px 14px;font-size:13px;border:1px solid #c9a84c;border-radius:8px;background:rgba(201,168,76,0.12);color:#c9a84c;text-decoration:none;font-weight:600;letter-spacing:0.5px;margin-bottom:16px;transition:background 0.2s;">← Back</a>
+    <script>(function(){var r=decodeURIComponent(document.referrer),map=[[/\/chess-mashup\/index\.html/,'Chess Mashup'],[/\/chess-games\/index\.html/,'Chess Tools'],[/\/game-fusion\/index\.html/,'Game Fusion'],[/\/chess\.html/,'Chess'],[/\/chess.openings\.html/i,'Chess Openings'],[/\/game.review\.html/i,'Game Review'],[/\/index\.html$/,'Arcade']],label=null;for(var i=0;i<map.length;i++)if(map[i][0].test(r)){label=map[i][1];break;}if(label)document.querySelectorAll('[data-back-btn]').forEach(function(b){b.textContent='← Back to '+label;});})();</script>
+    <h1>🎯 Coordinates Trainer</h1>
+    <p>Click the square that matches the coordinate as fast as you can</p>
+  </header>
+
+  <div id="trainer-wrap">
+    <div class="board-col" id="board-col">
+      <div class="board-outer">
+        <div class="rank-labels" id="rank-labels"></div>
+        <div class="board-box">
+          <div id="board"></div>
+          <div id="prompt"></div>
+        </div>
+      </div>
+      <div class="file-labels" id="file-labels"></div>
+      <div class="timer-track"><div id="timer-bar"></div></div>
+    </div>
+
+    <div class="side-panel">
+      <div id="status-box">Press Start — you have 30 seconds.</div>
+
+      <div class="info-card">
+        <div class="score-big">
+          <div><b id="s-right">0</b><small>Correct</small></div>
+          <div><b id="s-wrong">0</b><small>Misses</small></div>
+          <div><b id="s-time">30</b><small>Seconds</small></div>
+        </div>
+        <div id="missed"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" id="btn-start">▶ Start</button>
+      </div>
+
+      <div class="info-card">
+        <h2>Settings</h2>
+        <div class="seg" id="seg-mode">
+          <button data-v="find" class="on">Find square</button>
+          <button data-v="name">Name square</button>
+        </div>
+        <div class="seg-hint" id="mode-hint"></div>
+        <div class="seg" id="seg-color">
+          <button data-v="w" class="on">White</button>
+          <button data-v="b">Black</button>
+          <button data-v="r">Random</button>
+        </div>
+        <div class="seg-hint" id="color-hint"></div>
+        <label class="check-row"><input type="checkbox" id="opt-labels" checked> Show coordinates on board</label>
+        <label class="check-row"><input type="checkbox" id="opt-pieces"> Show pieces</label>
+      </div>
+
+      <div class="info-card">
+        <h2>Best Scores</h2>
+        <div class="info-row"><span>Find — as White</span><span id="best-find-w">—</span></div>
+        <div class="info-row"><span>Find — as Black</span><span id="best-find-b">—</span></div>
+        <div class="info-row"><span>Name — as White</span><span id="best-name-w">—</span></div>
+        <div class="info-row"><span>Name — as Black</span><span id="best-name-b">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <footer style="margin-top:48px;font-size:12px;color:#666;letter-spacing:1px;text-align:center;">Chess Tools &mdash; Coordinates Trainer</footer>
+
+<script>
+const PIECES = {
+  wK:'♔', wQ:'♕', wR:'♖', wB:'♗', wN:'♘', wP:'♙',
+  bK:'♚', bQ:'♛', bR:'♜', bB:'♝', bN:'♞', bP:'♟'
+};
+const START_POS = (() => {
+  const pos = {}, back = 'RNBQKBNR';
+  for (let c = 0; c < 8; c++) {
+    const f = 'abcdefgh'[c];
+    pos[f + 1] = 'w' + back[c]; pos[f + 2] = 'wP';
+    pos[f + 8] = 'b' + back[c]; pos[f + 7] = 'bP';
+  }
+  return pos;
+})();
+const ROUND_SECONDS = 30;
+
+let mode = 'find';        // 'find' = click the named square, 'name' = name the highlighted square
+let colorPref = 'w';      // 'w' | 'b' | 'r'
+let side = 'w';           // side actually being played this round
+let running = false;
+let target = null;
+let right = 0, wrong = 0;
+let missed = [];
+let endTime = 0;
+let tick = null;
+let locked = false;       // brief pause after a miss
+
+// ---------- storage (safe) ----------
+function loadBest() {
+  try { return JSON.parse(localStorage.getItem('coord_best') || '{}'); } catch { return {}; }
+}
+function saveBest(b) {
+  try { localStorage.setItem('coord_best', JSON.stringify(b)); } catch {}
+}
+function renderBest() {
+  const b = loadBest();
+  ['find-w','find-b','name-w','name-b'].forEach(k => {
+    document.getElementById('best-' + k).textContent = b[k] != null ? b[k] : '—';
+  });
+}
+
+// ---------- board ----------
+function randomSquare() {
+  let sq;
+  do { sq = 'abcdefgh'[Math.floor(Math.random() * 8)] + (Math.floor(Math.random() * 8) + 1); }
+  while (sq === target);
+  return sq;
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  const flipped = side === 'b';
+  const showPieces = document.getElementById('opt-pieces').checked;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const row = flipped ? r : 7 - r;
+      const col = flipped ? 7 - c : c;
+      const sq = 'abcdefgh'[col] + (row + 1);
+      const isLight = (col + row) % 2 === 1;
+
+      const div = document.createElement('div');
+      div.className = 'sq ' + (isLight ? 'light' : 'dark');
+      div.dataset.sq = sq;
+
+      if (showPieces && START_POS[sq]) {
+        const span = document.createElement('span');
+        span.className = START_POS[sq][0] === 'w' ? 'piece-w' : 'piece-b';
+        span.textContent = PIECES[START_POS[sq]];
+        div.appendChild(span);
+      }
+      if (running && mode === 'name' && sq === target) div.classList.add('target');
+
+      div.addEventListener('click', () => handleSquareClick(sq));
+      board.appendChild(div);
+    }
+  }
+
+  const rankLabels = document.getElementById('rank-labels');
+  rankLabels.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    const d = document.createElement('div');
+    d.textContent = flipped ? r + 1 : 8 - r;
+    rankLabels.appendChild(d);
+  }
+  const fileLabels = document.getElementById('file-labels');
+  fileLabels.innerHTML = '';
+  for (const f of (flipped ? 'hgfedcba' : 'abcdefgh')) {
+    const d = document.createElement('div');
+    d.textContent = f;
+    fileLabels.appendChild(d);
+  }
+}
+
+function sqEl(sq) { return document.querySelector(`[data-sq="${sq}"]`); }
+
+function flash(sq, cls, ms = 350) {
+  const el = sqEl(sq);
+  if (!el) return;
+  el.classList.add(cls);
+  setTimeout(() => el.classList.remove(cls), ms);
+}
+
+function setStatus(msg, type = '') {
+  const box = document.getElementById('status-box');
+  box.textContent = msg;
+  box.className = type;
+}
+
+function showPrompt(text) {
+  const p = document.getElementById('prompt');
+  p.textContent = text;
+  p.classList.add('show');
+  p.classList.remove('pop'); void p.offsetWidth; p.classList.add('pop');
+}
+function hidePrompt() { document.getElementById('prompt').classList.remove('show'); }
+
+function updateScore() {
+  document.getElementById('s-right').textContent = right;
+  document.getElementById('s-wrong').textContent = wrong;
+}
+
+// ---------- round ----------
+function nextTarget() {
+  target = randomSquare();
+  if (mode === 'find') {
+    showPrompt(target);
+  } else {
+    hidePrompt();
+    document.querySelectorAll('.sq.target').forEach(e => e.classList.remove('target'));
+    sqEl(target).classList.add('target');
+  }
+}
+
+function startRound() {
+  side = colorPref === 'r' ? (Math.random() < 0.5 ? 'w' : 'b') : colorPref;
+  running = true;
+  locked = false;
+  right = 0; wrong = 0; missed = [];
+  target = null;
+  updateScore();
+  document.getElementById('missed').innerHTML = '';
+  document.getElementById('btn-start').textContent = '■ Stop';
+  setStatus(mode === 'find' ? 'Click the square shown on the board!' : 'Type the highlighted square (e.g. e4)', '');
+  renderBoard();
+  nextTarget();
+
+  endTime = Date.now() + ROUND_SECONDS * 1000;
+  clearInterval(tick);
+  tick = setInterval(updateTimer, 100);
+  updateTimer();
+}
+
+function updateTimer() {
+  const left = Math.max(0, endTime - Date.now());
+  document.getElementById('s-time').textContent = Math.ceil(left / 1000);
+  const bar = document.getElementById('timer-bar');
+  bar.style.width = (left / (ROUND_SECONDS * 1000) * 100) + '%';
+  bar.classList.toggle('low', left < 5000);
+  if (left <= 0) endRound(true);
+}
+
+function endRound(finished) {
+  running = false;
+  clearInterval(tick);
+  hidePrompt();
+  typed = '';
+  document.getElementById('btn-start').textContent = '▶ Play again';
+  document.getElementById('timer-bar').style.width = finished ? '0%' : '100%';
+  document.getElementById('timer-bar').classList.remove('low');
+  if (!finished) document.getElementById('s-time').textContent = ROUND_SECONDS;
+  renderBoard();
+
+  if (!finished) { setStatus('Stopped. Press Start to try again.', ''); return; }
+
+  const key = mode + '-' + side;
+  const best = loadBest();
+  const total = right + wrong;
+  const acc = total ? Math.round(right / total * 100) : 0;
+  let msg = `Time! ${right} correct · ${acc}% accuracy`;
+  if (right > 0 && (best[key] == null || right > best[key])) {
+    best[key] = right;
+    saveBest(best);
+    renderBest();
+    msg = `New best! ${right} correct as ${side === 'w' ? 'White' : 'Black'} 🎉`;
+  }
+  setStatus(msg, 'success');
+
+  if (missed.length) {
+    const uniq = [...new Set(missed)];
+    document.getElementById('missed').innerHTML = 'Squares to review: ' + uniq.map(s => `<b>${s}</b>`).join(', ');
+  } else if (right > 0) {
+    document.getElementById('missed').textContent = 'Perfect round — no misses!';
+  }
+}
+
+function recordAnswer(isRight, clickedSq) {
+  if (isRight) {
+    right++;
+    flash(target, 'good');
+    updateScore();
+    nextTarget();
+  } else {
+    wrong++;
+    missed.push(target);
+    updateScore();
+    if (clickedSq) flash(clickedSq, 'bad', 450);
+    flash(target, 'reveal', 450);
+    // Short pause so the correct square registers before moving on
+    locked = true;
+    setTimeout(() => { locked = false; if (running) nextTarget(); }, 450);
+  }
+}
+
+function handleSquareClick(sq) {
+  if (!running || locked || mode !== 'find') return;
+  recordAnswer(sq === target, sq);
+}
+
+// ---------- "Name square" typing ----------
+let typed = '';
+document.addEventListener('keydown', e => {
+  if (!running || mode !== 'name' || locked) return;
+  const k = e.key.toLowerCase();
+  if (/^[a-h]$/.test(k)) { typed = k; showPrompt(k + '_'); }
+  else if (/^[1-8]$/.test(k) && typed) {
+    const guess = typed + k;
+    typed = '';
+    showPrompt(guess);
+    setTimeout(hidePrompt, 250);
+    recordAnswer(guess === target, guess === target ? null : guess);
+  }
+  else if (k === 'backspace' || k === 'escape') { typed = ''; hidePrompt(); }
+});
+
+// On-screen file/rank picker for touch devices in "Name" mode
+function buildNamePad() {
+  let pad = document.getElementById('name-pad');
+  if (pad) return pad;
+  pad = document.createElement('div');
+  pad.id = 'name-pad';
+  pad.className = 'info-card';
+  pad.style.gap = '8px';
+  pad.innerHTML = '<div class="seg" id="pad-files"></div><div class="seg" id="pad-ranks"></div>';
+  document.querySelector('.btn-row').after(pad);
+  for (const f of 'abcdefgh') {
+    const b = document.createElement('button');
+    b.textContent = f;
+    b.onclick = () => { if (!running || locked) return; typed = f; showPrompt(f + '_');
+      pad.querySelectorAll('#pad-files button').forEach(x => x.classList.toggle('on', x === b)); };
+    pad.querySelector('#pad-files').appendChild(b);
+  }
+  for (let r = 1; r <= 8; r++) {
+    const b = document.createElement('button');
+    b.textContent = r;
+    b.onclick = () => {
+      if (!running || locked || !typed) return;
+      const guess = typed + r;
+      typed = '';
+      pad.querySelectorAll('#pad-files button').forEach(x => x.classList.remove('on'));
+      showPrompt(guess);
+      setTimeout(hidePrompt, 250);
+      recordAnswer(guess === target, guess === target ? null : guess);
+    };
+    pad.querySelector('#pad-ranks').appendChild(b);
+  }
+  return pad;
+}
+
+// ---------- settings ----------
+function wireSeg(id, onPick) {
+  const seg = document.getElementById(id);
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    if (running) endRound(false);
+    seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    onPick(b.dataset.v);
+  }));
+}
+
+function updateHints() {
+  document.getElementById('color-hint').textContent =
+    colorPref === 'w' ? "Play from White's perspective." :
+    colorPref === 'b' ? "Play from Black's perspective." :
+    'A random side each round.';
+  document.getElementById('mode-hint').textContent =
+    mode === 'find' ? 'A coordinate appears — click that square.' :
+    'A square glows — type its name (or tap the letter + number).';
+  buildNamePad().style.display = mode === 'name' ? 'flex' : 'none';
+}
+
+wireSeg('seg-mode', v => { mode = v; updateHints(); });
+wireSeg('seg-color', v => {
+  colorPref = v;
+  if (v !== 'r') side = v;
+  updateHints();
+  renderBoard();
+});
+
+document.getElementById('opt-labels').addEventListener('change', e => {
+  document.getElementById('board-col').classList.toggle('hide-labels', !e.target.checked);
+});
+document.getElementById('opt-pieces').addEventListener('change', () => {
+  renderBoard();
+  if (running && mode === 'name' && target) sqEl(target).classList.add('target');
+});
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  if (running) endRound(false); else startRound();
+});
+
+updateHints();
+renderBest();
+renderBoard();
+</script>
+</body>
+</html>
